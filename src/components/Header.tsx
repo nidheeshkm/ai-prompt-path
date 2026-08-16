@@ -36,8 +36,8 @@ export default function Header() {
               <Link href="/dashboard" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">
                 Dashboard
               </Link>
-              <Link href="/learn/1" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">
-                Course
+              <Link href="/courses" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">
+                Courses
               </Link>
 
               {/* Streak */}
@@ -115,7 +115,7 @@ export default function Header() {
           </div>
           <nav className="flex flex-col gap-2">
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Dashboard</Link>
-            <Link href="/learn/1" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Course</Link>
+            <Link href="/courses" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Courses</Link>
             <button onClick={() => { signOut(); setMenuOpen(false) }} className="text-left text-gray-400 hover:text-red-400 py-2">Sign Out</button>
           </nav>
         </div>

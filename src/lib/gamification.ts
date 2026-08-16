@@ -1,3 +1,5 @@
+import type { Course } from '@/data/curriculum'
+
 export const LEVELS = [
   { level: 1, xpRequired: 0, title: 'Novice' },
   { level: 2, xpRequired: 300, title: 'Apprentice' },
@@ -22,8 +24,7 @@ export function getLevelForXp(xp: number) {
 
 export function getNextLevel(xp: number) {
   const current = getLevelForXp(xp)
-  const next = LEVELS.find(l => l.level === current.level + 1)
-  return next || null
+  return LEVELS.find(l => l.level === current.level + 1) || null
 }
 
 export function getXpProgress(xp: number) {
@@ -53,30 +54,53 @@ export type BadgeDefinition = {
   icon: string
 }
 
-export const BADGE_DEFINITIONS: BadgeDefinition[] = [
-  { id: 'first_lesson', name: 'First Steps', description: 'Complete your first lesson', icon: '🎯' },
-  { id: 'chapter_1', name: 'Foundation Layer', description: 'Complete Chapter 1', icon: '🧱' },
-  { id: 'chapter_2', name: 'Prompt Crafter', description: 'Complete Chapter 2', icon: '✍️' },
-  { id: 'chapter_3', name: 'Chain Linker', description: 'Complete Chapter 3', icon: '🔗' },
-  { id: 'chapter_4', name: 'Doc Loader', description: 'Complete Chapter 4', icon: '📄' },
-  { id: 'chapter_5', name: 'Vector Voyager', description: 'Complete Chapter 5', icon: '🧭' },
-  { id: 'chapter_6', name: 'RAG Builder', description: 'Complete Chapter 6', icon: '🏗️' },
-  { id: 'chapter_7', name: 'RAG Master', description: 'Complete Chapter 7', icon: '🎓' },
-  { id: 'chapter_8', name: 'Memory Keeper', description: 'Complete Chapter 8', icon: '🧠' },
-  { id: 'chapter_9', name: 'Tool Smith', description: 'Complete Chapter 9', icon: '🔧' },
-  { id: 'chapter_10', name: 'Agent Handler', description: 'Complete Chapter 10', icon: '🤖' },
-  { id: 'chapter_11', name: 'Graph Thinker', description: 'Complete Chapter 11', icon: '📊' },
-  { id: 'chapter_12', name: 'Graph Architect', description: 'Complete Chapter 12', icon: '🏛️' },
-  { id: 'chapter_13', name: 'Multi-Agent Commander', description: 'Complete Chapter 13', icon: '👥' },
-  { id: 'chapter_14', name: 'Observer', description: 'Complete Chapter 14', icon: '🔭' },
-  { id: 'chapter_15', name: 'Security Guard', description: 'Complete Chapter 15', icon: '🛡️' },
-  { id: 'chapter_16', name: 'Production Ready', description: 'Complete Chapter 16', icon: '🚀' },
-  { id: 'streak_3', name: 'Getting Warm', description: '3-day learning streak', icon: '🔥' },
-  { id: 'streak_7', name: 'On Fire', description: '7-day learning streak', icon: '🔥' },
-  { id: 'streak_14', name: 'Unstoppable', description: '14-day learning streak', icon: '💥' },
-  { id: 'streak_30', name: 'Legendary', description: '30-day learning streak', icon: '⚡' },
-  { id: 'perfect_quiz', name: 'Perfect Score', description: 'Score 100% on a quiz', icon: '💯' },
-  { id: 'first_try', name: 'Nailed It', description: 'Pass a coding task on first attempt', icon: '🎯' },
-  { id: 'halfway', name: 'Halfway There', description: 'Complete 40 topics', icon: '⛰️' },
-  { id: 'course_complete', name: 'LangChain Hero', description: 'Complete the entire course', icon: '🏆' },
+// ── Global badges — not tied to any specific course ──────────────
+
+export const GLOBAL_BADGE_DEFINITIONS: BadgeDefinition[] = [
+  { id: 'first_lesson',  name: 'First Steps',   description: 'Complete your very first lesson on PromptPath', icon: '🎯' },
+  { id: 'halfway',       name: 'Halfway There',  description: 'Complete 40 topics across all enrolled courses',  icon: '⛰️' },
+  { id: 'perfect_quiz',  name: 'Perfect Score',  description: 'Score 100% on a quiz',                           icon: '💯' },
+  { id: 'first_try',     name: 'Nailed It',      description: 'Pass a coding task on the first attempt',        icon: '🎯' },
+  { id: 'streak_3',      name: 'Getting Warm',   description: '3-day learning streak',                          icon: '🔥' },
+  { id: 'streak_7',      name: 'On Fire',        description: '7-day learning streak',                          icon: '🔥' },
+  { id: 'streak_14',     name: 'Unstoppable',    description: '14-day learning streak',                         icon: '💥' },
+  { id: 'streak_30',     name: 'Legendary',      description: '30-day learning streak',                         icon: '⚡' },
 ]
+
+// ── Per-course badges — generated dynamically from a Course object ──
+
+export function getCourseBadgeDefinitions(course: Course): BadgeDefinition[] {
+  const chapterBadges: BadgeDefinition[] = course.chapters.map(ch => ({
+    id: `chapter_${course.id}_${ch.id}`,
+    name: ch.title,
+    description: `Complete Chapter ${ch.id} of ${course.title}`,
+    icon: ch.icon,
+  }))
+
+  return [
+    ...chapterBadges,
+    {
+      id: `course_complete_${course.id}`,
+      name: `${course.title} Champion`,
+      description: `Complete all chapters in ${course.title}`,
+      icon: '🏆',
+    },
+    {
+      id: `cert_${course.id}`,
+      name: `${course.title} Graduate`,
+      description: `Earned the ${course.title} certificate`,
+      icon: '🎓',
+    },
+  ]
+}
+
+// ── Combined view for the dashboard ─────────────────────────────
+
+export function getAllBadgeDefinitions(enrolledCourses: Course[]): BadgeDefinition[] {
+  const courseBadges = enrolledCourses.flatMap(getCourseBadgeDefinitions)
+  return [...GLOBAL_BADGE_DEFINITIONS, ...courseBadges]
+}
+
+// Legacy export so any remaining code that imports BADGE_DEFINITIONS still compiles.
+// The dashboard now uses getAllBadgeDefinitions() instead.
+export const BADGE_DEFINITIONS = GLOBAL_BADGE_DEFINITIONS

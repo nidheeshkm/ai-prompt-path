@@ -3,52 +3,62 @@
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { useProgress } from '@/lib/progress-context'
-import { curriculum, getTopicById, getNextTopic, getPrevTopic, getAllTopics } from '@/data/curriculum'
+import { useEnrollment } from '@/lib/enrollment-context'
+import { getCourse, getCourseTopics, getCourseNextTopic, getCoursePrevTopic } from '@/data/curriculum'
 import Sidebar from '@/components/Sidebar'
 import LessonContent from '@/components/LessonContent'
 import QuizComponent from '@/components/QuizComponent'
 import CodeEditor from '@/components/CodeEditor'
-import { ArrowLeft, ChevronLeft, ChevronRight, CheckCircle, Lock, Zap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle, Lock, Zap } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export default function TopicPage() {
-  const params = useParams()
-  const router = useRouter()
+  const { courseId, chapterId, topicId } = useParams<{ courseId: string; chapterId: string; topicId: string }>()
   const { user, loading: authLoading } = useAuth()
-  const { progressMap, isTopicUnlocked, completeTopic } = useProgress()
+  const { progressMap, isTopicUnlocked, completeTopic, getTopicProgress } = useProgress()
+  const { isEnrolled } = useEnrollment()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<'lesson' | 'assessment'>('lesson')
-
-  const topicId = params.topicId as string
-  const chapterId = Number(params.chapterId)
-  const chapter = curriculum.find(c => c.id === chapterId)
-  const topic = chapter?.topics.find(t => t.id === topicId)
-  const topicProgress = progressMap[topicId]
-  const isCompleted = topicProgress?.status === 'completed'
-  const unlocked = isTopicUnlocked(topicId)
-
-  const nextTopicId = topic ? getNextTopic(topicId) : null
-  const prevTopicId = topic ? getPrevTopic(topicId) : null
-  const allTopics = getAllTopics()
-  const nextTopic = nextTopicId ? allTopics.find(t => t.id === nextTopicId) : null
-  const prevTopic = prevTopicId ? allTopics.find(t => t.id === prevTopicId) : null
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login')
   }, [user, authLoading, router])
 
-  if (authLoading || !user) {
-    return <div className="flex-1 flex items-center justify-center"><div className="animate-pulse text-gray-500">Loading...</div></div>
-  }
+  const course = getCourse(courseId)
+  const chapter = course?.chapters.find(c => c.id === Number(chapterId))
+  const topic = chapter?.topics.find(t => t.id === topicId)
+  const topicProgress = getTopicProgress(courseId, topicId)
+  const isCompleted = topicProgress?.status === 'completed'
+  const unlocked = isTopicUnlocked(courseId, topicId)
 
-  if (!chapter || !topic) {
-    return <div className="flex-1 flex items-center justify-center"><p className="text-gray-500">Topic not found</p></div>
+  const nextTopicId = topic ? getCourseNextTopic(courseId, topicId) : null
+  const prevTopicId = topic ? getCoursePrevTopic(courseId, topicId) : null
+  const allTopics = getCourseTopics(courseId)
+  const nextTopic = nextTopicId ? allTopics.find(t => t.id === nextTopicId) : null
+  const prevTopic = prevTopicId ? allTopics.find(t => t.id === prevTopicId) : null
+
+  if (authLoading || !user) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="animate-pulse text-gray-500">Loading…</div>
+    </div>
+  )
+
+  if (!course || !chapter || !topic) return (
+    <div className="flex-1 flex items-center justify-center">
+      <p className="text-gray-500">Topic not found.</p>
+    </div>
+  )
+
+  if (!isEnrolled(courseId)) {
+    router.replace(`/courses/${courseId}`)
+    return null
   }
 
   if (!unlocked) {
     return (
       <>
-        <Sidebar />
+        <Sidebar courseId={courseId} />
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center p-8">
             <Lock className="w-12 h-12 text-gray-600 mx-auto mb-4" />
@@ -56,7 +66,7 @@ export default function TopicPage() {
             <p className="text-gray-400 mb-4">Complete the previous topic to unlock this one.</p>
             {prevTopic && (
               <Link
-                href={`/learn/${prevTopic.id.split('.')[0]}/${prevTopic.id}`}
+                href={`/learn/${courseId}/${prevTopic.chapterId}/${prevTopic.id}`}
                 className="text-emerald-400 hover:text-emerald-300 text-sm font-medium"
               >
                 Go to previous topic &rarr;
@@ -69,23 +79,21 @@ export default function TopicPage() {
   }
 
   const handleComplete = async (score: number) => {
-    await completeTopic(topicId, score)
+    await completeTopic(courseId, topicId, score)
   }
-
-  // Find chapter IDs for nav topics
-  const nextTopicChapterId = nextTopic ? parseInt(nextTopic.id.split('.')[0]) : null
-  const prevTopicChapterId = prevTopic ? parseInt(prevTopic.id.split('.')[0]) : null
 
   return (
     <>
-      <Sidebar />
+      <Sidebar courseId={courseId} />
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto px-4 md:px-8 py-6">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
             <Link href="/dashboard" className="hover:text-gray-300">Dashboard</Link>
             <span>/</span>
-            <Link href={`/learn/${chapter.id}`} className="hover:text-gray-300">Ch.{chapter.id}</Link>
+            <Link href={`/learn/${courseId}`} className="hover:text-gray-300">{course.title}</Link>
+            <span>/</span>
+            <Link href={`/learn/${courseId}/${chapter.id}`} className="hover:text-gray-300">Ch.{chapter.id}</Link>
             <span>/</span>
             <span className="text-gray-300">{topic.id}</span>
           </div>
@@ -116,26 +124,19 @@ export default function TopicPage() {
 
           {/* Tabs */}
           <div className="flex border-b border-gray-800 mb-6">
-            <button
-              onClick={() => setActiveTab('lesson')}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'lesson'
-                  ? 'border-emerald-500 text-emerald-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              Lesson
-            </button>
-            <button
-              onClick={() => setActiveTab('assessment')}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === 'assessment'
-                  ? 'border-emerald-500 text-emerald-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-300'
-              }`}
-            >
-              {topic.assessmentType === 'quiz' ? 'Quiz' : 'Coding Challenge'}
-            </button>
+            {(['lesson', 'assessment'] as const).map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab
+                    ? 'border-emerald-500 text-emerald-400'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {tab === 'lesson' ? 'Lesson' : topic.assessmentType === 'quiz' ? 'Quiz' : 'Coding Challenge'}
+              </button>
+            ))}
           </div>
 
           {/* Content */}
@@ -176,18 +177,18 @@ export default function TopicPage() {
 
           {/* Navigation */}
           <div className="flex justify-between pt-6 border-t border-gray-800">
-            {prevTopic && prevTopicChapterId ? (
+            {prevTopic ? (
               <Link
-                href={`/learn/${prevTopicChapterId}/${prevTopic.id}`}
+                href={`/learn/${courseId}/${prevTopic.chapterId}/${prevTopic.id}`}
                 className="flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200"
               >
                 <ChevronLeft className="w-4 h-4" />
                 {prevTopic.id}: {prevTopic.title}
               </Link>
             ) : <div />}
-            {nextTopic && nextTopicChapterId && isCompleted ? (
+            {nextTopic && isCompleted ? (
               <Link
-                href={`/learn/${nextTopicChapterId}/${nextTopic.id}`}
+                href={`/learn/${courseId}/${nextTopic.chapterId}/${nextTopic.id}`}
                 className="flex items-center gap-1 text-sm text-emerald-400 hover:text-emerald-300"
               >
                 {nextTopic.id}: {nextTopic.title}
@@ -197,6 +198,13 @@ export default function TopicPage() {
               <span className="flex items-center gap-1 text-sm text-gray-600">
                 Complete to unlock next &rarr;
               </span>
+            ) : isCompleted ? (
+              <Link
+                href={`/learn/${courseId}/project`}
+                className="flex items-center gap-1 text-sm text-amber-400 hover:text-amber-300"
+              >
+                Capstone Project &rarr;
+              </Link>
             ) : <div />}
           </div>
         </div>

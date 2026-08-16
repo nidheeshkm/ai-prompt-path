@@ -26,12 +26,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data } = await supabase
+    const { data: existing } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single()
-    setProfile(data)
+
+    if (existing) {
+      setProfile(existing)
+      return
+    }
+
+    // Profile missing (trigger didn't fire or first OAuth login) — create it now.
+    // This uses the service-role path via the admin client on server, but here we
+    // fall back to a user-authed upsert which works once the session is active.
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return
+    const { data: created } = await supabase.from('profiles').upsert({
+      id: userId,
+      display_name:
+        authUser.user_metadata?.display_name ||
+        authUser.user_metadata?.full_name ||
+        authUser.email?.split('@')[0] ||
+        'Learner',
+      avatar_url: authUser.user_metadata?.avatar_url ?? null,
+      xp: 0,
+      level: 1,
+      current_streak: 0,
+      longest_streak: 0,
+    }, { onConflict: 'id' }).select().single()
+    setProfile(created)
   }, [])
 
   const refreshProfile = useCallback(async () => {
