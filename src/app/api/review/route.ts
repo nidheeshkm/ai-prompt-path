@@ -39,8 +39,8 @@ Evaluate and return JSON in this exact format (no markdown, no code fences):
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://langchain-academy.vercel.app',
-        'X-Title': 'LangChain Academy',
+        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://promptpath.vercel.app',
+        'X-Title': 'PromptPath',
       },
       body: JSON.stringify({
         model: 'openrouter/auto',

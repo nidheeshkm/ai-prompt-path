@@ -5,7 +5,7 @@ import { ProgressProvider } from '@/lib/progress-context'
 import Header from '@/components/Header'
 
 export const metadata: Metadata = {
-  title: 'LangChain Academy — Zero to Hero',
+  title: 'PromptPath — Zero to Hero',
   description: 'Master LangChain, LangGraph, and LangSmith through hands-on lessons, quizzes, and coding challenges.',
 }
 
