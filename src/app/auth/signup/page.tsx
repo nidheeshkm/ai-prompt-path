@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [confirmationSent, setConfirmationSent] = useState(false)
   const router = useRouter()
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -31,18 +32,33 @@ export default function SignupPage() {
     }
 
     if (data.user) {
-      // Create profile
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        display_name: displayName || email.split('@')[0],
-        xp: 0,
-        level: 1,
-        current_streak: 0,
-        longest_streak: 0,
-      })
-      router.push('/dashboard')
+      if (data.session) {
+        // Email confirmation disabled — user is immediately logged in
+        router.push('/dashboard')
+      } else {
+        // Email confirmation required — session is null until they confirm
+        setConfirmationSent(true)
+      }
     }
     setLoading(false)
+  }
+
+  if (confirmationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="text-5xl mb-6">📬</div>
+          <h1 className="text-2xl font-bold text-white mb-3">Check your email</h1>
+          <p className="text-gray-400 mb-6">
+            We sent a confirmation link to <span className="text-white font-medium">{email}</span>.
+            Click it to activate your account and start learning.
+          </p>
+          <Link href="/auth/login" className="text-emerald-400 hover:text-emerald-300 text-sm">
+            Back to sign in
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (

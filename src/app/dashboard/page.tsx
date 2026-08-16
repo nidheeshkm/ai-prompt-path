@@ -2,17 +2,19 @@
 
 import { useAuth } from '@/lib/auth-context'
 import { useProgress } from '@/lib/progress-context'
-import { curriculum, getAllTopics } from '@/data/curriculum'
-import { getLevelForXp, getXpProgress, getNextLevel, BADGE_DEFINITIONS } from '@/lib/gamification'
+import { useEnrollment } from '@/lib/enrollment-context'
+import { courses, getCourseTopics } from '@/data/curriculum'
+import { getLevelForXp, getXpProgress, getNextLevel, getAllBadgeDefinitions } from '@/lib/gamification'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, Trophy, Target, BookOpen, CheckCircle, Lock, ChevronRight, Zap } from 'lucide-react'
+import { Flame, Target, BookOpen, CheckCircle, ChevronRight, Zap, Award, Plus } from 'lucide-react'
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth()
-  const { progressMap, loading: progressLoading, isTopicUnlocked } = useProgress()
+  const { progressMap, milestoneMap } = useProgress()
+  const { enrollments, certificates, loading: enrollLoading } = useEnrollment()
   const [earnedBadges, setEarnedBadges] = useState<string[]>([])
   const router = useRouter()
 
@@ -27,7 +29,7 @@ export default function DashboardPage() {
     })
   }, [user, progressMap])
 
-  if (authLoading || progressLoading || !user || !profile) {
+  if (authLoading || enrollLoading || !user || !profile) {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="animate-pulse text-gray-500">Loading...</div>
@@ -35,19 +37,16 @@ export default function DashboardPage() {
     )
   }
 
-  const allTopics = getAllTopics()
-  const completedTopics = allTopics.filter(t => progressMap[t.id]?.status === 'completed')
-  const completionPercent = Math.round((completedTopics.length / allTopics.length) * 100)
   const level = getLevelForXp(profile.xp)
   const xpProgress = getXpProgress(profile.xp)
   const nextLevel = getNextLevel(profile.xp)
 
-  // Find next topic to study
-  const nextTopic = allTopics.find(t => {
-    if (progressMap[t.id]?.status === 'completed') return false
-    return isTopicUnlocked(t.id)
-  })
-  const nextChapter = nextTopic ? curriculum.find(c => c.topics.some(t => t.id === nextTopic.id)) : null
+  const enrolledCourses = courses.filter(c => enrollments.some(e => e.course_id === c.id))
+  const totalCompleted = enrolledCourses.reduce((sum, course) => {
+    const topics = getCourseTopics(course.id)
+    return sum + topics.filter(t => progressMap[`${course.id}__${t.id}`]?.status === 'completed').length
+  }, 0)
+  const totalTopics = enrolledCourses.reduce((sum, c) => sum + getCourseTopics(c.id).length, 0)
 
   return (
     <main className="flex-1 overflow-y-auto p-4 md:p-8">
@@ -57,7 +56,7 @@ export default function DashboardPage() {
           <h1 className="text-2xl md:text-3xl font-bold text-white">
             Welcome back, {profile.display_name}
           </h1>
-          <p className="text-gray-400 mt-1">Continue your LangChain mastery journey</p>
+          <p className="text-gray-400 mt-1">Keep up the momentum.</p>
         </div>
 
         {/* Stats row */}
@@ -74,13 +73,13 @@ export default function DashboardPage() {
           />
           <StatCard
             icon={<Flame className="w-5 h-5 text-orange-400" />}
-            label="Current Streak"
+            label="Streak"
             value={`${profile.current_streak || 0} days`}
           />
           <StatCard
             icon={<BookOpen className="w-5 h-5 text-purple-400" />}
-            label="Completed"
-            value={`${completedTopics.length} / ${allTopics.length}`}
+            label="Topics Done"
+            value={`${totalCompleted} / ${totalTopics}`}
           />
         </div>
 
@@ -104,71 +103,144 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Continue Learning */}
-        {nextTopic && nextChapter && (
-          <Link
-            href={`/learn/${nextChapter.id}/${nextTopic.id}`}
-            className="block bg-gradient-to-r from-emerald-900/40 to-emerald-800/20 border border-emerald-700/40 rounded-xl p-6 hover:border-emerald-600/60 transition-colors group"
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-emerald-400 font-medium mb-1">Continue Learning</p>
-                <h3 className="text-lg font-semibold text-white">{nextTopic.id}: {nextTopic.title}</h3>
-                <p className="text-sm text-gray-400 mt-1">Chapter {nextChapter.id}: {nextChapter.title}</p>
-              </div>
-              <ChevronRight className="w-6 h-6 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+        {/* Certificates */}
+        {certificates.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold text-white mb-4">Certificates</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {certificates.map(cert => {
+                const course = courses.find(c => c.id === cert.course_id)
+                if (!course) return null
+                return (
+                  <Link
+                    key={cert.id}
+                    href={`/certificates/${cert.certificate_id}`}
+                    className="flex items-center gap-4 bg-amber-900/10 border border-amber-700/40 hover:border-amber-600/60 rounded-xl p-4 transition-colors group"
+                  >
+                    <Award className="w-8 h-8 text-amber-400 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white">{course.title}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Issued {new Date(cert.issued_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-amber-400 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
+                )
+              })}
             </div>
-          </Link>
+          </div>
         )}
 
-        {/* Course Map */}
+        {/* My Courses */}
         <div>
-          <h2 className="text-xl font-bold text-white mb-4">Course Progress</h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            {curriculum.map((chapter) => {
-              const chapterCompleted = chapter.topics.filter(t => progressMap[t.id]?.status === 'completed').length
-              const chapterPercent = Math.round((chapterCompleted / chapter.topics.length) * 100)
-              const chapterUnlocked = chapter.topics.some(t => isTopicUnlocked(t.id))
-
-              return (
-                <Link
-                  key={chapter.id}
-                  href={chapterUnlocked ? `/learn/${chapter.id}` : '#'}
-                  className={`bg-gray-900 border rounded-xl p-5 transition-colors ${
-                    chapterUnlocked
-                      ? 'border-gray-800 hover:border-gray-700 cursor-pointer'
-                      : 'border-gray-800/50 opacity-60 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{chapter.icon}</span>
-                      <div>
-                        <h3 className="font-semibold text-white text-sm">Ch.{chapter.id}: {chapter.title}</h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{chapter.topics.length} topics</p>
-                      </div>
-                    </div>
-                    {!chapterUnlocked && <Lock className="w-4 h-4 text-gray-600" />}
-                    {chapterPercent === 100 && <CheckCircle className="w-5 h-5 text-emerald-500" />}
-                  </div>
-                  <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-500 rounded-full transition-all"
-                      style={{ width: `${chapterPercent}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">{chapterCompleted}/{chapter.topics.length} completed</p>
-                </Link>
-              )
-            })}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-white">My Courses</h2>
+            <Link href="/courses" className="flex items-center gap-1 text-sm text-emerald-400 hover:text-emerald-300">
+              <Plus className="w-4 h-4" />
+              Browse Catalog
+            </Link>
           </div>
+
+          {enrolledCourses.length === 0 ? (
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
+              <BookOpen className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400 mb-4">You haven't enrolled in any courses yet.</p>
+              <Link
+                href="/courses"
+                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-5 py-2.5 rounded-lg transition-colors"
+              >
+                Browse Courses
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {enrolledCourses.map(course => {
+                const allTopics = getCourseTopics(course.id)
+                const completedTopics = allTopics.filter(t => progressMap[`${course.id}__${t.id}`]?.status === 'completed').length
+                const completedMilestones = course.project.milestones.filter(
+                  m => milestoneMap[`${course.id}__${m.id}`]?.status === 'completed'
+                ).length
+                const total = allTopics.length + course.project.milestones.length
+                const done = completedTopics + completedMilestones
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0
+                const hasCert = certificates.some(c => c.course_id === course.id)
+
+                const nextTopic = allTopics.find(t => progressMap[`${course.id}__${t.id}`]?.status !== 'completed')
+
+                return (
+                  <div key={course.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                    <div className="flex items-center gap-3 mb-4">
+                      <span className="text-2xl">{course.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-white truncate">{course.title}</h3>
+                        <p className="text-xs text-gray-500">{done}/{total} completed · {pct}%</p>
+                      </div>
+                      {hasCert && <Award className="w-5 h-5 text-amber-400 shrink-0" />}
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mb-4">
+                      <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+
+                    <div className="grid gap-2 md:grid-cols-2 mb-4">
+                      {course.chapters.map(chapter => {
+                        const chDone = chapter.topics.filter(t => progressMap[`${course.id}__${t.id}`]?.status === 'completed').length
+                        const chPct = Math.round((chDone / chapter.topics.length) * 100)
+                        const unlocked = chapter.topics.some(t => {
+                          const idx = allTopics.findIndex(at => at.id === t.id)
+                          if (idx === 0) return true
+                          return progressMap[`${course.id}__${allTopics[idx - 1]?.id}`]?.status === 'completed'
+                        })
+                        return (
+                          <Link
+                            key={chapter.id}
+                            href={unlocked ? `/learn/${course.id}/${chapter.id}` : '#'}
+                            className={`flex items-center justify-between bg-gray-800 rounded-lg p-2.5 text-xs transition-colors ${
+                              unlocked ? 'hover:bg-gray-700 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span>{chapter.icon}</span>
+                              <span className="text-gray-300 truncate">Ch.{chapter.id}: {chapter.title}</span>
+                            </div>
+                            {chPct === 100 ? (
+                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                            ) : (
+                              <span className="text-gray-500 shrink-0 ml-1">{chPct}%</span>
+                            )}
+                          </Link>
+                        )
+                      })}
+                    </div>
+
+                    {nextTopic ? (
+                      <Link
+                        href={`/learn/${course.id}/${nextTopic.chapterId}/${nextTopic.id}`}
+                        className="flex items-center justify-between w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium px-3 py-2 rounded-lg transition-colors group"
+                      >
+                        <span>Continue: {nextTopic.title}</span>
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/learn/${course.id}`}
+                        className="flex items-center justify-center w-full border border-gray-700 hover:border-gray-600 text-gray-300 text-xs font-medium px-3 py-2 rounded-lg transition-colors"
+                      >
+                        View Course
+                      </Link>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Badges */}
         <div>
           <h2 className="text-xl font-bold text-white mb-4">Badges</h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-            {BADGE_DEFINITIONS.map((badge) => {
+            {getAllBadgeDefinitions(enrolledCourses).map((badge) => {
               const earned = earnedBadges.includes(badge.id)
               return (
                 <div

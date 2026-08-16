@@ -5256,3 +5256,581 @@ export function getPrevTopic(currentTopicId: string): string | null {
 export function getTotalXP(): number {
   return getAllTopics().reduce((sum, t) => sum + t.xp, 0)
 }
+
+// ═══════════════════════════════════════════════════════════════
+// MULTI-COURSE TYPES & DATA
+// ═══════════════════════════════════════════════════════════════
+
+export type Milestone = {
+  id: string
+  title: string
+  xp: number
+  instructions: string
+  boilerplate: string
+  rubric: string[]
+  hints: string[]
+  solutionCode: string
+}
+
+export type Project = {
+  id: string
+  title: string
+  description: string
+  milestones: Milestone[]
+}
+
+export type Course = {
+  id: string
+  title: string
+  tagline: string
+  description: string
+  icon: string
+  level: 'beginner' | 'intermediate' | 'advanced'
+  estimatedHours: number
+  tags: string[]
+  chapters: Chapter[]
+  project: Project
+}
+
+export const courses: Course[] = [
+  {
+    id: 'promptpath-starter',
+    title: 'PromptPath Starter',
+    tagline: 'Master LangChain from zero to production',
+    description: 'A complete, hands-on journey through the LangChain ecosystem. Start from the fundamentals of LLMs, work through prompt engineering, chains, RAG, agents, and LangGraph, and finish by building a production-grade AI application. Every chapter includes lessons, quizzes, and coding challenges.',
+    icon: '🦜',
+    level: 'beginner',
+    estimatedHours: 40,
+    tags: ['LangChain', 'LangGraph', 'LangSmith', 'Python', 'RAG', 'Agents'],
+    chapters: curriculum,
+    project: {
+      id: 'research-assistant',
+      title: 'Build a LangChain Research Assistant',
+      description: 'Put everything you\'ve learned into practice by building a full-featured AI research assistant. You\'ll work through four guided milestones — document ingestion, RAG Q&A, conversational memory, and a multi-tool agent — culminating in a production-ready LangChain application you can showcase.',
+      milestones: [
+        {
+          id: 'milestone-1',
+          title: 'Document Ingestion Pipeline',
+          xp: 200,
+          instructions: `Build a document ingestion pipeline that loads PDF files, splits them into semantically meaningful chunks, generates embeddings, and stores them in a ChromaDB vector store.
+
+Your function \`build_vector_store(pdf_paths: list[str]) -> Chroma\` must:
+1. Load each PDF using PyPDFLoader
+2. Split documents using RecursiveCharacterTextSplitter with chunk_size=1000, chunk_overlap=200
+3. Create embeddings using OpenAIEmbeddings
+4. Persist everything in a ChromaDB instance at "./chroma_db"
+5. Return the Chroma vector store object
+
+Also write \`count_chunks(pdf_paths: list[str]) -> int\` that returns the total number of chunks created.`,
+          boilerplate: `from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def build_vector_store(pdf_paths: list[str]) -> Chroma:
+    """Load PDFs, split, embed, and store in ChromaDB.
+
+    Args:
+        pdf_paths: List of paths to PDF files
+
+    Returns:
+        Chroma vector store instance
+    """
+    # TODO: Load all PDFs using PyPDFLoader
+    # TODO: Split documents with chunk_size=1000, chunk_overlap=200
+    # TODO: Create OpenAIEmbeddings
+    # TODO: Create and persist Chroma vector store at "./chroma_db"
+    # TODO: Return the Chroma instance
+    pass
+
+
+def count_chunks(pdf_paths: list[str]) -> int:
+    """Return the total number of chunks that would be created."""
+    # TODO: Use the same loading and splitting logic, return len(chunks)
+    pass
+
+
+if __name__ == "__main__":
+    # Test with any PDF you have
+    import os
+    sample_pdfs = [f for f in os.listdir(".") if f.endswith(".pdf")]
+    if sample_pdfs:
+        store = build_vector_store(sample_pdfs)
+        print(f"Vector store created with {count_chunks(sample_pdfs)} chunks")
+        # Test a similarity search
+        results = store.similarity_search("What is the main topic?", k=3)
+        print(f"Found {len(results)} relevant chunks")
+    else:
+        print("No PDFs found. Create a sample PDF to test.")`,
+          rubric: [
+            'Loads PDFs using PyPDFLoader for each path in the list',
+            'Uses RecursiveCharacterTextSplitter with chunk_size=1000 and chunk_overlap=200',
+            'Creates OpenAIEmbeddings correctly',
+            'Persists Chroma store at "./chroma_db" with the persist_directory parameter',
+            'Returns the Chroma instance from build_vector_store',
+            'count_chunks applies same loading/splitting and returns len(chunks)',
+            'Handles empty pdf_paths list gracefully',
+          ],
+          hints: [
+            'Loop over pdf_paths and use PyPDFLoader(path).load() for each, collect all documents',
+            'RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(docs)',
+            'Chroma.from_documents(chunks, embedding, persist_directory="./chroma_db") creates and persists in one step',
+          ],
+          solutionCode: `from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings
+from langchain_chroma import Chroma
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+
+
+def _load_and_split(pdf_paths: list[str]):
+    docs = []
+    for path in pdf_paths:
+        docs.extend(PyPDFLoader(path).load())
+    return SPLITTER.split_documents(docs)
+
+
+def build_vector_store(pdf_paths: list[str]) -> Chroma:
+    chunks = _load_and_split(pdf_paths)
+    embedding = OpenAIEmbeddings()
+    return Chroma.from_documents(chunks, embedding, persist_directory="./chroma_db")
+
+
+def count_chunks(pdf_paths: list[str]) -> int:
+    return len(_load_and_split(pdf_paths))`,
+        },
+        {
+          id: 'milestone-2',
+          title: 'RAG-Powered Q&A Chain',
+          xp: 250,
+          instructions: `Using the vector store from Milestone 1, build a RAG (Retrieval-Augmented Generation) Q&A chain that answers questions grounded in your document collection.
+
+Your function \`create_rag_chain(vector_store: Chroma) -> Runnable\` must:
+1. Create a retriever from the vector store (top 4 results)
+2. Build a ChatPromptTemplate with system + human messages — the system message should include the retrieved context and instruct the model to only answer from the provided documents
+3. Compose the chain: retriever → context formatting → prompt → ChatOpenAI → StrOutputParser
+4. Return the chain (it should accept {"question": str} and return a string answer)
+
+Also write \`ask(chain, question: str) -> str\` as a thin wrapper that invokes the chain and returns the answer.`,
+          boilerplate: `from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough, Runnable
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def format_docs(docs) -> str:
+    """Join retrieved document content into a single string."""
+    return "\\n\\n".join(doc.page_content for doc in docs)
+
+
+def create_rag_chain(vector_store: Chroma) -> Runnable:
+    """Build a RAG chain that retrieves context and answers questions.
+
+    Args:
+        vector_store: Chroma instance with embedded documents
+
+    Returns:
+        An LCEL chain accepting {"question": str} and returning str
+    """
+    # TODO: Create a retriever with k=4
+    # TODO: Build a ChatPromptTemplate — system message should include {context}
+    #       and tell the model to answer ONLY from the provided documents
+    # TODO: Compose the chain using LCEL (| operator)
+    #       retriever + format_docs → context, passthrough → question → prompt → llm → parser
+    pass
+
+
+def ask(chain: Runnable, question: str) -> str:
+    """Ask a question to the RAG chain and return the answer."""
+    # TODO: Invoke the chain with {"question": question}
+    pass
+
+
+if __name__ == "__main__":
+    embedding = OpenAIEmbeddings()
+    store = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
+    chain = create_rag_chain(store)
+    answer = ask(chain, "What are the main topics covered in the documents?")
+    print("Answer:", answer)`,
+          rubric: [
+            'Creates retriever with search_kwargs={"k": 4}',
+            'ChatPromptTemplate includes both system and human message templates',
+            'System message uses {context} placeholder for retrieved documents',
+            'System message instructs model to answer only from provided documents',
+            'Chain uses RunnablePassthrough for question and format_docs for context',
+            'Chain composes: context+question → prompt → llm → StrOutputParser',
+            'ask() correctly invokes the chain with {"question": question}',
+          ],
+          hints: [
+            'retriever = vector_store.as_retriever(search_kwargs={"k": 4})',
+            'Use RunnablePassthrough.assign(context=...) or {"context": retriever | format_docs, "question": RunnablePassthrough()}',
+            'ChatPromptTemplate.from_messages([("system", "Use the following context...\\n\\n{context}"), ("human", "{question}")])',
+          ],
+          solutionCode: `from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough, Runnable
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SYSTEM_PROMPT = """You are a helpful research assistant. Answer the user's question using ONLY the information provided in the context below. If the answer is not in the context, say "I don't have enough information in the documents to answer that."
+
+Context:
+{context}"""
+
+
+def format_docs(docs) -> str:
+    return "\\n\\n".join(doc.page_content for doc in docs)
+
+
+def create_rag_chain(vector_store: Chroma) -> Runnable:
+    retriever = vector_store.as_retriever(search_kwargs={"k": 4})
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", SYSTEM_PROMPT),
+        ("human", "{question}"),
+    ])
+    llm = ChatOpenAI(temperature=0)
+
+    chain = (
+        {"context": retriever | format_docs, "question": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+    return chain
+
+
+def ask(chain: Runnable, question: str) -> str:
+    return chain.invoke(question)`,
+        },
+        {
+          id: 'milestone-3',
+          title: 'Conversational Memory',
+          xp: 200,
+          instructions: `Upgrade your RAG chain to support multi-turn conversations. The assistant should remember what was said earlier in the session and use that context when answering follow-up questions.
+
+Build a \`ConversationalRAGAssistant\` class with:
+- \`__init__(self, vector_store: Chroma)\` — sets up the retriever, LLM, and an internal message history list
+- \`chat(self, question: str) -> str\` — adds the question to history, runs the RAG chain with full history, adds the response to history, returns the answer
+- \`get_history(self) -> list\` — returns the current message history
+- \`reset(self)\` — clears the history
+
+The chain inside must include the chat history in the prompt so the model can reference earlier exchanges. Use \`HumanMessage\` and \`AIMessage\` objects for history.`,
+          boilerplate: `from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+class ConversationalRAGAssistant:
+    """A RAG assistant that maintains conversation history."""
+
+    def __init__(self, vector_store: Chroma):
+        # TODO: Create retriever (k=4)
+        # TODO: Create ChatOpenAI LLM
+        # TODO: Build a ChatPromptTemplate that includes:
+        #       - A system message with {context}
+        #       - A MessagesPlaceholder for {history}
+        #       - A human message for {question}
+        # TODO: Compose the chain
+        # TODO: Initialize self._history as empty list
+        pass
+
+    def chat(self, question: str) -> str:
+        """Send a message and get a response, maintaining history."""
+        # TODO: Retrieve context for the question
+        # TODO: Add HumanMessage(question) to history
+        # TODO: Invoke the chain with context, history, and question
+        # TODO: Add AIMessage(response) to history
+        # TODO: Return the response string
+        pass
+
+    def get_history(self) -> list[BaseMessage]:
+        """Return the full conversation history."""
+        return self._history
+
+    def reset(self) -> None:
+        """Clear conversation history."""
+        self._history = []
+
+
+if __name__ == "__main__":
+    embedding = OpenAIEmbeddings()
+    store = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
+    assistant = ConversationalRAGAssistant(store)
+
+    print(assistant.chat("What are the main topics in the documents?"))
+    print(assistant.chat("Can you elaborate on the first one?"))
+    print(f"History length: {len(assistant.get_history())} messages")`,
+          rubric: [
+            '__init__ creates a retriever with k=4',
+            'Prompt includes MessagesPlaceholder for {history}',
+            'Prompt includes {context} in system message',
+            'history list initialized as empty in __init__',
+            'chat() appends HumanMessage before invoking the chain',
+            'chat() appends AIMessage after getting response',
+            'chain receives context, history, and question',
+            'reset() clears the history list',
+          ],
+          hints: [
+            'Use MessagesPlaceholder(variable_name="history") in the prompt between system and human messages',
+            'In chat(), retrieve docs first: docs = self._retriever.invoke(question), then format them',
+            'Pass {"context": formatted_context, "history": self._history, "question": question} to the chain',
+          ],
+          solutionCode: `from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SYSTEM = """You are a helpful research assistant. Answer questions using ONLY the context below. If unsure, say so.
+
+Context:
+{context}"""
+
+
+def _format_docs(docs) -> str:
+    return "\\n\\n".join(d.page_content for d in docs)
+
+
+class ConversationalRAGAssistant:
+    def __init__(self, vector_store: Chroma):
+        self._retriever = vector_store.as_retriever(search_kwargs={"k": 4})
+        self._llm = ChatOpenAI(temperature=0)
+        self._prompt = ChatPromptTemplate.from_messages([
+            ("system", SYSTEM),
+            MessagesPlaceholder(variable_name="history"),
+            ("human", "{question}"),
+        ])
+        self._chain = self._prompt | self._llm | StrOutputParser()
+        self._history: list[BaseMessage] = []
+
+    def chat(self, question: str) -> str:
+        docs = self._retriever.invoke(question)
+        context = _format_docs(docs)
+        self._history.append(HumanMessage(content=question))
+        response = self._chain.invoke({
+            "context": context,
+            "history": self._history[:-1],
+            "question": question,
+        })
+        self._history.append(AIMessage(content=response))
+        return response
+
+    def get_history(self) -> list[BaseMessage]:
+        return self._history
+
+    def reset(self) -> None:
+        self._history = []`,
+        },
+        {
+          id: 'milestone-4',
+          title: 'Multi-Tool Agent',
+          xp: 350,
+          instructions: `Transform your research assistant into a fully autonomous agent that can decide when to search documents, perform web searches, and do calculations — choosing the right tool for each question.
+
+Build a \`ResearchAgent\` class with:
+- \`__init__(self, vector_store: Chroma)\` — creates the agent with three tools: a document search tool (searches your ChromaDB), a calculator tool, and a web search placeholder
+- \`run(self, query: str) -> str\` — runs the agent on a query and returns the final answer
+- \`get_tool_names(self) -> list[str]\` — returns the list of available tool names
+
+The agent should use \`create_react_agent\` from LangGraph and the \`ToolNode\` pattern. Each tool must be decorated with \`@tool\` and have a clear docstring so the LLM knows when to use it.`,
+          boilerplate: `from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+from dotenv import load_dotenv
+import numexpr
+
+load_dotenv()
+
+
+def build_tools(vector_store: Chroma):
+    """Create and return the list of tools for the agent."""
+
+    @tool
+    def search_documents(query: str) -> str:
+        """Search the document knowledge base for information relevant to the query.
+        Use this when the question is about the content of the loaded documents."""
+        # TODO: Use vector_store.similarity_search(query, k=4)
+        # TODO: Return formatted string of results
+        pass
+
+    @tool
+    def calculate(expression: str) -> str:
+        """Evaluate a mathematical expression and return the result.
+        Use this for any arithmetic, algebra, or numerical calculations.
+        Input should be a valid Python math expression like '2 ** 10' or '(15 * 3) / 2'."""
+        # TODO: Use numexpr.evaluate(expression) and return str result
+        # TODO: Wrap in try/except and return error message on failure
+        pass
+
+    @tool
+    def web_search(query: str) -> str:
+        """Search the web for current information not found in the documents.
+        Use this for recent events, real-time data, or topics outside the knowledge base."""
+        # Placeholder — in production, wire up Tavily or DuckDuckGo
+        return f"[Web search placeholder] For '{query}', please check a search engine for current results."
+
+    return [search_documents, calculate, web_search]
+
+
+class ResearchAgent:
+    """An autonomous agent that routes queries to the right tool."""
+
+    def __init__(self, vector_store: Chroma):
+        # TODO: Build tools
+        # TODO: Create ChatOpenAI llm
+        # TODO: Create the ReAct agent using create_react_agent(llm, tools)
+        pass
+
+    def run(self, query: str) -> str:
+        """Run the agent on a query and return the final answer."""
+        # TODO: Invoke the agent with {"messages": [("human", query)]}
+        # TODO: Return the last message content from the response
+        pass
+
+    def get_tool_names(self) -> list[str]:
+        """Return the names of all available tools."""
+        pass
+
+
+if __name__ == "__main__":
+    embedding = OpenAIEmbeddings()
+    store = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
+    agent = ResearchAgent(store)
+
+    print("Tools:", agent.get_tool_names())
+    print(agent.run("What does the document say about machine learning?"))
+    print(agent.run("What is 2 to the power of 16?"))`,
+          rubric: [
+            'search_documents tool calls similarity_search with k=4 and formats results',
+            'calculate tool uses numexpr.evaluate() with try/except error handling',
+            'web_search tool has a clear docstring explaining when to use it',
+            'All tools decorated with @tool and have meaningful docstrings',
+            'ResearchAgent creates tools and builds the ReAct agent with create_react_agent',
+            'run() invokes agent with {"messages": [("human", query)]}',
+            'run() extracts and returns the final message content',
+            'get_tool_names() returns names of all tools in the agent',
+          ],
+          hints: [
+            'format search results as: "\\n\\n".join(f"[{i+1}] {doc.page_content}" for i, doc in enumerate(docs))',
+            'create_react_agent(llm, tools) returns a compiled graph — invoke it with .invoke({"messages": [("human", query)]})',
+            'The response["messages"][-1].content gives the final agent answer',
+          ],
+          solutionCode: `from langchain_chroma import Chroma
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_core.tools import tool
+from langgraph.prebuilt import create_react_agent
+from dotenv import load_dotenv
+import numexpr
+
+load_dotenv()
+
+
+def build_tools(vector_store: Chroma):
+    @tool
+    def search_documents(query: str) -> str:
+        """Search the document knowledge base for information relevant to the query.
+        Use this when the question is about the content of the loaded documents."""
+        docs = vector_store.similarity_search(query, k=4)
+        return "\\n\\n".join(f"[{i+1}] {doc.page_content}" for i, doc in enumerate(docs))
+
+    @tool
+    def calculate(expression: str) -> str:
+        """Evaluate a mathematical expression and return the result.
+        Use this for any arithmetic, algebra, or numerical calculations."""
+        try:
+            result = numexpr.evaluate(expression)
+            return str(result)
+        except Exception as e:
+            return f"Calculation error: {e}"
+
+    @tool
+    def web_search(query: str) -> str:
+        """Search the web for current information not found in the documents.
+        Use for recent events, real-time data, or topics outside the knowledge base."""
+        return f"[Web search placeholder] For '{query}', please check a search engine."
+
+    return [search_documents, calculate, web_search]
+
+
+class ResearchAgent:
+    def __init__(self, vector_store: Chroma):
+        self._tools = build_tools(vector_store)
+        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        self._agent = create_react_agent(llm, self._tools)
+
+    def run(self, query: str) -> str:
+        response = self._agent.invoke({"messages": [("human", query)]})
+        return response["messages"][-1].content
+
+    def get_tool_names(self) -> list[str]:
+        return [t.name for t in self._tools]`,
+        },
+      ],
+    },
+  },
+]
+
+// ── Course-aware helpers ──────────────────────────────────────
+
+export function getCourse(courseId: string): Course | undefined {
+  return courses.find(c => c.id === courseId)
+}
+
+export function getCourseTopics(courseId: string): (Topic & { chapterId: number; chapterTitle: string })[] {
+  const course = getCourse(courseId)
+  if (!course) return []
+  return course.chapters.flatMap(chapter =>
+    chapter.topics.map(topic => ({
+      ...topic,
+      chapterId: chapter.id,
+      chapterTitle: chapter.title,
+    }))
+  )
+}
+
+export function getCourseNextTopic(courseId: string, currentTopicId: string): string | null {
+  const all = getCourseTopics(courseId)
+  const idx = all.findIndex(t => t.id === currentTopicId)
+  if (idx === -1 || idx === all.length - 1) return null
+  return all[idx + 1].id
+}
+
+export function getCoursePrevTopic(courseId: string, currentTopicId: string): string | null {
+  const all = getCourseTopics(courseId)
+  const idx = all.findIndex(t => t.id === currentTopicId)
+  if (idx <= 0) return null
+  return all[idx - 1].id
+}
+
+export function getCourseTotalXP(courseId: string): number {
+  const course = getCourse(courseId)
+  if (!course) return 0
+  const topicsXP = getCourseTopics(courseId).reduce((sum, t) => sum + t.xp, 0)
+  const projectXP = course.project.milestones.reduce((sum, m) => sum + m.xp, 0)
+  return topicsXP + projectXP
+}
