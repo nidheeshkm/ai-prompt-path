@@ -146,7 +146,7 @@ export default function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-800 py-8 text-center text-sm text-gray-600">
-        <p>LangChain Academy &mdash; A hands-on learning platform for the LangChain ecosystem</p>
+        <p>PromptPath &mdash; A hands-on learning platform for the LangChain ecosystem</p>
       </footer>
     </main>
   )

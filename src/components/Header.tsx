@@ -26,7 +26,7 @@ export default function Header() {
         {/* Logo */}
         <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2 shrink-0">
           <span className="text-2xl">🦜</span>
-          <span className="text-lg font-bold text-white hidden sm:inline">LangChain Academy</span>
+          <span className="text-lg font-bold text-white hidden sm:inline">PromptPath</span>
         </Link>
 
         {user && profile ? (
