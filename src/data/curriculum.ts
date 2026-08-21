@@ -225,7 +225,7 @@ With LLMs, you describe the **desired behavior**:
 # LLM approach: classify email
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI()
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 result = llm.invoke(
     "Classify this email as 'spam' or 'not_spam'. "
     "Email: You've won a free iPhone! Click here now!"
@@ -371,7 +371,8 @@ LangChain is modular — you install what you need:
 pip install langchain
 
 # LLM provider integrations (install what you use)
-pip install langchain-openai      # For OpenAI models
+pip install langchain-openai      # For ChatOpenAI (OpenRouter-compatible)
+pip install langchain-huggingface sentence-transformers  # For free local embeddings
 pip install langchain-anthropic   # For Claude models
 pip install langchain-community   # Community integrations
 
@@ -384,11 +385,15 @@ pip install python-dotenv         # For environment variables
 
 ## Step 3: API Key Management
 
-**NEVER hardcode API keys.** Use environment variables:
+**NEVER hardcode API keys.** Use environment variables.
+
+We'll use **OpenRouter** — a single API that gives you access to GPT-4, Claude, Gemini, Llama, and more. No separate OpenAI subscription needed.
+
+Get your free key at [openrouter.ai](https://openrouter.ai) → Keys.
 
 \`\`\`bash
 # Create a .env file (add to .gitignore!)
-echo "OPENAI_API_KEY=your-key-here" > .env
+echo "OPENROUTER_API_KEY=your-key-here" > .env
 echo ".env" >> .gitignore
 \`\`\`
 
@@ -399,10 +404,12 @@ import os
 
 load_dotenv()  # Loads variables from .env
 
-api_key = os.getenv("OPENAI_API_KEY")
+api_key = os.getenv("OPENROUTER_API_KEY")
 \`\`\`
 
 ## Step 4: Verify Your Setup
+
+OpenRouter exposes an OpenAI-compatible API, so \`langchain_openai\` works as-is — just pass \`base_url\` and \`api_key\`:
 
 \`\`\`python
 from langchain_openai import ChatOpenAI
@@ -410,14 +417,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Initialize the LLM
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+# Point ChatOpenAI at OpenRouter instead of OpenAI directly
+llm = ChatOpenAI(
+    model="openai/gpt-4o-mini",          # prefix with provider/
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.getenv("OPENROUTER_API_KEY"),
+    temperature=0,
+)
 
-# Make a test call
+# Make a test call — same interface, any model
 response = llm.invoke("Say 'Hello, LangChain!' and nothing else.")
 print(response.content)
 # Expected: Hello, LangChain!
 \`\`\`
+
+> **Other models you can swap in:** \`anthropic/claude-3-haiku\`, \`google/gemini-flash-1.5\`, \`meta-llama/llama-3-8b-instruct\` — all via the same code.
 
 ## Project Structure (Best Practice)
 
@@ -442,17 +456,17 @@ langchain-project/
 2. **"AuthenticationError"** — Check your API key in \`.env\`
 3. **Version conflicts** — Use \`pip install langchain==0.2.x\` for specific versions`,
         codingTask: {
-          instructions: 'Write a Python script that properly sets up a LangChain environment. Your script should: (1) Import and load environment variables from a .env file, (2) Initialize a ChatOpenAI model with temperature=0, (3) Create a simple function called `ask_llm` that takes a question string and returns the LLM\'s response content as a string, (4) Include proper error handling for missing API keys.',
+          instructions: 'Write a Python script that sets up LangChain with OpenRouter. Your script should: (1) Import and load environment variables from a .env file, (2) Initialize ChatOpenAI pointed at OpenRouter with temperature=0, (3) Create a function called `ask_llm` that takes a question string and returns the LLM\'s response content as a string, (4) Include proper error handling for a missing API key.',
           boilerplate: `# TODO: Import necessary packages
-# Hint: You need dotenv, os, and langchain_openai
+# Hint: you need dotenv, os, and langchain_openai
 
 
 # TODO: Load environment variables
 
 
 # TODO: Create a function called 'ask_llm' that:
-#   1. Checks if the API key exists (raise ValueError if not)
-#   2. Initializes ChatOpenAI with temperature=0
+#   1. Reads OPENROUTER_API_KEY from env (raise ValueError if missing)
+#   2. Initializes ChatOpenAI pointed at https://openrouter.ai/api/v1
 #   3. Takes a question (string) parameter
 #   4. Returns the response content (string)
 
@@ -468,37 +482,38 @@ if __name__ == "__main__":
             'Correctly imports load_dotenv from dotenv and os',
             'Correctly imports ChatOpenAI from langchain_openai',
             'Calls load_dotenv() to load environment variables',
-            'Checks for API key existence with os.getenv and raises ValueError if missing',
+            'Reads OPENROUTER_API_KEY with os.getenv and raises ValueError if missing',
+            'Passes base_url="https://openrouter.ai/api/v1" to ChatOpenAI',
             'Initializes ChatOpenAI with temperature=0',
-            'Function takes a string parameter and returns response.content as string',
-            'Proper error handling structure'
+            'Function takes a string parameter and returns response.content as string'
           ],
           hints: [
-            'Start with the imports: you need `from dotenv import load_dotenv`, `import os`, and `from langchain_openai import ChatOpenAI`',
-            'Use `os.getenv("OPENAI_API_KEY")` to check for the key, and `raise ValueError(...)` if it\'s None',
-            'The LLM response object has a `.content` attribute that contains the text string'
+            'Imports: `from dotenv import load_dotenv`, `import os`, `from langchain_openai import ChatOpenAI`',
+            'Use `os.getenv("OPENROUTER_API_KEY")` to read the key, and `raise ValueError(...)` if it\'s None',
+            'Pass `base_url="https://openrouter.ai/api/v1"` and `api_key=api_key` to ChatOpenAI — the rest of the interface is identical to plain OpenAI'
           ],
           solutionCode: `from dotenv import load_dotenv
 import os
 from langchain_openai import ChatOpenAI
 
-# Load environment variables from .env file
 load_dotenv()
 
 def ask_llm(question: str) -> str:
-    """Ask the LLM a question and return the response as a string."""
-    # Check for API key
-    api_key = os.getenv("OPENAI_API_KEY")
+    """Ask the LLM a question via OpenRouter and return the response."""
+    api_key = os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         raise ValueError(
-            "OPENAI_API_KEY not found. "
+            "OPENROUTER_API_KEY not found. "
             "Please set it in your .env file."
         )
 
-    # Initialize the LLM
-    llm = ChatOpenAI(temperature=0)
+    llm = ChatOpenAI(
+        model="openai/gpt-4o-mini",
+        base_url="https://openrouter.ai/api/v1",
+        api_key=api_key,
+        temperature=0,
+    )
 
-    # Get response
     response = llm.invoke(question)
     return response.content
 
@@ -526,7 +541,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_community.chat_models import ChatOllama
 
 # Same method, different provider
-openai_llm = ChatOpenAI(model="gpt-4o-mini")
+openai_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 claude_llm = ChatAnthropic(model="claude-3-sonnet-20240229")
 local_llm = ChatOllama(model="llama3")
 
@@ -586,12 +601,12 @@ for chunk in llm.stream("Tell me a story"):
 
 \`\`\`python
 # Temperature controls randomness
-precise_llm = ChatOpenAI(temperature=0)     # Deterministic, factual
-creative_llm = ChatOpenAI(temperature=0.9)  # Creative, varied
+precise_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)     # Deterministic, factual
+creative_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.9)  # Creative, varied
 
 # Other useful parameters
 llm = ChatOpenAI(
-    model="gpt-4o-mini",
+    model="openai/gpt-4o-mini",
     temperature=0.7,
     max_tokens=500,        # Limit response length
     timeout=30,            # Seconds before timeout
@@ -605,7 +620,7 @@ llm = ChatOpenAI(
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0.3)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.3)
 
 def adjust_tone(email: str, tone: str) -> str:
     messages = [
@@ -631,7 +646,7 @@ print(casual)
           boilerplate: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 def process_text(text: str, operation: str, target_language: str = "Spanish") -> str:
     """Process text with the specified operation using an LLM.
@@ -680,7 +695,7 @@ if __name__ == "__main__":
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 def process_text(text: str, operation: str, target_language: str = "Spanish") -> str:
     if operation == "summarize":
@@ -772,7 +787,7 @@ Controls diversity by limiting the token pool. \`top_p=0.9\` means the model con
 Limits the response length. The model stops generating after this many tokens.
 
 \`\`\`python
-llm = ChatOpenAI(max_tokens=100)  # Response cut off at ~75 words
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), max_tokens=100)  # Response cut off at ~75 words
 \`\`\`
 
 **Warning**: Setting this too low can cut responses mid-sentence.
@@ -786,7 +801,7 @@ llm = ChatOpenAI(max_tokens=100)  # Response cut off at ~75 words
 \`\`\`python
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI()
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 response = llm.invoke("Explain quantum computing.")
 
 # Token usage is in the response metadata
@@ -1043,7 +1058,7 @@ Zero-shot means asking the LLM to perform a task with **no examples** — just t
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # Zero-shot classification
 response = llm.invoke([
@@ -1142,7 +1157,7 @@ Does the task need domain-specific patterns?
           boilerplate: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def classify_zero_shot(text: str) -> str:
@@ -1194,7 +1209,7 @@ if __name__ == "__main__":
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def classify_zero_shot(text: str) -> str:
@@ -1350,7 +1365,7 @@ This lets you parse the final line to extract the answer programmatically.`,
           boilerplate: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def solve_with_reasoning(problem: str, domain: str = "math") -> dict:
@@ -1406,7 +1421,7 @@ if __name__ == "__main__":
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 COT_PROMPTS = {
     "math": """You are a math tutor. Solve the problem step by step:
@@ -1496,7 +1511,7 @@ from collections import Counter
 
 def self_consistent_answer(question: str, n_paths: int = 5) -> dict:
     # Use higher temperature for diverse reasoning paths
-    llm = ChatOpenAI(temperature=0.7)
+    llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
 
     answers = []
     reasonings = []
@@ -1615,7 +1630,7 @@ from collections import Counter
 
 
 def self_consistent_classify(text: str, n_paths: int = 5) -> dict:
-    llm = ChatOpenAI(temperature=0.7)
+    llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
 
     answers = []
     for _ in range(n_paths):
@@ -1697,8 +1712,8 @@ Chain-of-Thought follows a single path. But some problems have multiple valid ap
 \`\`\`python
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(temperature=0.7)
-evaluator = ChatOpenAI(temperature=0)  # Deterministic evaluator
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
+evaluator = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)  # Deterministic evaluator
 
 def tree_of_thoughts(problem: str, n_branches: int = 3) -> str:
     # Step 1: Generate multiple approaches
@@ -1795,8 +1810,8 @@ from langchain_core.messages import SystemMessage, HumanMessage
 
 
 def tree_of_thoughts_solve(problem: str, n_branches: int = 3) -> dict:
-    generator = ChatOpenAI(temperature=0.7)
-    evaluator = ChatOpenAI(temperature=0)
+    generator = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
+    evaluator = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
     # Step 1: Generate diverse approaches
     approaches = []
@@ -1985,7 +2000,7 @@ full_system = f"{base}\\n\\n{domain}\\n\\n{constraints}\\n\\n{safety}"
           boilerplate: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def create_assistant(role: str, rules: list[str], output_format: str, safety_rules: list[str] = None):
@@ -2041,7 +2056,7 @@ def get_user(user_id):
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def create_assistant(role: str, rules: list[str], output_format: str, safety_rules: list[str] = None):
@@ -2109,7 +2124,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 import json
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 response = llm.invoke([
     SystemMessage(content="""Extract contact information from the text.
@@ -2226,7 +2241,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 import json
 import re
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def safe_parse_json(text: str) -> dict:
@@ -2290,7 +2305,7 @@ from langchain_core.messages import SystemMessage, HumanMessage
 import json
 import re
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def safe_parse_json(text: str) -> dict:
@@ -2368,7 +2383,7 @@ LLMs have "seen" millions of effective prompts during training. They know what m
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-llm = ChatOpenAI(temperature=0.3)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.3)
 
 meta_response = llm.invoke([
     SystemMessage(content="""You are a prompt engineering expert.
@@ -2496,8 +2511,8 @@ if __name__ == "__main__":
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 
-meta_llm = ChatOpenAI(temperature=0.3)
-test_llm = ChatOpenAI(temperature=0)
+meta_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.3)
+test_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 def generate_prompt(task_description: str) -> str:
@@ -2891,7 +2906,7 @@ class PromptEvaluator:
         self._results = None  # Invalidate cached results
 
     def run_evaluation(self) -> list[dict]:
-        llm = ChatOpenAI(temperature=0)
+        llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
         results = []
 
         for test in self.tests:
@@ -2988,7 +3003,7 @@ result = llm.invoke("Complete this sentence: The capital of France is")
 Take **messages** in, return a **message** out:
 \`\`\`python
 from langchain_openai import ChatOpenAI
-chat = ChatOpenAI()
+chat = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 result = chat.invoke([
     SystemMessage(content="You are a geography expert."),
     HumanMessage(content="What is the capital of France?")
@@ -3027,7 +3042,7 @@ model.astream(input)      # Async streaming
 \`\`\`python
 # ✅ Do this
 from langchain_openai import ChatOpenAI
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 
 # ❌ Don't do this (legacy)
 from langchain_openai import OpenAI
@@ -3183,7 +3198,7 @@ detailed = ChatPromptTemplate.from_messages([
           boilerplate: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-llm = ChatOpenAI(temperature=0.4)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.4)
 
 # TODO: Create email_template using ChatPromptTemplate.from_messages
 # System: You are a professional email writer.
@@ -3239,7 +3254,7 @@ if __name__ == "__main__":
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-llm = ChatOpenAI(temperature=0.4)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.4)
 
 email_template = ChatPromptTemplate.from_messages([
     ("system", "You are a professional email writer. Write clear, well-structured emails."),
@@ -3356,7 +3371,7 @@ template = ChatPromptTemplate.from_messages([
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 
-llm = ChatOpenAI(temperature=0.7)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
 
 
 def create_chatbot_template(persona: str, rules: list[str]) -> ChatPromptTemplate:
@@ -3420,7 +3435,7 @@ if __name__ == "__main__":
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.messages import HumanMessage, AIMessage
 
-llm = ChatOpenAI(temperature=0.7)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
 
 
 def create_chatbot_template(persona: str, rules: list[str]) -> ChatPromptTemplate:
@@ -3498,13 +3513,13 @@ For large example pools, select the most relevant examples per query:
 
 \`\`\`python
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
 
 # Create a selector that picks the 2 most similar examples
 selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
-    OpenAIEmbeddings(),
+    HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2"),
     FAISS,
     k=2,  # Number of examples to select
 )
@@ -3534,7 +3549,7 @@ selector = LengthBasedExampleSelector(
           boilerplate: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # TODO: Define at least 8 examples (2 per category)
 examples = []
@@ -3581,7 +3596,7 @@ if __name__ == "__main__":
           solutionCode: `from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 examples = [
     {"input": "I was charged twice for my subscription", "output": "billing"},
@@ -3725,7 +3740,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # TODO: Define ReviewAnalysis Pydantic model
 class ReviewAnalysis(BaseModel):
@@ -3772,7 +3787,7 @@ from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 class ReviewAnalysis(BaseModel):
@@ -3835,7 +3850,7 @@ class BugReport(BaseModel):
     actual_behavior: str
     affected_component: Optional[str] = None
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 structured_llm = llm.with_structured_output(BugReport)
 
 bug = structured_llm.invoke(
@@ -3923,7 +3938,7 @@ class Temperature(BaseModel):
 from pydantic import BaseModel, Field
 from typing import Optional
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # TODO: Define Skill model
 # TODO: Define Experience model
@@ -3995,7 +4010,7 @@ if __name__ == "__main__":
 from pydantic import BaseModel, Field
 from typing import Optional
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 
 class Skill(BaseModel):
@@ -4292,7 +4307,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 prompt = ChatPromptTemplate.from_template("Tell me a joke about {topic}")
-llm = ChatOpenAI()
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 parser = StrOutputParser()
 
 # The pipe operator creates a chain
@@ -4357,11 +4372,11 @@ from langchain_core.output_parsers import StrOutputParser
 # Multi-step chain: Translate → Summarize → Format
 translate = ChatPromptTemplate.from_template(
     "Translate to English: {text}"
-) | ChatOpenAI() | StrOutputParser()
+) | ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY")) | StrOutputParser()
 
 summarize = ChatPromptTemplate.from_template(
     "Summarize in one sentence: {text}"
-) | ChatOpenAI() | StrOutputParser()
+) | ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY")) | StrOutputParser()
 
 # Chain chains together
 from langchain_core.runnables import RunnableLambda
@@ -4573,7 +4588,7 @@ LLM calls can fail: rate limits, network errors, malformed output. Production ch
 from langchain_openai import ChatOpenAI
 
 # Built-in retries
-llm = ChatOpenAI(max_retries=3)  # Retries on transient errors
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), max_retries=3)  # Retries on transient errors
 
 # Custom retry with backoff
 chain = prompt | llm | parser
@@ -4587,8 +4602,8 @@ chain_with_retry = chain.with_retry(
 
 \`\`\`python
 # Primary model with fallback to cheaper model
-primary = ChatOpenAI(model="gpt-4o")
-fallback = ChatOpenAI(model="gpt-4o-mini")
+primary = ChatOpenAI(model="openai/gpt-4o", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
+fallback = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"))
 
 llm_with_fallback = primary.with_fallbacks([fallback])
 
@@ -4640,7 +4655,7 @@ Without streaming, users wait 5-10 seconds staring at a blank screen. With strea
 \`\`\`python
 from langchain_openai import ChatOpenAI
 
-llm = ChatOpenAI(streaming=True)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), streaming=True)
 
 # Token-by-token streaming
 for chunk in llm.stream("Tell me a story about a robot"):
@@ -4712,7 +4727,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
 # This pattern is central to ${title.toLowerCase()}
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # Build your pipeline
 prompt = ChatPromptTemplate.from_messages([
@@ -5097,7 +5112,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnableLambda
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # TODO: Create a clean_text function (strip whitespace, limit length)
 # TODO: Create sentiment_chain (prompt | llm | parser)
@@ -5130,7 +5145,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnableLambda
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 def clean_text(text: str) -> str:
     return text.strip()[:2000]
@@ -5167,7 +5182,7 @@ def analyze_text(text: str) -> str:
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 # TODO: Implement the main function for this topic
 # The function should demonstrate the key concept of "${title}"
@@ -5208,7 +5223,7 @@ if __name__ == "__main__":
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-llm = ChatOpenAI(temperature=0)
+llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
 def main_function(input_text: str) -> str:
     prompt = ChatPromptTemplate.from_messages([
@@ -5317,14 +5332,14 @@ export const courses: Course[] = [
 Your function \`build_vector_store(pdf_paths: list[str]) -> Chroma\` must:
 1. Load each PDF using PyPDFLoader
 2. Split documents using RecursiveCharacterTextSplitter with chunk_size=1000, chunk_overlap=200
-3. Create embeddings using OpenAIEmbeddings
+3. Create embeddings using HuggingFaceEmbeddings
 4. Persist everything in a ChromaDB instance at "./chroma_db"
 5. Return the Chroma vector store object
 
 Also write \`count_chunks(pdf_paths: list[str]) -> int\` that returns the total number of chunks created.`,
           boilerplate: `from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
 
@@ -5342,7 +5357,7 @@ def build_vector_store(pdf_paths: list[str]) -> Chroma:
     """
     # TODO: Load all PDFs using PyPDFLoader
     # TODO: Split documents with chunk_size=1000, chunk_overlap=200
-    # TODO: Create OpenAIEmbeddings
+    # TODO: Create HuggingFaceEmbeddings (model_name="all-MiniLM-L6-v2")
     # TODO: Create and persist Chroma vector store at "./chroma_db"
     # TODO: Return the Chroma instance
     pass
@@ -5369,7 +5384,7 @@ if __name__ == "__main__":
           rubric: [
             'Loads PDFs using PyPDFLoader for each path in the list',
             'Uses RecursiveCharacterTextSplitter with chunk_size=1000 and chunk_overlap=200',
-            'Creates OpenAIEmbeddings correctly',
+            'Creates HuggingFaceEmbeddings correctly',
             'Persists Chroma store at "./chroma_db" with the persist_directory parameter',
             'Returns the Chroma instance from build_vector_store',
             'count_chunks applies same loading/splitting and returns len(chunks)',
@@ -5382,7 +5397,7 @@ if __name__ == "__main__":
           ],
           solutionCode: `from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
 
@@ -5400,7 +5415,7 @@ def _load_and_split(pdf_paths: list[str]):
 
 def build_vector_store(pdf_paths: list[str]) -> Chroma:
     chunks = _load_and_split(pdf_paths)
-    embedding = OpenAIEmbeddings()
+    embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     return Chroma.from_documents(chunks, embedding, persist_directory="./chroma_db")
 
 
@@ -5421,7 +5436,8 @@ Your function \`create_rag_chain(vector_store: Chroma) -> Runnable\` must:
 
 Also write \`ask(chain, question: str) -> str\` as a thin wrapper that invokes the chain and returns the answer.`,
           boilerplate: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, Runnable
@@ -5459,7 +5475,7 @@ def ask(chain: Runnable, question: str) -> str:
 
 
 if __name__ == "__main__":
-    embedding = OpenAIEmbeddings()
+    embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     store = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
     chain = create_rag_chain(store)
     answer = ask(chain, "What are the main topics covered in the documents?")
@@ -5479,7 +5495,8 @@ if __name__ == "__main__":
             'ChatPromptTemplate.from_messages([("system", "Use the following context...\\n\\n{context}"), ("human", "{question}")])',
           ],
           solutionCode: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough, Runnable
@@ -5503,7 +5520,7 @@ def create_rag_chain(vector_store: Chroma) -> Runnable:
         ("system", SYSTEM_PROMPT),
         ("human", "{question}"),
     ])
-    llm = ChatOpenAI(temperature=0)
+    llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
 
     chain = (
         {"context": retriever | format_docs, "question": RunnablePassthrough()}
@@ -5531,7 +5548,8 @@ Build a \`ConversationalRAGAssistant\` class with:
 
 The chain inside must include the chat history in the prompt so the model can reference earlier exchanges. Use \`HumanMessage\` and \`AIMessage\` objects for history.`,
           boilerplate: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -5574,7 +5592,7 @@ class ConversationalRAGAssistant:
 
 
 if __name__ == "__main__":
-    embedding = OpenAIEmbeddings()
+    embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     store = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
     assistant = ConversationalRAGAssistant(store)
 
@@ -5597,7 +5615,8 @@ if __name__ == "__main__":
             'Pass {"context": formatted_context, "history": self._history, "question": question} to the chain',
           ],
           solutionCode: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
@@ -5618,7 +5637,7 @@ def _format_docs(docs) -> str:
 class ConversationalRAGAssistant:
     def __init__(self, vector_store: Chroma):
         self._retriever = vector_store.as_retriever(search_kwargs={"k": 4})
-        self._llm = ChatOpenAI(temperature=0)
+        self._llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
         self._prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM),
             MessagesPlaceholder(variable_name="history"),
@@ -5658,7 +5677,8 @@ Build a \`ResearchAgent\` class with:
 
 The agent should use \`create_react_agent\` from LangGraph and the \`ToolNode\` pattern. Each tool must be decorated with \`@tool\` and have a clear docstring so the LLM knows when to use it.`,
           boilerplate: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from dotenv import load_dotenv
@@ -5718,7 +5738,7 @@ class ResearchAgent:
 
 
 if __name__ == "__main__":
-    embedding = OpenAIEmbeddings()
+    embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     store = Chroma(persist_directory="./chroma_db", embedding_function=embedding)
     agent = ResearchAgent(store)
 
@@ -5741,7 +5761,8 @@ if __name__ == "__main__":
             'The response["messages"][-1].content gives the final agent answer',
           ],
           solutionCode: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import ChatOpenAI
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.tools import tool
 from langgraph.prebuilt import create_react_agent
 from dotenv import load_dotenv
@@ -5780,7 +5801,7 @@ def build_tools(vector_store: Chroma):
 class ResearchAgent:
     def __init__(self, vector_store: Chroma):
         self._tools = build_tools(vector_store)
-        llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+        llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
         self._agent = create_react_agent(llm, self._tools)
 
     def run(self, query: str) -> str:
