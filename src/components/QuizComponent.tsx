@@ -27,12 +27,12 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
   if (!hasKey) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-        <div className="w-14 h-14 rounded-full bg-amber-900/20 border border-amber-700/40 flex items-center justify-center">
-          <Key className="w-6 h-6 text-amber-400" />
+        <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <Key className="w-6 h-6 text-amber-500" />
         </div>
         <div>
-          <h3 className="text-white font-semibold mb-1">OpenRouter key required</h3>
-          <p className="text-sm text-gray-400 max-w-xs">
+          <h3 className="text-slate-900 font-semibold mb-1">OpenRouter key required</h3>
+          <p className="text-sm text-slate-500 max-w-xs">
             Add your free OpenRouter key in Settings to unlock quizzes and progress through the course.
           </p>
         </div>
@@ -101,28 +101,27 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
       <div className="space-y-6">
         {/* Score card */}
         <div className={`rounded-2xl border p-6 text-center ${
-          passed ? 'bg-emerald-900/15 border-emerald-700/40' : 'bg-gray-900 border-gray-800'
+          passed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
         }`}>
           <div className="flex justify-center mb-4">
             {passed
-              ? <Trophy className="w-12 h-12 text-emerald-400" />
+              ? <Trophy className="w-12 h-12 text-emerald-500" />
               : <XCircle className="w-12 h-12 text-red-400" />}
           </div>
-          <h2 className={`text-2xl font-bold mb-1 ${passed ? 'text-emerald-400' : 'text-white'}`}>
+          <h2 className={`text-2xl font-bold mb-1 ${passed ? 'text-emerald-700' : 'text-slate-900'}`}>
             {passed ? 'Quiz Passed!' : 'Not quite yet'}
           </h2>
-          <p className="text-gray-400 mb-4">
+          <p className="text-slate-500 mb-4">
             {correctCount} of {questions.length} correct — {finalScore}%
-            {!passed && <span className="text-gray-500"> (need 80% to pass)</span>}
+            {!passed && <span className="text-slate-400"> (need 80% to pass)</span>}
           </p>
           {passed && (
-            <div className="inline-flex items-center gap-1.5 bg-yellow-900/20 border border-yellow-700/30 text-yellow-400 text-sm px-3 py-1.5 rounded-full mb-4">
+            <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-3 py-1.5 rounded-full mb-4">
               <Zap className="w-3.5 h-3.5" />
               XP earned on completion
             </div>
           )}
-          {/* Mini score bar */}
-          <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mt-2">
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden mt-2">
             <div
               className={`h-full rounded-full transition-all duration-1000 ${passed ? 'bg-emerald-500' : 'bg-red-500'}`}
               style={{ width: `${finalScore}%` }}
@@ -139,7 +138,7 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
             )}
             <button
               onClick={() => setPhase(phase === 'review' ? 'results' : 'review')}
-              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
             >
               <BookOpen className="w-4 h-4" />
               {phase === 'review' ? 'Hide Review' : 'Review Answers'}
@@ -155,14 +154,14 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
               const correct = ans === q.correctIndex
               return (
                 <div key={idx} className={`rounded-xl border p-5 ${
-                  correct ? 'border-emerald-800/40 bg-emerald-900/5' : 'border-red-800/40 bg-red-900/5'
+                  correct ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'
                 }`}>
                   <div className="flex items-start gap-2 mb-3">
                     {correct
-                      ? <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-                      : <XCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />}
-                    <p className="text-sm font-medium text-white">
-                      <span className="text-gray-500 mr-1.5">Q{idx + 1}.</span>{q.question}
+                      ? <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                      : <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />}
+                    <p className="text-sm font-medium text-slate-900">
+                      <span className="text-slate-400 mr-1.5">Q{idx + 1}.</span>{q.question}
                     </p>
                   </div>
                   <div className="space-y-1.5 ml-6 mb-3">
@@ -172,21 +171,21 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
                       return (
                         <div key={oIdx} className={`text-xs px-3 py-2 rounded-lg flex items-center gap-2 ${
                           isCorrectAnswer
-                            ? 'bg-emerald-900/20 text-emerald-300 border border-emerald-800/30'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                             : isUserAnswer && !isCorrectAnswer
-                            ? 'bg-red-900/20 text-red-300 border border-red-800/30'
-                            : 'text-gray-500'
+                            ? 'bg-red-100 text-red-800 border border-red-200'
+                            : 'text-slate-500'
                         }`}>
                           {isCorrectAnswer && <CheckCircle className="w-3 h-3 shrink-0" />}
                           {isUserAnswer && !isCorrectAnswer && <XCircle className="w-3 h-3 shrink-0" />}
                           {opt}
-                          {isCorrectAnswer && <span className="ml-auto text-emerald-500 font-medium">Correct</span>}
-                          {isUserAnswer && !isCorrectAnswer && <span className="ml-auto text-red-400 font-medium">Your answer</span>}
+                          {isCorrectAnswer && <span className="ml-auto text-emerald-700 font-medium">Correct</span>}
+                          {isUserAnswer && !isCorrectAnswer && <span className="ml-auto text-red-600 font-medium">Your answer</span>}
                         </div>
                       )
                     })}
                   </div>
-                  <p className={`text-xs ml-6 p-2.5 rounded-lg ${correct ? 'bg-emerald-900/10 text-emerald-300/80' : 'bg-amber-900/10 text-amber-300/80'}`}>
+                  <p className={`text-xs ml-6 p-2.5 rounded-lg ${correct ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
                     {q.explanation}
                   </p>
                 </div>
@@ -203,11 +202,11 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
     <div className={`space-y-6 transition-opacity duration-200 ${animating ? 'opacity-0' : 'opacity-100'}`}>
       {/* Progress */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-gray-500">
+        <div className="flex items-center justify-between text-xs text-slate-400">
           <span>Question {current + 1} of {questions.length}</span>
           <span>{correctCount} correct so far</span>
         </div>
-        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+        <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
           <div
             className="h-full bg-emerald-500 rounded-full transition-all duration-300"
             style={{ width: `${((current + (phase === 'answered' ? 1 : 0)) / questions.length) * 100}%` }}
@@ -216,8 +215,8 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
       </div>
 
       {/* Question card */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <p className="font-medium text-white text-base leading-relaxed mb-5">
+      <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+        <p className="font-medium text-slate-900 text-base leading-relaxed mb-5">
           {q.question}
         </p>
 
@@ -234,21 +233,21 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
                 disabled={phase === 'answered'}
                 className={`w-full text-left px-4 py-3.5 rounded-xl border text-sm transition-all duration-200 flex items-center gap-3 ${
                   showCorrect
-                    ? 'border-emerald-500 bg-emerald-900/25 text-emerald-200'
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-800'
                     : showWrong
-                    ? 'border-red-500 bg-red-900/25 text-red-200'
+                    ? 'border-red-400 bg-red-50 text-red-800'
                     : isSelected
-                    ? 'border-emerald-500 bg-emerald-900/15 text-white'
+                    ? 'border-emerald-400 bg-emerald-50 text-emerald-800'
                     : phase === 'answered'
-                    ? 'border-gray-800 bg-gray-800/30 text-gray-600 cursor-default'
-                    : 'border-gray-700 bg-gray-800/50 text-gray-300 hover:border-gray-500 hover:bg-gray-800 cursor-pointer'
+                    ? 'border-slate-100 bg-slate-50 text-slate-400 cursor-default'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer'
                 }`}
               >
                 <span className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 text-xs font-medium transition-all ${
                   showCorrect ? 'border-emerald-500 bg-emerald-500 text-white' :
                   showWrong ? 'border-red-500 bg-red-500 text-white' :
                   isSelected ? 'border-emerald-500 bg-emerald-500 text-white' :
-                  'border-gray-600 text-gray-400'
+                  'border-slate-300 text-slate-500'
                 }`}>
                   {showCorrect ? <CheckCircle className="w-4 h-4" /> :
                    showWrong ? <XCircle className="w-4 h-4" /> :
@@ -264,8 +263,8 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
         {phase === 'answered' && (
           <div className={`mt-5 p-4 rounded-xl text-sm border ${
             isCorrect
-              ? 'bg-emerald-900/15 border-emerald-800/30 text-emerald-300'
-              : 'bg-amber-900/10 border-amber-800/20 text-amber-300'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
           }`}>
             <span className="font-medium mr-1">{isCorrect ? '✓ Correct!' : '✗ Incorrect.'}</span>
             {q.explanation}
@@ -286,7 +285,7 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
       )}
 
       {phase === 'question' && (
-        <p className="text-center text-xs text-gray-600">Select an answer to continue</p>
+        <p className="text-center text-xs text-slate-400">Select an answer to continue</p>
       )}
     </div>
   )

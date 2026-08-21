@@ -130,7 +130,7 @@ export default function SettingsPage() {
   if (loading || !user) {
     return (
       <main className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-gray-500">Loading…</div>
+        <div className="animate-pulse text-slate-400">Loading…</div>
       </main>
     )
   }
@@ -140,15 +140,15 @@ export default function SettingsPage() {
   return (
     <main className="flex-1 overflow-y-auto">
       <div className="max-w-2xl mx-auto px-4 md:px-8 py-10">
-        <h1 className="text-2xl font-bold text-white mb-1">Settings</h1>
-        <p className="text-gray-400 text-sm mb-8">Manage your account preferences.</p>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">Settings</h1>
+        <p className="text-slate-500 text-sm mb-8">Manage your account preferences.</p>
 
         {/* Key requirement notice */}
         {!hasKey && (
-          <div className="mb-6 flex gap-3 bg-amber-900/15 border border-amber-700/40 rounded-xl p-4">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <div className="text-sm text-amber-200/80">
-              <p className="font-semibold text-amber-300 mb-1">OpenRouter key required to start learning</p>
+          <div className="mb-6 flex gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-sm text-amber-800">
+              <p className="font-semibold text-amber-800 mb-1">OpenRouter key required to start learning</p>
               <p>
                 All assessments are AI-powered using your own free key.
                 It is stored securely and only used for your assessments — never shared or exposed.
@@ -158,19 +158,19 @@ export default function SettingsPage() {
         )}
 
         {/* OpenRouter API key card */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-5">
+        <div className="glass rounded-xl p-6 space-y-5">
           <div className="flex items-center gap-3">
-            <Key className="w-5 h-5 text-emerald-400" />
+            <Key className="w-5 h-5 text-emerald-600" />
             <div>
-              <h2 className="font-semibold text-white">OpenRouter API Key</h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <h2 className="font-semibold text-slate-900">OpenRouter API Key</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
                 Stored encrypted server-side — never sent to your browser after saving.
               </p>
             </div>
             <span className={`ml-auto flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border ${
               hasKey
-                ? 'text-emerald-400 bg-emerald-900/20 border-emerald-700/30'
-                : 'text-gray-500 bg-gray-800 border-gray-700'
+                ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                : 'text-slate-500 bg-slate-100 border-slate-200'
             }`}>
               {hasKey ? <><CheckCircle className="w-3.5 h-3.5" /> Configured</> : 'Not set'}
             </span>
@@ -178,12 +178,12 @@ export default function SettingsPage() {
 
           {/* Current key status — never show the raw value */}
           {hasKey && (
-            <div className="bg-gray-800/60 border border-gray-700 rounded-lg px-4 py-3 text-sm text-gray-400 flex items-center justify-between">
+            <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-slate-500 flex items-center justify-between">
               <span className="font-mono tracking-widest">sk-or-••••••••••••••••••••••••</span>
               <button
                 onClick={handleClear}
                 disabled={saving}
-                className="flex items-center gap-1.5 text-red-400 hover:text-red-300 text-xs transition-colors ml-4"
+                className="flex items-center gap-1.5 text-red-500 hover:text-red-600 text-xs transition-colors ml-4"
               >
                 <Trash2 className="w-3.5 h-3.5" /> Remove
               </button>
@@ -192,7 +192,7 @@ export default function SettingsPage() {
 
           {/* Input for a new key */}
           <div className="space-y-1.5">
-            <label className="text-xs text-gray-400 font-medium">
+            <label className="text-xs text-slate-600 font-medium">
               {hasKey ? 'Replace with a new key' : 'Enter your API key'}
             </label>
             <div className="relative">
@@ -203,19 +203,19 @@ export default function SettingsPage() {
                 placeholder="sk-or-v1-..."
                 spellCheck={false}
                 autoComplete="off"
-                className={`w-full bg-gray-800 border rounded-lg px-4 py-2.5 pr-10 text-sm text-white placeholder-gray-600 focus:outline-none transition-colors font-mono ${
-                  formatError ? 'border-red-600 focus:border-red-500' : 'border-gray-700 focus:border-emerald-500'
+                className={`w-full bg-white border rounded-lg px-4 py-2.5 pr-10 text-sm text-slate-900 placeholder-slate-300 focus:outline-none transition-colors font-mono ${
+                  formatError ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-emerald-400'
                 }`}
               />
               <button
                 type="button"
                 onClick={() => setShowKey(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
-            {formatError && <p className="text-xs text-red-400">{formatError}</p>}
+            {formatError && <p className="text-xs text-red-500">{formatError}</p>}
             <p className="text-xs text-gray-600">
               Free tier at{' '}
               <a
@@ -232,12 +232,12 @@ export default function SettingsPage() {
 
           {/* Test result */}
           {testState !== 'idle' && (
-            <div className={`flex items-start gap-2 text-sm p-3 rounded-lg ${
+            <div className={`flex items-start gap-2 text-sm p-3 rounded-lg border ${
               testState === 'ok'
-                ? 'bg-emerald-900/15 border border-emerald-700/30 text-emerald-300'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 : testState === 'fail'
-                ? 'bg-red-900/15 border border-red-700/30 text-red-300'
-                : 'bg-gray-800 text-gray-400'
+                ? 'bg-red-50 border-red-200 text-red-700'
+                : 'bg-slate-50 border-slate-200 text-slate-500'
             }`}>
               {testState === 'testing' && <Loader2 className="w-4 h-4 animate-spin shrink-0 mt-0.5" />}
               {testState === 'ok' && <CheckCircle className="w-4 h-4 shrink-0 mt-0.5" />}
@@ -249,7 +249,7 @@ export default function SettingsPage() {
           {/* Save feedback */}
           {saveMsg && (
             <div className={`text-sm flex items-center gap-2 ${
-              saveMsg.type === 'ok' ? 'text-emerald-400' : 'text-red-400'
+              saveMsg.type === 'ok' ? 'text-emerald-600' : 'text-red-500'
             }`}>
               {saveMsg.type === 'ok' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
               {saveMsg.text}
@@ -261,7 +261,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={saving || !keyInput.trim() || Boolean(formatError)}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-700 disabled:text-gray-500 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Save Key
@@ -270,7 +270,7 @@ export default function SettingsPage() {
             <button
               onClick={handleTest}
               disabled={testState === 'testing' || !keyInput.trim() || Boolean(formatError)}
-              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-40 text-gray-300 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors border border-gray-700"
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 disabled:opacity-40 text-slate-600 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors border border-slate-200"
             >
               {testState === 'testing'
                 ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -281,19 +281,19 @@ export default function SettingsPage() {
         </div>
 
         {/* Account info */}
-        <div className="mt-6 bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-3">
-          <h2 className="font-semibold text-white">Account</h2>
+        <div className="mt-6 glass rounded-xl p-6 space-y-3">
+          <h2 className="font-semibold text-slate-900">Account</h2>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Display name</span>
-            <span className="text-gray-300">{profile?.display_name}</span>
+            <span className="text-slate-400">Display name</span>
+            <span className="text-slate-700">{profile?.display_name}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Email</span>
-            <span className="text-gray-300">{user.email}</span>
+            <span className="text-slate-400">Email</span>
+            <span className="text-slate-700">{user.email}</span>
           </div>
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">XP earned</span>
-            <span className="text-gray-300">{profile?.xp ?? 0}</span>
+            <span className="text-slate-400">XP earned</span>
+            <span className="text-slate-700">{profile?.xp ?? 0}</span>
           </div>
         </div>
       </div>

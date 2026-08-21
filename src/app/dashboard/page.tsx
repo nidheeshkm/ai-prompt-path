@@ -41,7 +41,7 @@ export default function DashboardPage() {
   if (authLoading || enrollLoading || !user || !profile) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="animate-pulse text-white/30 text-sm">Loading…</div>
+        <div className="animate-pulse text-slate-400 text-sm">Loading…</div>
       </div>
     )
   }
@@ -63,27 +63,27 @@ export default function DashboardPage() {
 
         {/* Welcome */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white">
+          <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
             Welcome back, <span className="gradient-text">{profile.display_name}</span>
           </h1>
-          <p className="text-white/40 mt-1 text-sm">Keep up the momentum.</p>
+          <p className="text-slate-500 mt-1 text-sm">Keep up the momentum.</p>
         </div>
 
         {/* OpenRouter key banner */}
         {!profile.has_openrouter_key && (
-          <div className="flex items-start gap-4 bg-amber-500/[0.08] border border-amber-500/25 rounded-2xl p-5">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-5 h-5 text-amber-400" />
+          <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl p-5">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-amber-300 mb-0.5">Set up your OpenRouter key to start learning</p>
-              <p className="text-sm text-amber-200/60">
+              <p className="font-semibold text-amber-800 mb-0.5">Set up your OpenRouter key to start learning</p>
+              <p className="text-sm text-amber-700/80">
                 All AI-powered assessments require your own free OpenRouter key — add it once in Settings.
               </p>
             </div>
             <Link
               href="/settings"
-              className="shrink-0 bg-amber-500 hover:bg-amber-400 text-gray-900 text-sm font-bold px-4 py-2 rounded-xl transition-colors"
+              className="shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors"
             >
               Configure →
             </Link>
@@ -129,15 +129,15 @@ export default function DashboardPage() {
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
                 {level.level}
               </div>
-              <span className="text-sm font-semibold text-white">{level.title}</span>
+              <span className="text-sm font-semibold text-slate-800">{level.title}</span>
             </div>
             {nextLevel && (
-              <span className="text-xs text-white/30">
+              <span className="text-xs text-slate-400">
                 {xpProgress.current} / {xpProgress.needed} XP to Level {nextLevel.level}
               </span>
             )}
           </div>
-          <div className="w-full h-3 bg-white/[0.08] rounded-full overflow-hidden">
+          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="xp-bar h-full rounded-full transition-all duration-700"
               style={{ width: `${xpProgress.percentage}%` }}
@@ -148,7 +148,7 @@ export default function DashboardPage() {
         {/* Certificates */}
         {certificates.length > 0 && (
           <section>
-            <h2 className="text-lg font-bold text-white mb-4">Certificates</h2>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Certificates</h2>
             <div className="grid gap-3 md:grid-cols-2">
               {certificates.map(cert => {
                 const course = courses.find(c => c.id === cert.course_id)
@@ -157,18 +157,18 @@ export default function DashboardPage() {
                   <Link
                     key={cert.id}
                     href={`/certificates/${cert.certificate_id}`}
-                    className="flex items-center gap-4 glass rounded-xl p-4 hover:border-amber-500/30 transition-all group"
+                    className="flex items-center gap-4 glass rounded-xl p-4 hover:border-amber-200 transition-all group"
                   >
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
                       <Award className="w-5 h-5 text-white" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-white text-sm">{course.title}</p>
-                      <p className="text-xs text-white/30 mt-0.5">
+                      <p className="font-semibold text-slate-900 text-sm">{course.title}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">
                         Issued {new Date(cert.issued_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-amber-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-amber-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
                   </Link>
                 )
               })}
@@ -179,10 +179,10 @@ export default function DashboardPage() {
         {/* My Courses */}
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-white">My Courses</h2>
+            <h2 className="text-lg font-bold text-slate-900">My Courses</h2>
             <Link
               href="/courses"
-              className="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-emerald-600 hover:text-emerald-700 font-medium transition-colors"
             >
               <Plus className="w-4 h-4" />
               Browse Catalog
@@ -191,11 +191,11 @@ export default function DashboardPage() {
 
           {enrolledCourses.length === 0 ? (
             <div className="glass rounded-2xl p-10 text-center">
-              <BookOpen className="w-10 h-10 text-white/10 mx-auto mb-3" />
-              <p className="text-white/40 mb-5 text-sm">You haven't enrolled in any courses yet.</p>
+              <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 mb-5 text-sm">You haven't enrolled in any courses yet.</p>
               <Link
                 href="/courses"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-500/25"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all shadow-md shadow-emerald-500/20"
               >
                 Browse Courses
               </Link>
@@ -223,22 +223,22 @@ export default function DashboardPage() {
                     <div className="p-5 flex flex-col gap-4 flex-1">
                       {/* Course title row */}
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-xl shrink-0 shadow-lg`}>
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-xl shrink-0 shadow-md`}>
                           {course.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-bold text-white text-sm leading-tight truncate">{course.title}</h3>
-                          <p className="text-xs text-white/30 mt-0.5">{done}/{total} completed · {pct}%</p>
+                          <h3 className="font-bold text-slate-900 text-sm leading-tight truncate">{course.title}</h3>
+                          <p className="text-xs text-slate-400 mt-0.5">{done}/{total} completed · {pct}%</p>
                         </div>
                         {hasCert && (
-                          <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-                            <Award className="w-4 h-4 text-amber-400" />
+                          <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                            <Award className="w-4 h-4 text-amber-500" />
                           </div>
                         )}
                       </div>
 
                       {/* Progress bar */}
-                      <div className="w-full h-1.5 bg-white/[0.08] rounded-full overflow-hidden">
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
                         <div
                           className={`h-full bg-gradient-to-r ${gradient} rounded-full transition-all`}
                           style={{ width: `${pct}%` }}
@@ -261,21 +261,21 @@ export default function DashboardPage() {
                               href={unlocked ? `/learn/${course.id}/${chapter.id}` : '#'}
                               className={`flex items-center justify-between rounded-lg px-2.5 py-2 text-xs transition-colors ${
                                 unlocked
-                                  ? 'bg-white/[0.04] hover:bg-white/[0.08] cursor-pointer'
-                                  : 'bg-white/[0.02] opacity-40 cursor-not-allowed'
+                                  ? 'bg-slate-50 hover:bg-slate-100 cursor-pointer border border-slate-200'
+                                  : 'bg-slate-50 opacity-50 cursor-not-allowed border border-slate-100'
                               }`}
                             >
                               <div className="flex items-center gap-1.5 min-w-0">
                                 {unlocked ? (
                                   <span className="shrink-0">{chapter.icon}</span>
                                 ) : (
-                                  <Lock className="w-3 h-3 text-white/20 shrink-0" />
+                                  <Lock className="w-3 h-3 text-slate-400 shrink-0" />
                                 )}
-                                <span className="text-white/60 truncate">Ch.{chapter.id}</span>
+                                <span className="text-slate-600 truncate">Ch.{chapter.id}</span>
                               </div>
                               {chPct === 100
-                                ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                                : <span className="text-white/30 shrink-0 ml-1">{chPct}%</span>
+                                ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                                : <span className="text-slate-400 shrink-0 ml-1">{chPct}%</span>
                               }
                             </Link>
                           )
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                         ) : (
                           <Link
                             href={`/learn/${course.id}`}
-                            className="flex items-center justify-center w-full border border-white/10 hover:border-white/20 text-white/50 hover:text-white/80 text-xs font-medium px-4 py-2.5 rounded-xl transition-all"
+                            className="flex items-center justify-center w-full border border-slate-200 hover:border-slate-300 text-slate-500 hover:text-slate-700 text-xs font-medium px-4 py-2.5 rounded-xl transition-all"
                           >
                             View Course
                           </Link>
@@ -311,7 +311,7 @@ export default function DashboardPage() {
 
         {/* Badges */}
         <section>
-          <h2 className="text-lg font-bold text-white mb-4">Badges</h2>
+          <h2 className="text-lg font-bold text-slate-900 mb-4">Badges</h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {getAllBadgeDefinitions(enrolledCourses).map((badge) => {
               const earned = earnedBadges.includes(badge.id)
@@ -320,13 +320,13 @@ export default function DashboardPage() {
                   key={badge.id}
                   className={`flex flex-col items-center p-3 rounded-xl border text-center transition-all ${
                     earned
-                      ? 'glass border-emerald-500/20 shadow-lg shadow-emerald-500/5'
-                      : 'bg-white/[0.02] border-white/[0.04] opacity-30'
+                      ? 'glass border-emerald-200 shadow-sm'
+                      : 'bg-slate-50 border-slate-100 opacity-40'
                   }`}
                   title={badge.description}
                 >
                   <span className="text-2xl mb-1">{badge.icon}</span>
-                  <span className="text-xs font-medium text-white/70 leading-tight">{badge.name}</span>
+                  <span className="text-xs font-medium text-slate-600 leading-tight">{badge.name}</span>
                 </div>
               )
             })}
@@ -352,13 +352,13 @@ function StatCard({
 }) {
   return (
     <div className="glass rounded-2xl p-4 flex flex-col gap-3">
-      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-lg`}>
+      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-md`}>
         {icon}
       </div>
       <div>
-        <p className="text-xs text-white/40 uppercase tracking-wider">{label}</p>
-        <p className="text-xl font-bold text-white leading-tight">{value}</p>
-        {sub && <p className="text-xs text-white/30 mt-0.5">{sub}</p>}
+        <p className="text-xs text-slate-400 uppercase tracking-wider">{label}</p>
+        <p className="text-xl font-bold text-slate-900 leading-tight">{value}</p>
+        {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
   )

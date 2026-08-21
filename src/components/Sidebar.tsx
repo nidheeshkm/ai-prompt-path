@@ -16,13 +16,13 @@ export default function Sidebar({ courseId }: { courseId: string }) {
   if (!user || !course) return null
 
   return (
-    <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r border-white/[0.07] bg-[#0b0f1a] overflow-y-auto">
+    <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r border-black/[0.07] bg-slate-50 overflow-y-auto">
       <nav className="p-4 space-y-5">
 
         {/* Course label */}
-        <div className="px-2 pb-2 border-b border-white/[0.06]">
-          <p className="text-[10px] text-white/30 uppercase tracking-widest font-semibold mb-1.5">Course</p>
-          <p className="text-sm font-bold text-white leading-snug">{course.title}</p>
+        <div className="px-2 pb-2 border-b border-black/[0.07]">
+          <p className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mb-1.5">Course</p>
+          <p className="text-sm font-bold text-slate-900 leading-snug">{course.title}</p>
         </div>
 
         {/* Chapters */}
@@ -37,10 +37,10 @@ export default function Sidebar({ courseId }: { courseId: string }) {
               {/* Chapter header */}
               <Link
                 href={`/learn/${courseId}/${chapter.id}`}
-                className={`flex items-start gap-2 mb-2 px-2 py-1.5 rounded-lg transition-colors group ${
+                className={`flex items-start gap-2 mb-2 px-2 py-1.5 rounded-lg transition-colors ${
                   isCurrentChapter
-                    ? 'text-emerald-400'
-                    : 'text-white/65 hover:text-white/90'
+                    ? 'text-emerald-700 bg-emerald-50'
+                    : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 <span className="shrink-0 mt-0.5">{chapter.icon}</span>
@@ -53,7 +53,7 @@ export default function Sidebar({ courseId }: { courseId: string }) {
               </Link>
 
               {/* Topics */}
-              <ul className="space-y-0.5 ml-5 border-l border-white/[0.06] pl-3">
+              <ul className="space-y-0.5 ml-5 border-l border-slate-200 pl-3">
                 {chapter.topics.map((topic) => {
                   const topicProgress = progressMap[`${courseId}__${topic.id}`]
                   const isCompleted = topicProgress?.status === 'completed'
@@ -69,29 +69,28 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                           href={`/learn/${courseId}/${chapter.id}/${topic.id}`}
                           className={`${baseRow} ${
                             isActive
-                              ? 'bg-emerald-500/10 text-emerald-300 font-medium'
+                              ? 'bg-emerald-50 text-emerald-700 font-medium'
                               : isCompleted
-                              ? 'text-white/70 hover:text-white/90'
-                              : 'text-white/60 hover:text-white/90'
+                              ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                           }`}
                         >
                           <span className="shrink-0 mt-0.5">
                             {isCompleted
                               ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                              : <Circle className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-white/20'}`} />
+                              : <Circle className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-500' : 'text-slate-300'}`} />
                             }
                           </span>
-                          {/* Allow wrapping — do NOT truncate */}
                           <span className="break-words min-w-0">
-                            <span className="text-white/30 mr-1">{topic.id}</span>
+                            <span className="text-slate-400 mr-1">{topic.id}</span>
                             {topic.title}
                           </span>
                         </Link>
                       ) : (
-                        <div className={`${baseRow} text-white/60 cursor-not-allowed`}>
-                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/50" />
+                        <div className={`${baseRow} text-slate-400 cursor-not-allowed`}>
+                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-300" />
                           <span className="break-words min-w-0">
-                            <span className="text-white/40 mr-1">{topic.id}</span>
+                            <span className="text-slate-300 mr-1">{topic.id}</span>
                             {topic.title}
                           </span>
                         </div>
@@ -110,15 +109,15 @@ export default function Sidebar({ courseId }: { courseId: string }) {
             href={`/learn/${courseId}/project`}
             className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold mb-2 transition-colors ${
               pathname.startsWith(`/learn/${courseId}/project`)
-                ? 'text-amber-400'
-                : 'text-white/55 hover:text-white/90'
+                ? 'text-amber-700 bg-amber-50'
+                : 'text-slate-700 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <FolderOpen className="w-4 h-4 shrink-0" />
             <span>Capstone Project</span>
           </Link>
 
-          <ul className="space-y-0.5 ml-5 border-l border-white/[0.06] pl-3">
+          <ul className="space-y-0.5 ml-5 border-l border-slate-200 pl-3">
             {course.project.milestones.map((milestone) => {
               const mProgress = milestoneMap[`${courseId}__${milestone.id}`]
               const isCompleted = mProgress?.status === 'completed'
@@ -134,23 +133,23 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                       href={`/learn/${courseId}/project/${milestone.id}`}
                       className={`${baseRow} ${
                         isActive
-                          ? 'bg-amber-500/10 text-amber-300 font-medium'
+                          ? 'bg-amber-50 text-amber-700 font-medium'
                           : isCompleted
-                          ? 'text-white/70 hover:text-white/90'
-                          : 'text-white/60 hover:text-white/90'
+                          ? 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
                       <span className="shrink-0 mt-0.5">
                         {isCompleted
-                          ? <CheckCircle className="w-3.5 h-3.5 text-amber-400" />
-                          : <Layers className={`w-3.5 h-3.5 ${isActive ? 'text-amber-400' : 'text-white/20'}`} />
+                          ? <CheckCircle className="w-3.5 h-3.5 text-amber-500" />
+                          : <Layers className={`w-3.5 h-3.5 ${isActive ? 'text-amber-500' : 'text-slate-300'}`} />
                         }
                       </span>
                       <span className="break-words min-w-0">{milestone.title}</span>
                     </Link>
                   ) : (
-                    <div className={`${baseRow} text-white/60 cursor-not-allowed`}>
-                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/50" />
+                    <div className={`${baseRow} text-slate-400 cursor-not-allowed`}>
+                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-slate-300" />
                       <span className="break-words min-w-0">{milestone.title}</span>
                     </div>
                   )}
