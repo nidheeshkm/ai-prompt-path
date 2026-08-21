@@ -24,6 +24,10 @@ export type Profile = {
   has_openrouter_key: boolean
 }
 
+export type QuizSubmission = { type: 'quiz'; answers: number[] }
+export type CodingSubmission = { type: 'coding'; code: string }
+export type Submission = QuizSubmission | CodingSubmission
+
 export type Progress = {
   id: string
   user_id: string
@@ -33,6 +37,7 @@ export type Progress = {
   score: number
   attempts: number
   completed_at: string | null
+  submission: Submission | null
 }
 
 export type Enrollment = {

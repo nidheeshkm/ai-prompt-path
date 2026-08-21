@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import type { CodingTask } from '@/data/curriculum'
+import type { CodingSubmission } from '@/lib/supabase'
 import {
   CheckCircle, XCircle, Lightbulb, Eye, Send, RotateCcw,
   Loader2, Copy, Check, Maximize2, Minimize2, AlignJustify, Key,
@@ -27,7 +28,8 @@ type Props = {
   topicTitle: string
   isCompleted: boolean
   bestScore?: number
-  onComplete: (score: number) => Promise<void>
+  storedSubmission?: CodingSubmission | null
+  onComplete: (score: number, submission: CodingSubmission) => Promise<void>
   language?: 'python' | 'yaml' | 'bash' | 'typescript' | 'javascript'
   hasKey?: boolean
 }
@@ -81,8 +83,8 @@ function CopyButton({ code }: { code: string }) {
   )
 }
 
-export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bestScore = 0, onComplete, language = 'python', hasKey }: Props) {
-  const [code, setCode] = useState(task.boilerplate)
+export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bestScore = 0, storedSubmission, onComplete, language = 'python', hasKey }: Props) {
+  const [code, setCode] = useState(storedSubmission?.code ?? task.boilerplate)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [hintsUsed, setHintsUsed] = useState(0)
@@ -135,7 +137,7 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
       const data = await response.json()
       setFeedback(data)
       setAttempts(prev => prev + 1)
-      if (data.passed) await onComplete(data.score)
+      if (data.passed) await onComplete(data.score, { type: 'coding', code })
     } catch {
       setFeedback({
         score: 0,

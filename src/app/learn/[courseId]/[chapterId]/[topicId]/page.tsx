@@ -10,6 +10,7 @@ import LessonContent from '@/components/LessonContent'
 import QuizComponent from '@/components/QuizComponent'
 import CodeEditor from '@/components/CodeEditor'
 import { ChevronLeft, ChevronRight, CheckCircle, Lock, Zap, Columns2, LayoutList, BookOpen, Code2, Trophy } from 'lucide-react'
+import type { Submission, QuizSubmission, CodingSubmission } from '@/lib/supabase'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -88,8 +89,8 @@ export default function TopicPage() {
     )
   }
 
-  const handleComplete = async (score: number) => {
-    await completeTopic(courseId, topicId, score)
+  const handleComplete = async (score: number, submission?: Submission) => {
+    await completeTopic(courseId, topicId, score, submission)
   }
 
   const isQuiz = topic.assessmentType === 'quiz'
@@ -198,6 +199,7 @@ export default function TopicPage() {
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
                   bestScore={topicProgress?.score ?? 0}
+                  storedSubmission={topicProgress?.submission?.type === 'coding' ? topicProgress.submission as CodingSubmission : null}
                   onComplete={handleComplete}
                   hasKey={profile?.has_openrouter_key}
                 />
@@ -241,6 +243,7 @@ export default function TopicPage() {
                   topicId={topic.id}
                   isCompleted={isCompleted}
                   bestScore={topicProgress?.score ?? 0}
+                  storedSubmission={topicProgress?.submission?.type === 'quiz' ? topicProgress.submission as QuizSubmission : null}
                   onComplete={handleComplete}
                   hasKey={profile?.has_openrouter_key}
                 />
@@ -251,6 +254,7 @@ export default function TopicPage() {
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
                   bestScore={topicProgress?.score ?? 0}
+                  storedSubmission={topicProgress?.submission?.type === 'coding' ? topicProgress.submission as CodingSubmission : null}
                   onComplete={handleComplete}
                   hasKey={profile?.has_openrouter_key}
                 />
