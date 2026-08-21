@@ -40,7 +40,7 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                 className={`flex items-start gap-2 mb-2 px-2 py-1.5 rounded-lg transition-colors group ${
                   isCurrentChapter
                     ? 'text-emerald-400'
-                    : 'text-white/55 hover:text-white/90'
+                    : 'text-white/65 hover:text-white/90'
                 }`}
               >
                 <span className="shrink-0 mt-0.5">{chapter.icon}</span>
@@ -88,10 +88,10 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                           </span>
                         </Link>
                       ) : (
-                        <div className={`${baseRow} text-white/20 cursor-not-allowed`}>
-                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                        <div className={`${baseRow} text-white/40 cursor-not-allowed`}>
+                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/30" />
                           <span className="break-words min-w-0">
-                            <span className="text-white/15 mr-1">{topic.id}</span>
+                            <span className="text-white/25 mr-1">{topic.id}</span>
                             {topic.title}
                           </span>
                         </div>
@@ -149,8 +149,8 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                       <span className="break-words min-w-0">{milestone.title}</span>
                     </Link>
                   ) : (
-                    <div className={`${baseRow} text-white/20 cursor-not-allowed`}>
-                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <div className={`${baseRow} text-white/40 cursor-not-allowed`}>
+                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/30" />
                       <span className="break-words min-w-0">{milestone.title}</span>
                     </div>
                   )}
