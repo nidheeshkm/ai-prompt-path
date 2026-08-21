@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, Target, BookOpen, CheckCircle, ChevronRight, Zap, Award, Plus } from 'lucide-react'
+import { Flame, Target, BookOpen, CheckCircle, ChevronRight, Zap, Award, Plus, AlertTriangle } from 'lucide-react'
 
 export default function DashboardPage() {
   const { user, profile, loading: authLoading } = useAuth()
@@ -58,6 +58,26 @@ export default function DashboardPage() {
           </h1>
           <p className="text-gray-400 mt-1">Keep up the momentum.</p>
         </div>
+
+        {/* OpenRouter key setup banner */}
+        {!profile.has_openrouter_key && (
+          <div className="flex items-start gap-4 bg-amber-900/15 border border-amber-700/40 rounded-xl p-5">
+            <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-amber-300 mb-1">Set up your OpenRouter key to start learning</p>
+              <p className="text-sm text-amber-200/70">
+                All assessments (quizzes &amp; coding challenges) are AI-powered using your own free OpenRouter key.
+                Add it once in Settings and you're good to go.
+              </p>
+            </div>
+            <Link
+              href="/settings"
+              className="shrink-0 bg-amber-500 hover:bg-amber-400 text-gray-900 text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              Configure key →
+            </Link>
+          </div>
+        )}
 
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { getLevelForXp, getXpProgress, getNextLevel } from '@/lib/gamification'
-import { Flame, Trophy, LogOut, Menu, X } from 'lucide-react'
+import { Flame, LogOut, Menu, X, Settings } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Header() {
@@ -71,6 +71,16 @@ export default function Header() {
               {/* User */}
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-300">{profile.display_name}</span>
+                <Link
+                  href="/settings"
+                  className="relative text-gray-500 hover:text-gray-300 transition-colors"
+                  title="Settings"
+                >
+                  <Settings className="w-4 h-4" />
+                  {!profile.has_openrouter_key && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />
+                  )}
+                </Link>
                 <button onClick={signOut} className="text-gray-500 hover:text-gray-300 transition-colors">
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -116,6 +126,12 @@ export default function Header() {
           <nav className="flex flex-col gap-2">
             <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Dashboard</Link>
             <Link href="/courses" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Courses</Link>
+            <Link href="/settings" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 text-gray-300 hover:text-white py-2">
+              Settings
+              {!profile.has_openrouter_key && (
+                <span className="text-xs text-amber-400 bg-amber-900/20 border border-amber-700/30 px-2 py-0.5 rounded-full">Key missing</span>
+              )}
+            </Link>
             <button onClick={() => { signOut(); setMenuOpen(false) }} className="text-left text-gray-400 hover:text-red-400 py-2">Sign Out</button>
           </nav>
         </div>

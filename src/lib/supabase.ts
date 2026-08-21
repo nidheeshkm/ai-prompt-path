@@ -20,6 +20,8 @@ export type Profile = {
   longest_streak: number
   last_activity_date: string | null
   created_at: string
+  // Never the actual key — just whether one is configured (derived server-side)
+  has_openrouter_key: boolean
 }
 
 export type Progress = {

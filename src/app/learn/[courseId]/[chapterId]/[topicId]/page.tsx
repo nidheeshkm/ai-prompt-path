@@ -9,20 +9,23 @@ import Sidebar from '@/components/Sidebar'
 import LessonContent from '@/components/LessonContent'
 import QuizComponent from '@/components/QuizComponent'
 import CodeEditor from '@/components/CodeEditor'
-import { ChevronLeft, ChevronRight, CheckCircle, Lock, Zap } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle, Lock, Zap, Columns2, LayoutList } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export default function TopicPage() {
   const { courseId, chapterId, topicId } = useParams<{ courseId: string; chapterId: string; topicId: string }>()
-  const { user, loading: authLoading } = useAuth()
+  const { user, profile, loading: authLoading } = useAuth()
   const { progressMap, isTopicUnlocked, completeTopic, getTopicProgress } = useProgress()
   const { isEnrolled } = useEnrollment()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'lesson' | 'assessment'>('lesson')
+  const [splitView, setSplitView] = useState(false)
+  const [markedRead, setMarkedRead] = useState(false)
 
   const switchTab = (tab: 'lesson' | 'assessment') => {
     setActiveTab(tab)
+    setSplitView(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -127,8 +130,8 @@ export default function TopicPage() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex border-b border-gray-800 mb-6">
+          {/* Tabs + split-view toggle */}
+          <div className="flex items-center border-b border-gray-800 mb-6">
             {(['lesson', 'assessment'] as const).map(tab => (
               <button
                 key={tab}
@@ -142,13 +145,58 @@ export default function TopicPage() {
                 {tab === 'lesson' ? 'Lesson' : topic.assessmentType === 'quiz' ? 'Quiz' : 'Coding Challenge'}
               </button>
             ))}
+            {/* Split-view toggle — coding tasks only, desktop only */}
+            {topic.codingTask && (
+              <button
+                onClick={() => setSplitView(v => !v)}
+                title={splitView ? 'Single column' : 'Split view (lesson + editor)'}
+                className={`ml-auto hidden xl:flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                  splitView
+                    ? 'bg-emerald-900/20 border-emerald-700/40 text-emerald-400'
+                    : 'border-gray-700 text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {splitView ? <LayoutList className="w-3.5 h-3.5" /> : <Columns2 className="w-3.5 h-3.5" />}
+                {splitView ? 'Single' : 'Split view'}
+              </button>
+            )}
           </div>
 
-          {/* Content */}
-          {activeTab === 'lesson' ? (
+          {/* Split view — lesson left, editor right */}
+          {splitView && topic.codingTask ? (
+            <div className="mb-8 grid grid-cols-2 gap-6 items-start">
+              <div className="overflow-y-auto max-h-[75vh] pr-2">
+                <LessonContent content={topic.content} />
+              </div>
+              <div>
+                <CodeEditor
+                  task={topic.codingTask}
+                  topicId={topic.id}
+                  topicTitle={topic.title}
+                  isCompleted={isCompleted}
+                  onComplete={handleComplete}
+                  hasKey={profile?.has_openrouter_key}
+                />
+              </div>
+            </div>
+          ) : activeTab === 'lesson' ? (
             <div className="mb-8">
               <LessonContent content={topic.content} />
-              <div className="mt-8 flex justify-center">
+              {/* Mark as read */}
+              <div className="mt-8 flex flex-col items-center gap-3">
+                {!markedRead ? (
+                  <button
+                    onClick={() => setMarkedRead(true)}
+                    className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-300 border border-gray-700 hover:border-gray-500 px-4 py-2 rounded-lg transition-colors"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Mark lesson as read
+                  </button>
+                ) : (
+                  <span className="flex items-center gap-1.5 text-sm text-emerald-500">
+                    <CheckCircle className="w-4 h-4" /> Lesson read
+                  </span>
+                )}
                 <button
                   onClick={() => switchTab('assessment')}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
@@ -165,6 +213,7 @@ export default function TopicPage() {
                   topicId={topic.id}
                   isCompleted={isCompleted}
                   onComplete={handleComplete}
+                  hasKey={profile?.has_openrouter_key}
                 />
               ) : topic.codingTask ? (
                 <CodeEditor
@@ -173,6 +222,7 @@ export default function TopicPage() {
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
                   onComplete={handleComplete}
+                  hasKey={profile?.has_openrouter_key}
                 />
               ) : (
                 <p className="text-gray-500">Assessment not available yet.</p>

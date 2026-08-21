@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(request: Request) {
   try {
@@ -8,11 +10,42 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    const apiKey = process.env.OPENROUTER_API_KEY
-    if (!apiKey) {
-      // Fallback review when no API key is configured
-      return NextResponse.json(fallbackReview(code, rubric))
+    // ── Resolve the API key server-side — never accept it from the client ────
+    // Prefer the user's own stored key (fetched via their session cookie).
+    // Fall back to the app-level env key only for development/admin use.
+    let apiKey = process.env.OPENROUTER_API_KEY ?? ''
+
+    const cookieStore = await cookies()
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey =
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: { getAll: () => cookieStore.getAll() },
+    })
+
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('openrouter_api_key')
+        .eq('id', user.id)
+        .single()
+
+      if (profile?.openrouter_api_key) {
+        apiKey = profile.openrouter_api_key
+      }
     }
+
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: 'no_key', message: 'OpenRouter API key not configured. Please add your key in Settings.' },
+        { status: 401 }
+      )
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     const systemPrompt = `You are a LangChain expert reviewing a student's Python code.
 You are strict but encouraging. Evaluate the code against the rubric and return ONLY valid JSON.
@@ -61,7 +94,6 @@ Evaluate and return JSON in this exact format (no markdown, no code fences):
     const data = await response.json()
     const content = data.choices?.[0]?.message?.content || ''
 
-    // Parse JSON from response (handle possible markdown wrapping)
     let parsed
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/)
@@ -70,7 +102,6 @@ Evaluate and return JSON in this exact format (no markdown, no code fences):
       return NextResponse.json(fallbackReview(code, rubric))
     }
 
-    // Validate shape
     return NextResponse.json({
       score: Math.min(100, Math.max(0, Number(parsed.score) || 0)),
       passed: Boolean(parsed.passed),
@@ -90,7 +121,6 @@ Evaluate and return JSON in this exact format (no markdown, no code fences):
 }
 
 function fallbackReview(code: string, rubric: string[]) {
-  // Simple heuristic review when OpenRouter is unavailable
   const lines = code.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'))
   const hasImports = code.includes('import') || code.includes('from')
   const hasTodo = code.includes('TODO') || code.includes('your code here')
@@ -105,7 +135,6 @@ function fallbackReview(code: string, rubric: string[]) {
   if (!hasTodo) { score += 15; correct.push('All TODO sections completed') }
   else { improvements.push('Complete all TODO sections in the code') }
 
-  // Check rubric keywords
   rubric?.forEach((item) => {
     const keywords = item.toLowerCase().split(/\s+/).filter(w => w.length > 4)
     const found = keywords.some(kw => code.toLowerCase().includes(kw))
