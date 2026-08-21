@@ -21,6 +21,11 @@ export default function TopicPage() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'lesson' | 'assessment'>('lesson')
 
+  const switchTab = (tab: 'lesson' | 'assessment') => {
+    setActiveTab(tab)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login')
   }, [user, authLoading, router])
@@ -127,7 +132,7 @@ export default function TopicPage() {
             {(['lesson', 'assessment'] as const).map(tab => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => switchTab(tab)}
                 className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab
                     ? 'border-emerald-500 text-emerald-400'
@@ -145,7 +150,7 @@ export default function TopicPage() {
               <LessonContent content={topic.content} />
               <div className="mt-8 flex justify-center">
                 <button
-                  onClick={() => setActiveTab('assessment')}
+                  onClick={() => switchTab('assessment')}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
                 >
                   {isCompleted ? 'Retake Assessment' : 'Take Assessment'} &rarr;
