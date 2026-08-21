@@ -16,59 +16,84 @@ export default function Sidebar({ courseId }: { courseId: string }) {
   if (!user || !course) return null
 
   return (
-    <aside className="w-72 bg-gray-900 border-r border-gray-800 overflow-y-auto hidden lg:block shrink-0">
-      <nav className="p-4 space-y-6">
+    <aside className="w-72 shrink-0 hidden lg:flex flex-col border-r border-white/[0.07] bg-[#0b0f1a] overflow-y-auto">
+      <nav className="p-4 space-y-5">
+
         {/* Course label */}
-        <div className="px-2">
-          <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-1">Course</p>
-          <p className="text-sm font-bold text-white truncate">{course.title}</p>
+        <div className="px-2 pb-2 border-b border-white/[0.06]">
+          <p className="text-[10px] text-white/30 uppercase tracking-widest font-semibold mb-1.5">Course</p>
+          <p className="text-sm font-bold text-white leading-snug">{course.title}</p>
         </div>
 
         {/* Chapters */}
         {course.chapters.map((chapter) => {
           const isCurrentChapter = pathname.includes(`/learn/${courseId}/${chapter.id}`)
+          const completedCount = chapter.topics.filter(
+            t => progressMap[`${courseId}__${t.id}`]?.status === 'completed'
+          ).length
+
           return (
             <div key={chapter.id}>
+              {/* Chapter header */}
               <Link
                 href={`/learn/${courseId}/${chapter.id}`}
-                className={`flex items-center gap-2 text-sm font-semibold mb-2 transition-colors ${
-                  isCurrentChapter ? 'text-emerald-400' : 'text-gray-400 hover:text-gray-200'
+                className={`flex items-start gap-2 mb-2 px-2 py-1.5 rounded-lg transition-colors group ${
+                  isCurrentChapter
+                    ? 'text-emerald-400'
+                    : 'text-white/55 hover:text-white/90'
                 }`}
               >
-                <span>{chapter.icon}</span>
-                <span className="truncate">Ch.{chapter.id}: {chapter.title}</span>
+                <span className="shrink-0 mt-0.5">{chapter.icon}</span>
+                <span className="text-xs font-semibold leading-snug break-words min-w-0">
+                  Ch.{chapter.id}: {chapter.title}
+                </span>
+                {completedCount > 0 && completedCount === chapter.topics.length && (
+                  <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5 ml-auto" />
+                )}
               </Link>
-              <ul className="space-y-1 ml-6">
+
+              {/* Topics */}
+              <ul className="space-y-0.5 ml-5 border-l border-white/[0.06] pl-3">
                 {chapter.topics.map((topic) => {
                   const topicProgress = progressMap[`${courseId}__${topic.id}`]
                   const isCompleted = topicProgress?.status === 'completed'
                   const unlocked = isTopicUnlocked(courseId, topic.id)
                   const isActive = pathname === `/learn/${courseId}/${chapter.id}/${topic.id}`
 
+                  const baseRow = 'flex items-start gap-2 py-1.5 px-2 rounded-lg text-xs leading-snug transition-colors'
+
                   return (
                     <li key={topic.id}>
                       {unlocked ? (
                         <Link
                           href={`/learn/${courseId}/${chapter.id}/${topic.id}`}
-                          className={`flex items-center gap-2 text-xs py-1.5 px-2 rounded transition-colors ${
+                          className={`${baseRow} ${
                             isActive
-                              ? 'bg-emerald-500/10 text-emerald-400'
+                              ? 'bg-emerald-500/10 text-emerald-300 font-medium'
                               : isCompleted
-                              ? 'text-gray-400 hover:text-gray-200'
-                              : 'text-gray-500 hover:text-gray-300'
+                              ? 'text-white/55 hover:text-white/80'
+                              : 'text-white/45 hover:text-white/75'
                           }`}
                         >
-                          {isCompleted ? (
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                          ) : (
-                            <Circle className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                          )}
-                          <span className="truncate">{topic.id} {topic.title}</span>
+                          <span className="shrink-0 mt-0.5">
+                            {isCompleted
+                              ? <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+                              : <Circle className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-400' : 'text-white/20'}`} />
+                            }
+                          </span>
+                          {/* Allow wrapping — do NOT truncate */}
+                          <span className="break-words min-w-0">
+                            <span className="text-white/30 mr-1">{topic.id}</span>
+                            {topic.title}
+                          </span>
                         </Link>
                       ) : (
-                        <div className="flex items-center gap-2 text-xs py-1.5 px-2 text-gray-600 cursor-not-allowed">
-                          <Lock className="w-3.5 h-3.5 shrink-0" />
-                          <span className="truncate">{topic.id} {topic.title}</span>
+                        <div className={`${baseRow} text-white/20 cursor-not-allowed`}>
+                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                          <span className="break-words min-w-0">
+                            <span className="text-white/15 mr-1">{topic.id}</span>
+                            {topic.title}
+                          </span>
                         </div>
                       )}
                     </li>
@@ -79,48 +104,54 @@ export default function Sidebar({ courseId }: { courseId: string }) {
           )
         })}
 
-        {/* Project */}
+        {/* Capstone Project */}
         <div>
           <Link
             href={`/learn/${courseId}/project`}
-            className={`flex items-center gap-2 text-sm font-semibold mb-2 transition-colors ${
-              pathname.startsWith(`/learn/${courseId}/project`) ? 'text-amber-400' : 'text-gray-400 hover:text-gray-200'
+            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs font-semibold mb-2 transition-colors ${
+              pathname.startsWith(`/learn/${courseId}/project`)
+                ? 'text-amber-400'
+                : 'text-white/55 hover:text-white/90'
             }`}
           >
-            <FolderOpen className="w-4 h-4" />
-            <span className="truncate">Capstone Project</span>
+            <FolderOpen className="w-4 h-4 shrink-0" />
+            <span>Capstone Project</span>
           </Link>
-          <ul className="space-y-1 ml-6">
+
+          <ul className="space-y-0.5 ml-5 border-l border-white/[0.06] pl-3">
             {course.project.milestones.map((milestone) => {
               const mProgress = milestoneMap[`${courseId}__${milestone.id}`]
               const isCompleted = mProgress?.status === 'completed'
               const unlocked = isMilestoneUnlocked(courseId, milestone.id)
               const isActive = pathname === `/learn/${courseId}/project/${milestone.id}`
 
+              const baseRow = 'flex items-start gap-2 py-1.5 px-2 rounded-lg text-xs leading-snug transition-colors'
+
               return (
                 <li key={milestone.id}>
                   {unlocked ? (
                     <Link
                       href={`/learn/${courseId}/project/${milestone.id}`}
-                      className={`flex items-center gap-2 text-xs py-1.5 px-2 rounded transition-colors ${
+                      className={`${baseRow} ${
                         isActive
-                          ? 'bg-amber-500/10 text-amber-400'
+                          ? 'bg-amber-500/10 text-amber-300 font-medium'
                           : isCompleted
-                          ? 'text-gray-400 hover:text-gray-200'
-                          : 'text-gray-500 hover:text-gray-300'
+                          ? 'text-white/55 hover:text-white/80'
+                          : 'text-white/45 hover:text-white/75'
                       }`}
                     >
-                      {isCompleted ? (
-                        <CheckCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      ) : (
-                        <Layers className="w-3.5 h-3.5 text-gray-600 shrink-0" />
-                      )}
-                      <span className="truncate">{milestone.title}</span>
+                      <span className="shrink-0 mt-0.5">
+                        {isCompleted
+                          ? <CheckCircle className="w-3.5 h-3.5 text-amber-400" />
+                          : <Layers className={`w-3.5 h-3.5 ${isActive ? 'text-amber-400' : 'text-white/20'}`} />
+                        }
+                      </span>
+                      <span className="break-words min-w-0">{milestone.title}</span>
                     </Link>
                   ) : (
-                    <div className="flex items-center gap-2 text-xs py-1.5 px-2 text-gray-600 cursor-not-allowed">
-                      <Lock className="w-3.5 h-3.5 shrink-0" />
-                      <span className="truncate">{milestone.title}</span>
+                    <div className={`${baseRow} text-white/20 cursor-not-allowed`}>
+                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      <span className="break-words min-w-0">{milestone.title}</span>
                     </div>
                   )}
                 </li>
@@ -128,6 +159,7 @@ export default function Sidebar({ courseId }: { courseId: string }) {
             })}
           </ul>
         </div>
+
       </nav>
     </aside>
   )
