@@ -71,7 +71,7 @@ function CopyButton({ code }: { code: string }) {
   return (
     <button
       onClick={copy}
-      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors"
+      className="flex items-center gap-1 text-xs text-slate-400 hover:text-slate-700 transition-colors"
       title="Copy code"
     >
       {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -96,12 +96,12 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
   if (!hasKey) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
-        <div className="w-14 h-14 rounded-full bg-amber-900/20 border border-amber-700/40 flex items-center justify-center">
-          <Key className="w-6 h-6 text-amber-400" />
+        <div className="w-14 h-14 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center">
+          <Key className="w-6 h-6 text-amber-500" />
         </div>
         <div>
-          <h3 className="text-white font-semibold mb-1">OpenRouter key required</h3>
-          <p className="text-sm text-gray-400 max-w-xs">
+          <h3 className="text-slate-900 font-semibold mb-1">OpenRouter key required</h3>
+          <p className="text-sm text-slate-500 max-w-xs">
             Coding challenge reviews are powered by AI. Add your free OpenRouter key in Settings to unlock assessments.
           </p>
         </div>
@@ -167,13 +167,13 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
   return (
     <div className="space-y-5">
       {/* Instructions + Rubric checklist */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-        <h3 className="font-semibold text-white mb-3">Instructions</h3>
-        <div className="text-sm text-gray-300 whitespace-pre-line leading-relaxed">{task.instructions}</div>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="font-semibold text-slate-900 mb-3">Instructions</h3>
+        <div className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{task.instructions}</div>
 
         {task.rubric.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-800">
-            <h4 className="text-sm font-medium text-gray-400 mb-2.5">Checklist</h4>
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <h4 className="text-sm font-medium text-slate-500 mb-2.5">Checklist</h4>
             <ul className="space-y-2">
               {task.rubric.map((item, i) => {
                 const status = feedback
@@ -181,16 +181,16 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
                   : 'pending'
                 return (
                   <li key={i} className={`flex items-start gap-2.5 text-sm transition-colors duration-300 ${
-                    status === 'pass' ? 'text-emerald-300' :
-                    status === 'fail' ? 'text-red-300' :
-                    'text-gray-500'
+                    status === 'pass' ? 'text-emerald-700' :
+                    status === 'fail' ? 'text-red-600' :
+                    'text-slate-400'
                   }`}>
                     <span className="mt-0.5 shrink-0">
                       {status === 'pass'
                         ? <CheckCircle className="w-4 h-4 text-emerald-500" />
                         : status === 'fail'
                         ? <XCircle className="w-4 h-4 text-red-500" />
-                        : <span className="block w-4 h-4 rounded-full border border-gray-700 mt-0.5" />}
+                        : <span className="block w-4 h-4 rounded-full border border-slate-200 mt-0.5" />}
                     </span>
                     {item}
                   </li>
@@ -202,26 +202,26 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
       </div>
 
       {/* Editor */}
-      <div className="border border-gray-800 rounded-xl overflow-hidden">
-        <div className="bg-gray-900 border-b border-gray-800 px-4 py-2 flex items-center justify-between">
+      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-xs px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">
+            <span className="text-xs px-2 py-0.5 rounded bg-slate-200 text-slate-600 font-mono">
               {langMeta.label}
             </span>
-            <span className="text-sm text-gray-400">{langMeta.filename}</span>
+            <span className="text-sm text-slate-500">{langMeta.filename}</span>
           </div>
           <div className="flex items-center gap-3">
             <CopyButton code={code} />
             <button
               onClick={cycleHeight}
-              className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors"
+              className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors"
               title="Toggle editor height"
             >
               {heightIcon}
             </button>
             <button
               onClick={handleReset}
-              className="text-xs text-gray-500 hover:text-gray-300 flex items-center gap-1 transition-colors"
+              className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 transition-colors"
             >
               <RotateCcw className="w-3 h-3" /> Reset
             </button>
@@ -262,7 +262,7 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
         {hintsUsed < task.hints.length && (
           <button
             onClick={handleShowHint}
-            className="flex items-center gap-2 bg-amber-900/30 hover:bg-amber-900/50 text-amber-400 px-4 py-2.5 rounded-xl border border-amber-800/30 transition-colors text-sm"
+            className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 px-4 py-2.5 rounded-xl border border-amber-200 transition-colors text-sm"
           >
             <Lightbulb className="w-4 h-4" />
             Hint {hintsUsed}/{task.hints.length}
@@ -272,7 +272,7 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
         {attempts >= 3 && !showSolution && (
           <button
             onClick={() => setShowSolution(true)}
-            className="flex items-center gap-2 text-gray-400 hover:text-gray-200 px-4 py-2.5 text-sm transition-colors"
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-700 px-4 py-2.5 text-sm transition-colors"
           >
             <Eye className="w-4 h-4" /> Show Solution
           </button>
@@ -280,7 +280,7 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
 
         {/* Attempt pill */}
         {attempts > 0 && (
-          <span className="ml-auto text-xs text-gray-600 bg-gray-800 px-2.5 py-1 rounded-full">
+          <span className="ml-auto text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
             Attempt {attempts}{attempts < 3 ? ` · ${3 - attempts} left before solution unlocks` : ''}
           </span>
         )}
@@ -290,16 +290,16 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
       {hintsUsed > 0 && (
         <div className="space-y-2">
           {task.hints.slice(0, hintsUsed).map((hint, i) => (
-            <div key={i} className="bg-amber-900/10 border border-amber-800/20 rounded-lg p-4 text-sm flex gap-3">
-              <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div key={i} className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm flex gap-3">
+              <Lightbulb className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
               <div>
-                <span className="text-amber-400 font-medium">Hint {i + 1}:</span>
-                <span className="text-amber-200/70 ml-2">{hint}</span>
+                <span className="text-amber-700 font-medium">Hint {i + 1}:</span>
+                <span className="text-amber-800 ml-2">{hint}</span>
               </div>
             </div>
           ))}
           {hintsUsed < task.hints.length && (
-            <p className="text-xs text-gray-600 pl-1">{task.hints.length - hintsUsed} more hint{task.hints.length - hintsUsed > 1 ? 's' : ''} available</p>
+            <p className="text-xs text-slate-400 pl-1">{task.hints.length - hintsUsed} more hint{task.hints.length - hintsUsed > 1 ? 's' : ''} available</p>
           )}
         </div>
       )}
@@ -307,24 +307,23 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
       {/* Feedback */}
       {feedback && (
         <div className={`border rounded-xl p-5 space-y-4 ${
-          feedback.passed ? 'bg-emerald-900/10 border-emerald-700/40' : 'bg-gray-900 border-gray-800'
+          feedback.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
         }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               {feedback.passed
-                ? <CheckCircle className="w-6 h-6 text-emerald-400" />
-                : <XCircle className="w-6 h-6 text-red-400" />}
+                ? <CheckCircle className="w-6 h-6 text-emerald-500" />
+                : <XCircle className="w-6 h-6 text-red-500" />}
               <div>
-                <p className={`font-semibold ${feedback.passed ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`font-semibold ${feedback.passed ? 'text-emerald-700' : 'text-red-600'}`}>
                   {feedback.passed ? 'Passed!' : 'Not quite yet'}
                 </p>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-slate-500">
                   Score: {feedback.score}%{!feedback.passed && ' — Need 70% to pass'}
                 </p>
               </div>
             </div>
-            {/* Score bar */}
-            <div className="w-24 h-1.5 bg-gray-800 rounded-full overflow-hidden">
+            <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${feedback.passed ? 'bg-emerald-500' : 'bg-red-500'}`}
                 style={{ width: `${feedback.score}%` }}
@@ -334,10 +333,10 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
 
           {feedback.feedback.correct.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold text-emerald-400 uppercase tracking-wide mb-2">What you got right</h4>
+              <h4 className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">What you got right</h4>
               <ul className="space-y-1">
                 {feedback.feedback.correct.map((item, i) => (
-                  <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
                     {item}
                   </li>
@@ -348,10 +347,10 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
 
           {feedback.feedback.improvements.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold text-amber-400 uppercase tracking-wide mb-2">To improve</h4>
+              <h4 className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">To improve</h4>
               <ul className="space-y-1">
                 {feedback.feedback.improvements.map((item, i) => (
-                  <li key={i} className="text-sm text-gray-300 flex items-start gap-2">
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
                     <span className="text-amber-500 mt-0.5 shrink-0">›</span>
                     {item}
                   </li>
@@ -361,8 +360,8 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
           )}
 
           {!feedback.passed && feedback.feedback.hint && (
-            <div className="bg-gray-800/50 rounded-lg p-3 text-sm text-gray-400">
-              <span className="text-amber-400 font-medium">Tip: </span>
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-600">
+              <span className="text-amber-600 font-medium">Tip: </span>
               {feedback.feedback.hint}
             </div>
           )}
@@ -371,15 +370,15 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
 
       {/* Solution */}
       {showSolution && (
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
-          <div className="bg-gray-800 px-4 py-2 flex items-center justify-between">
+        <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="bg-slate-50 border-b border-slate-200 px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-gray-400" />
-              <span className="text-sm text-gray-400">Reference Solution</span>
+              <Eye className="w-4 h-4 text-slate-400" />
+              <span className="text-sm text-slate-500">Reference Solution</span>
             </div>
             <CopyButton code={task.solutionCode} />
           </div>
-          <pre className="p-4 text-sm text-gray-300 overflow-x-auto">
+          <pre className="p-4 text-sm overflow-x-auto bg-slate-900 text-slate-200">
             <code>{task.solutionCode}</code>
           </pre>
         </div>
