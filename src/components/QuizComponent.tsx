@@ -9,18 +9,19 @@ type Props = {
   questions: QuizQuestion[]
   topicId: string
   isCompleted: boolean
+  bestScore?: number
   onComplete: (score: number) => Promise<void>
   hasKey?: boolean
 }
 
-type Phase = 'question' | 'answered' | 'results' | 'review'
+type Phase = 'completed' | 'question' | 'answered' | 'results' | 'review'
 
-export default function QuizComponent({ questions, topicId, isCompleted, onComplete, hasKey }: Props) {
+export default function QuizComponent({ questions, topicId, isCompleted, bestScore = 0, onComplete, hasKey }: Props) {
   const [current, setCurrent] = useState(0)
   const [answers, setAnswers] = useState<Record<number, number>>({})
-  const [phase, setPhase] = useState<Phase>('question')
+  const [phase, setPhase] = useState<Phase>(isCompleted ? 'completed' : 'question')
   const [submitting, setSubmitting] = useState(false)
-  const [finalScore, setFinalScore] = useState(0)
+  const [finalScore, setFinalScore] = useState(isCompleted ? bestScore : 0)
   const [animating, setAnimating] = useState(false)
 
   // Gate: no key configured
@@ -42,6 +43,44 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
         >
           Go to Settings
         </Link>
+      </div>
+    )
+  }
+
+  // ── Already-completed summary ────────────────────────────────────────────
+  if (phase === 'completed') {
+    const passed = bestScore >= 80
+    return (
+      <div className={`rounded-2xl border p-8 text-center ${passed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
+        <div className="flex justify-center mb-4">
+          <Trophy className={`w-12 h-12 ${passed ? 'text-emerald-500' : 'text-slate-400'}`} />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-1">Quiz Completed</h2>
+        <p className="text-slate-500 mb-4">
+          Your best score: <span className={`font-bold text-lg ${passed ? 'text-emerald-600' : 'text-slate-700'}`}>{bestScore}%</span>
+        </p>
+        {passed && (
+          <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-3 py-1.5 rounded-full mb-4">
+            <Zap className="w-3.5 h-3.5" /> XP earned
+          </div>
+        )}
+        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mb-6">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${passed ? 'bg-emerald-500' : 'bg-amber-400'}`}
+            style={{ width: `${bestScore}%` }}
+          />
+        </div>
+        <button
+          onClick={() => {
+            setAnswers({})
+            setCurrent(0)
+            setFinalScore(0)
+            setPhase('question')
+          }}
+          className="flex items-center gap-2 mx-auto bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+        >
+          <RotateCcw className="w-4 h-4" /> Retake Quiz
+        </button>
       </div>
     )
   }
@@ -86,8 +125,8 @@ export default function QuizComponent({ questions, topicId, isCompleted, onCompl
   const handleRetry = () => {
     setAnswers({})
     setCurrent(0)
-    setPhase('question')
     setFinalScore(0)
+    setPhase('question')
   }
 
   const correctCount = Object.entries(answers).filter(
