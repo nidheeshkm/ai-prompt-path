@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
-import { supabase, type Progress, type MilestoneProgress } from './supabase'
+import { supabase, type Progress, type MilestoneProgress, type Submission } from './supabase'
 import { useAuth } from './auth-context'
 import { getCourse, getCourseTopics } from '@/data/curriculum'
 
@@ -14,7 +14,7 @@ type ProgressState = {
   loading: boolean
   isTopicUnlocked: (courseId: string, topicId: string) => boolean
   isMilestoneUnlocked: (courseId: string, milestoneId: string) => boolean
-  completeTopic: (courseId: string, topicId: string, score: number) => Promise<void>
+  completeTopic: (courseId: string, topicId: string, score: number, submission?: Submission) => Promise<void>
   completeMilestone: (courseId: string, milestoneId: string, score: number) => Promise<void>
   getTopicProgress: (courseId: string, topicId: string) => Progress | undefined
   getMilestoneProgress: (courseId: string, milestoneId: string) => MilestoneProgress | undefined
@@ -27,7 +27,7 @@ const ProgressContext = createContext<ProgressState>({
   loading: true,
   isTopicUnlocked: () => false,
   isMilestoneUnlocked: () => false,
-  completeTopic: async () => {},
+  completeTopic: async () => { /* noop default */ },
   completeMilestone: async () => {},
   getTopicProgress: () => undefined,
   getMilestoneProgress: () => undefined,
@@ -85,7 +85,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     return milestoneMap[`${courseId}__${prevMilestone.id}`]?.status === 'completed'
   }, [milestoneMap])
 
-  const completeTopic = useCallback(async (courseId: string, topicId: string, score: number) => {
+  const completeTopic = useCallback(async (courseId: string, topicId: string, score: number, submission?: Submission) => {
     if (!user || !profile) return
 
     const allTopics = getCourseTopics(courseId)
@@ -94,16 +94,21 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
     const key = `${courseId}__${topicId}`
     const existing = progressMap[key]
-    const attempts = (existing?.attempts || 0) + 1
+    const alreadyCompleted = existing?.status === 'completed'
+    // Only count attempts toward the "how many tries to first pass" metric.
+    // Retakes after passing don't increment attempts so existing badges/analytics are unaffected.
+    const attempts = alreadyCompleted ? (existing.attempts ?? 1) : (existing?.attempts || 0) + 1
+    const isNewBest = score >= (existing?.score ?? 0)
 
     await supabase.from('progress').upsert({
       user_id: user.id,
       course_id: courseId,
       topic_id: topicId,
       status: 'completed',
-      score,
+      score: isNewBest ? score : existing?.score ?? score,
       attempts,
       completed_at: new Date().toISOString(),
+      ...(isNewBest && submission ? { submission } : {}),
     }, { onConflict: 'user_id,course_id,topic_id' })
 
     if (!existing || existing.status !== 'completed') {

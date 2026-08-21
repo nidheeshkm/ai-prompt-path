@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { QuizQuestion } from '@/data/curriculum'
+import type { QuizSubmission } from '@/lib/supabase'
 import { CheckCircle, XCircle, RotateCcw, Trophy, ChevronRight, BookOpen, Zap, Key } from 'lucide-react'
 import Link from 'next/link'
 
@@ -10,13 +11,14 @@ type Props = {
   topicId: string
   isCompleted: boolean
   bestScore?: number
-  onComplete: (score: number) => Promise<void>
+  storedSubmission?: QuizSubmission | null
+  onComplete: (score: number, submission: QuizSubmission) => Promise<void>
   hasKey?: boolean
 }
 
 type Phase = 'completed' | 'question' | 'answered' | 'results' | 'review'
 
-export default function QuizComponent({ questions, topicId, isCompleted, bestScore = 0, onComplete, hasKey }: Props) {
+export default function QuizComponent({ questions, topicId, isCompleted, bestScore = 0, storedSubmission, onComplete, hasKey }: Props) {
   const [current, setCurrent] = useState(0)
   const [answers, setAnswers] = useState<Record<number, number>>({})
   const [phase, setPhase] = useState<Phase>(isCompleted ? 'completed' : 'question')
@@ -50,37 +52,87 @@ export default function QuizComponent({ questions, topicId, isCompleted, bestSco
   // ── Already-completed summary ────────────────────────────────────────────
   if (phase === 'completed') {
     const passed = bestScore >= 80
+    const prevAnswers = storedSubmission?.answers
     return (
-      <div className={`rounded-2xl border p-8 text-center ${passed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
-        <div className="flex justify-center mb-4">
-          <Trophy className={`w-12 h-12 ${passed ? 'text-emerald-500' : 'text-slate-400'}`} />
+      <div className="space-y-6">
+        <div className={`rounded-2xl border p-8 text-center ${passed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}>
+          <div className="flex justify-center mb-4">
+            <Trophy className={`w-12 h-12 ${passed ? 'text-emerald-500' : 'text-slate-400'}`} />
+          </div>
+          <h2 className="text-xl font-bold text-slate-900 mb-1">Quiz Completed</h2>
+          <p className="text-slate-500 mb-4">
+            Your best score: <span className={`font-bold text-lg ${passed ? 'text-emerald-600' : 'text-slate-700'}`}>{bestScore}%</span>
+          </p>
+          {passed && (
+            <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-3 py-1.5 rounded-full mb-4">
+              <Zap className="w-3.5 h-3.5" /> XP earned
+            </div>
+          )}
+          <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mb-6">
+            <div
+              className={`h-full rounded-full transition-all duration-700 ${passed ? 'bg-emerald-500' : 'bg-amber-400'}`}
+              style={{ width: `${bestScore}%` }}
+            />
+          </div>
+          <button
+            onClick={() => {
+              setAnswers({})
+              setCurrent(0)
+              setFinalScore(0)
+              setPhase('question')
+            }}
+            className="flex items-center gap-2 mx-auto bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" /> Retake Quiz
+          </button>
         </div>
-        <h2 className="text-xl font-bold text-slate-900 mb-1">Quiz Completed</h2>
-        <p className="text-slate-500 mb-4">
-          Your best score: <span className={`font-bold text-lg ${passed ? 'text-emerald-600' : 'text-slate-700'}`}>{bestScore}%</span>
-        </p>
-        {passed && (
-          <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-3 py-1.5 rounded-full mb-4">
-            <Zap className="w-3.5 h-3.5" /> XP earned
+
+        {/* Previous answers review */}
+        {prevAnswers && prevAnswers.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Your Previous Answers</h3>
+            {questions.map((q, idx) => {
+              const ans = prevAnswers[idx] ?? -1
+              const correct = ans === q.correctIndex
+              return (
+                <div key={idx} className={`rounded-xl border p-5 ${correct ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'}`}>
+                  <div className="flex items-start gap-2 mb-3">
+                    {correct
+                      ? <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                      : <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />}
+                    <p className="text-sm font-medium text-slate-900">
+                      <span className="text-slate-400 mr-1.5">Q{idx + 1}.</span>{q.question}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 ml-6 mb-3">
+                    {q.options.map((opt, oIdx) => {
+                      const isUserAnswer = oIdx === ans
+                      const isCorrectAnswer = oIdx === q.correctIndex
+                      return (
+                        <div key={oIdx} className={`text-xs px-3 py-2 rounded-lg flex items-center gap-2 ${
+                          isCorrectAnswer
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : isUserAnswer && !isCorrectAnswer
+                            ? 'bg-red-100 text-red-800 border border-red-200'
+                            : 'text-slate-500'
+                        }`}>
+                          {isCorrectAnswer && <CheckCircle className="w-3 h-3 shrink-0" />}
+                          {isUserAnswer && !isCorrectAnswer && <XCircle className="w-3 h-3 shrink-0" />}
+                          {opt}
+                          {isCorrectAnswer && <span className="ml-auto text-emerald-700 font-medium">Correct</span>}
+                          {isUserAnswer && !isCorrectAnswer && <span className="ml-auto text-red-600 font-medium">Your answer</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                  <p className={`text-xs ml-6 p-2.5 rounded-lg ${correct ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
+                    {q.explanation}
+                  </p>
+                </div>
+              )
+            })}
           </div>
         )}
-        <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden mb-6">
-          <div
-            className={`h-full rounded-full transition-all duration-700 ${passed ? 'bg-emerald-500' : 'bg-amber-400'}`}
-            style={{ width: `${bestScore}%` }}
-          />
-        </div>
-        <button
-          onClick={() => {
-            setAnswers({})
-            setCurrent(0)
-            setFinalScore(0)
-            setPhase('question')
-          }}
-          className="flex items-center gap-2 mx-auto bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-xl transition-colors"
-        >
-          <RotateCcw className="w-4 h-4" /> Retake Quiz
-        </button>
       </div>
     )
   }
@@ -109,7 +161,11 @@ export default function QuizComponent({ questions, topicId, isCompleted, bestSco
       setPhase('results')
       if (pct >= 80) {
         setSubmitting(true)
-        await onComplete(pct)
+        const submission: QuizSubmission = {
+          type: 'quiz',
+          answers: questions.map((_, idx) => answers[idx] ?? -1),
+        }
+        await onComplete(pct, submission)
         setSubmitting(false)
       }
     } else {
