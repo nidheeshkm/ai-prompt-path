@@ -26,20 +26,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async (userId: string) => {
+    // Select every column EXCEPT openrouter_api_key — the raw secret must never
+    // reach the browser. We derive a boolean flag from its presence instead.
     const { data: existing } = await supabase
       .from('profiles')
-      .select('*')
+      .select('id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, openrouter_api_key')
       .eq('id', userId)
       .single()
 
     if (existing) {
-      setProfile(existing)
+      const { openrouter_api_key, ...rest } = existing
+      setProfile({ ...rest, has_openrouter_key: Boolean(openrouter_api_key) })
       return
     }
 
     // Profile missing (trigger didn't fire or first OAuth login) — create it now.
-    // This uses the service-role path via the admin client on server, but here we
-    // fall back to a user-authed upsert which works once the session is active.
     const { data: { user: authUser } } = await supabase.auth.getUser()
     if (!authUser) return
     const { data: created } = await supabase.from('profiles').upsert({
@@ -54,8 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       level: 1,
       current_streak: 0,
       longest_streak: 0,
-    }, { onConflict: 'id' }).select().single()
-    setProfile(created)
+    }, { onConflict: 'id' }).select('id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, openrouter_api_key').single()
+
+    if (created) {
+      const { openrouter_api_key, ...rest } = created
+      setProfile({ ...rest, has_openrouter_key: Boolean(openrouter_api_key) })
+    }
   }, [])
 
   const refreshProfile = useCallback(async () => {
