@@ -9417,6 +9417,9168 @@ CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:\${PORT}")
           },
         ],
       },
+      {
+        id: 104,
+        title: 'Pods, Deployments & ReplicaSets',
+        description: 'Master fundamental K8s workload resources — pods, self-healing, rolling updates.',
+        part: 'Part III: Kubernetes Basics',
+        icon: '🔄',
+        topics: [
+          {
+            id: '104.1',
+            title: 'Pod Lifecycle & Multi-Container Pods',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Pod Lifecycle & Multi-Container Pods
+
+## Pod Phases
+
+Every pod moves through a defined lifecycle:
+
+| Phase | Meaning |
+|-------|---------|
+| **Pending** | Pod accepted by cluster; containers not yet running (e.g. image pull or scheduling) |
+| **Running** | At least one container is running |
+| **Succeeded** | All containers terminated with exit code 0 |
+| **Failed** | At least one container terminated with non-zero exit code |
+| **Unknown** | Pod state cannot be determined (node communication lost) |
+
+\`\`\`bash
+kubectl get pod my-pod -o jsonpath='{.status.phase}'
+\`\`\`
+
+## Init Containers
+
+Init containers run **before** main containers. They must complete successfully (exit 0) before any main container starts. Use them to:
+
+- Wait for a database to be ready
+- Pre-populate a shared volume
+- Download configuration from a secret store
+
+\`\`\`yaml
+initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'until nc -z postgres 5432; do sleep 2; done']
+\`\`\`
+
+## Sidecar Pattern
+
+Multiple containers share the same pod — same network namespace (localhost) and can share volumes.
+
+\`\`\`yaml
+containers:
+  - name: app
+    image: myapp:1.0
+  - name: log-shipper          # sidecar
+    image: fluentd:latest
+    volumeMounts:
+      - name: logs
+        mountPath: /var/log/app
+\`\`\`
+
+## Pod Conditions
+
+\`kubectl describe pod\` shows conditions at the bottom:
+
+- **Initialized** — init containers done
+- **Ready** — all containers ready, pod in Service endpoints
+- **ContainersReady** — all containers healthy
+
+## CrashLoopBackOff
+
+When a container crashes repeatedly, K8s adds exponential back-off delay (10s → 20s → 40s … max 5m) before restarting. Diagnose with:
+
+\`\`\`bash
+kubectl logs pod-name --previous   # logs from crashed container
+kubectl describe pod pod-name      # events section at bottom
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'Which pod phase means all containers have terminated successfully?',
+                options: ['Completed', 'Succeeded', 'Finished', 'Done'],
+                correctIndex: 1,
+                explanation: 'Succeeded is the correct Kubernetes phase name. All containers exited with code 0.'
+              },
+              {
+                question: 'What is the purpose of an init container?',
+                options: ['Run alongside the main container', 'Run before main containers to set up prerequisites', 'Replace the main container on failure', 'Monitor container health'],
+                correctIndex: 1,
+                explanation: 'Init containers run sequentially before main containers start. They are ideal for pre-conditions like waiting for a database or fetching config.'
+              },
+              {
+                question: 'Which command shows pod events and conditions?',
+                options: ['kubectl logs pod-name', 'kubectl describe pod pod-name', 'kubectl get pod -v', 'kubectl events pod-name'],
+                correctIndex: 1,
+                explanation: 'kubectl describe pod shows detailed info including events at the bottom — most useful for debugging scheduling or startup issues.'
+              },
+              {
+                question: 'What does CrashLoopBackOff mean?',
+                options: ['The pod is waiting for resources', 'Container keeps crashing and K8s is adding delay between restarts', 'The image cannot be pulled', 'The pod exceeded memory limits'],
+                correctIndex: 1,
+                explanation: 'CrashLoopBackOff = container crashed, K8s restarted it, it crashed again. The "BackOff" means K8s waits longer each time. Check logs with --previous.'
+              },
+            ]
+          },
+          {
+            id: '104.2',
+            title: 'ReplicaSets — Self-Healing',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# ReplicaSets — Self-Healing
+
+A **ReplicaSet** ensures that a specified number of pod replicas are running at any given time. If a pod is deleted or crashes, the ReplicaSet recreates it automatically.
+
+## Key Fields
+
+\`\`\`yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+spec:
+  replicas: 3                    # desired pod count
+  selector:
+    matchLabels:
+      app: nginx                 # MUST match pod template labels
+  template:
+    metadata:
+      labels:
+        app: nginx               # these labels must match selector
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+\`\`\`
+
+## Important Rules
+
+1. The \`selector.matchLabels\` **must** match \`template.metadata.labels\` — K8s enforces this
+2. If you manually create a pod with matching labels, the ReplicaSet will "adopt" it (and may delete it if over replicas)
+3. Scaling: \`kubectl scale rs nginx-rs --replicas=5\`
+
+## Self-Healing Demo
+
+\`\`\`bash
+kubectl apply -f rs.yaml
+kubectl get pods                         # 3 pods running
+kubectl delete pod nginx-rs-xxxxx        # delete one
+kubectl get pods                         # immediately back to 3!
+\`\`\`
+
+## ReplicaSet vs Deployment
+
+In practice, **never create ReplicaSets directly**. Use Deployments instead — they manage ReplicaSets and add rolling update + rollback capabilities. ReplicaSets are a building block, not a user-facing resource.
+`,
+            codingTask: {
+              instructions: `Create a ReplicaSet with 3 nginx replicas. Apply it, verify 3 pods are running, scale to 5 replicas, then delete one pod and verify it gets recreated automatically. Your solution should include both the YAML manifest and the bash commands.`,
+              boilerplate: `# replicaset.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+spec:
+  replicas: TODO   # set to 3
+  selector:
+    matchLabels:
+      app: TODO    # set the label
+  template:
+    metadata:
+      labels:
+        app: TODO  # must match selector
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+
+---
+# Commands to run:
+# TODO: apply the manifest
+# TODO: get pods and verify 3 are running
+# TODO: scale to 5 replicas
+# TODO: delete one pod and watch it come back`,
+              rubric: [
+                'replicas set to 3',
+                'selector.matchLabels matches template labels',
+                'kubectl apply command present',
+                'kubectl scale rs command with --replicas=5',
+                'kubectl delete pod command followed by kubectl get pods',
+              ],
+              hints: [
+                'Use kubectl apply -f replicaset.yaml',
+                'Scale with: kubectl scale rs nginx-rs --replicas=5',
+                'Watch pods in real time: kubectl get pods -w',
+                'selector.matchLabels and template.metadata.labels must be identical',
+              ],
+              solutionCode: `# replicaset.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: nginx-rs
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+
+# --- Commands ---
+# Apply
+kubectl apply -f replicaset.yaml
+
+# Verify 3 pods
+kubectl get pods -l app=nginx
+
+# Scale to 5
+kubectl scale rs nginx-rs --replicas=5
+kubectl get pods -l app=nginx   # now 5
+
+# Delete one pod — ReplicaSet recreates it
+POD=$(kubectl get pods -l app=nginx -o name | head -1)
+kubectl delete $POD
+kubectl get pods -l app=nginx -w   # watch new pod appear
+
+# Clean up
+kubectl delete rs nginx-rs`
+            }
+          },
+          {
+            id: '104.3',
+            title: 'Deployments — Rolling Updates & Rollbacks',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Deployments — Rolling Updates & Rollbacks
+
+A **Deployment** manages ReplicaSets and adds: rolling updates, rollbacks, and revision history. It's the standard way to run stateless applications in Kubernetes.
+
+## Deployment vs ReplicaSet
+
+| Feature | ReplicaSet | Deployment |
+|---------|-----------|------------|
+| Self-healing | ✅ | ✅ |
+| Rolling update | ❌ | ✅ |
+| Rollback | ❌ | ✅ |
+| Revision history | ❌ | ✅ |
+
+## Update Strategy
+
+\`\`\`yaml
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1          # max pods ABOVE desired during update
+    maxUnavailable: 0    # max pods BELOW desired during update
+\`\`\`
+
+- **RollingUpdate** (default): gradually replace old pods with new ones — zero downtime
+- **Recreate**: kill all old pods first, then start new ones — causes downtime but useful for databases
+
+## Rollout Commands
+
+\`\`\`bash
+kubectl rollout status deployment/myapp        # watch progress
+kubectl rollout history deployment/myapp       # see all revisions
+kubectl rollout undo deployment/myapp          # roll back one version
+kubectl rollout undo deployment/myapp --to-revision=2  # specific version
+\`\`\`
+
+## Triggering an Update
+
+Change the container image to trigger a rolling update:
+
+\`\`\`bash
+kubectl set image deployment/myapp nginx=nginx:1.26
+# or edit the YAML and kubectl apply
+\`\`\`
+
+K8s creates a new ReplicaSet (v2), scales it up, and scales down the old one (v1). Both exist briefly during the update.
+`,
+            codingTask: {
+              instructions: `Create an nginx Deployment with 3 replicas. Apply it, then perform a rolling update to nginx:1.26, monitor the rollout, then rollback to the previous version. Include both YAML and bash commands.`,
+              boilerplate: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+spec:
+  replicas: TODO
+  selector:
+    matchLabels:
+      app: nginx
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: TODO
+      maxUnavailable: TODO
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:TODO  # start with 1.25
+
+# --- Commands ---
+# TODO: apply deployment
+# TODO: update image to nginx:1.26
+# TODO: watch rollout status
+# TODO: check rollout history
+# TODO: rollback to previous version`,
+              rubric: [
+                'replicas: 3 in Deployment spec',
+                'Rolling update strategy specified',
+                'kubectl apply command',
+                'kubectl set image or kubectl rollout used',
+                'kubectl rollout status used',
+                'kubectl rollout undo used for rollback',
+              ],
+              hints: [
+                'Use maxSurge: 1 and maxUnavailable: 0 for zero-downtime',
+                'Update image: kubectl set image deployment/nginx-deploy nginx=nginx:1.26',
+                'Track progress: kubectl rollout status deployment/nginx-deploy',
+                'Use --record flag (deprecated but still works) or annotate with change-cause',
+              ],
+              solutionCode: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+  annotations:
+    kubernetes.io/change-cause: "initial deploy nginx:1.25"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+
+# --- Commands ---
+# Apply
+kubectl apply -f deployment.yaml
+
+# Verify
+kubectl get deployment nginx-deploy
+kubectl get pods -l app=nginx
+
+# Rolling update to 1.26
+kubectl set image deployment/nginx-deploy nginx=nginx:1.26
+kubectl annotate deployment nginx-deploy kubernetes.io/change-cause="update to nginx:1.26"
+
+# Watch rollout
+kubectl rollout status deployment/nginx-deploy
+
+# Check history (2 revisions)
+kubectl rollout history deployment/nginx-deploy
+
+# Rollback to previous version (1.25)
+kubectl rollout undo deployment/nginx-deploy
+kubectl rollout status deployment/nginx-deploy
+
+# Clean up
+kubectl delete deployment nginx-deploy`
+            }
+          },
+          {
+            id: '104.4',
+            title: 'Resource Requests & Limits',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Resource Requests & Limits
+
+Kubernetes needs to know how much CPU and memory each container needs in order to schedule it on an appropriate node.
+
+## Requests vs Limits
+
+| Field | Meaning | Effect |
+|-------|---------|--------|
+| **requests** | Minimum guaranteed | Scheduler uses this for placement |
+| **limits** | Maximum allowed | Container throttled (CPU) or killed (memory) if exceeded |
+
+## Units
+
+- **CPU**: millicores — \`100m\` = 0.1 core, \`1000m\` = 1 full core
+- **Memory**: bytes — \`64Mi\` = 64 mebibytes, \`1Gi\` = 1 gibibyte
+
+## OOMKilled
+
+If a container exceeds its memory **limit**, the Linux kernel kills it with OOMKilled (Out Of Memory). You'll see this in \`kubectl describe pod\` under Last State:
+
+\`\`\`
+Last State: Terminated
+  Reason: OOMKilled
+  Exit Code: 137
+\`\`\`
+
+Fix: increase memory limit or find the memory leak.
+
+## Viewing Usage
+
+\`\`\`bash
+kubectl top pods                    # requires metrics-server
+kubectl top nodes
+kubectl top pods --all-namespaces
+\`\`\`
+
+## LimitRange
+
+Sets namespace-level **defaults** so containers without explicit requests/limits get sensible values:
+
+\`\`\`yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: defaults
+spec:
+  limits:
+  - type: Container
+    default:        # limit default
+      cpu: 200m
+      memory: 128Mi
+    defaultRequest: # request default
+      cpu: 50m
+      memory: 64Mi
+\`\`\`
+
+## Best Practice
+
+Always set both requests and limits. Start conservative, then tune based on \`kubectl top\` data.
+`,
+            codingTask: {
+              instructions: `Add resource requests and limits to an nginx Deployment. Use 50m CPU request, 200m CPU limit, 64Mi memory request, 128Mi memory limit. Apply and verify with kubectl describe.`,
+              boilerplate: `# deployment-resources.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-resources
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: TODO
+            memory: TODO
+          limits:
+            cpu: TODO
+            memory: TODO`,
+              rubric: [
+                'cpu request set to 50m',
+                'memory request set to 64Mi',
+                'cpu limit set to 200m',
+                'memory limit set to 128Mi',
+                'kubectl apply command present',
+              ],
+              hints: [
+                '1000m = 1 CPU core. 50m = 5% of one core',
+                'Mi = mebibytes (2^20 bytes), not megabytes (10^6)',
+                'Verify: kubectl describe pod <name> | grep -A 4 Limits',
+              ],
+              solutionCode: `# deployment-resources.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-resources
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+
+# Apply
+kubectl apply -f deployment-resources.yaml
+
+# Verify resources
+kubectl describe pod -l app=nginx | grep -A 6 "Limits:"
+
+# View usage (needs metrics-server: minikube addons enable metrics-server)
+kubectl top pods -l app=nginx`
+            }
+          },
+          {
+            id: '104.5',
+            title: 'Labels, Selectors & Annotations',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Labels, Selectors & Annotations
+
+## Labels
+
+Labels are **key-value pairs** attached to any K8s object. They enable grouping and selection.
+
+\`\`\`yaml
+metadata:
+  labels:
+    app: frontend
+    env: production
+    tier: web
+    version: "1.2.0"
+\`\`\`
+
+Conventions (not enforced, but common):
+- \`app\` — application name
+- \`env\` — environment (dev/staging/prod)
+- \`tier\` — layer (frontend/backend/cache)
+- \`version\` — semantic version
+
+## Selectors
+
+Selectors filter objects by labels. Used by Services, Deployments, ReplicaSets, and kubectl:
+
+\`\`\`bash
+kubectl get pods -l app=nginx                    # equality
+kubectl get pods -l 'env in (prod,staging)'      # set-based
+kubectl get pods -l 'env=prod,tier=frontend'     # AND condition
+kubectl get pods -l '!version'                   # pods WITHOUT version label
+\`\`\`
+
+## Annotating Objects
+
+Annotations are also key-value pairs but for **metadata not used for selection** — build IDs, documentation URLs, operator configs:
+
+\`\`\`yaml
+metadata:
+  annotations:
+    ci.company.com/build-id: "12345"
+    docs.company.com/url: "https://wiki.internal/myapp"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+\`\`\`
+
+## kubectl label & annotate
+
+\`\`\`bash
+kubectl label pod my-pod env=prod
+kubectl label pod my-pod env=staging --overwrite
+kubectl label pod my-pod env-              # remove label
+kubectl annotate deployment myapp ci.co/build=42
+\`\`\`
+
+## Why This Matters
+
+Services select pods by labels. If labels don't match, traffic never reaches your pods. Always double-check that \`spec.selector\` in your Service/Deployment matches the labels on your pods.
+`,
+            codingTask: {
+              instructions: `Write bash commands to: (1) create a simple nginx pod with labels app=web and env=prod, (2) list pods filtered by env=prod label, (3) label an existing deployment with tier=frontend, (4) annotate the deployment with a build ID.`,
+              boilerplate: `#!/bin/bash
+# 1. Create pod with labels
+kubectl run nginx-labeled TODO
+
+# 2. List pods with env=prod label
+kubectl get pods TODO
+
+# 3. Apply label to deployment (assume deployment "webserver" exists)
+kubectl label TODO
+
+# 4. Annotate deployment with build ID
+kubectl annotate TODO`,
+              rubric: [
+                'kubectl run with --labels or -l flag',
+                'kubectl get pods with -l env=prod selector',
+                'kubectl label deployment command',
+                'kubectl annotate deployment command',
+              ],
+              hints: [
+                'Add labels at creation: kubectl run nginx-labeled --image=nginx --labels=app=web,env=prod',
+                'Filter: kubectl get pods -l env=prod',
+                'Label existing: kubectl label deployment webserver tier=frontend',
+                'Annotate: kubectl annotate deployment webserver ci.company.com/build-id="42"',
+              ],
+              solutionCode: `#!/bin/bash
+
+# 1. Create a pod with labels
+kubectl run nginx-labeled --image=nginx:1.25 --labels="app=web,env=prod"
+
+# Wait for it to start
+kubectl wait --for=condition=Ready pod/nginx-labeled --timeout=60s
+
+# 2. List pods with env=prod label
+kubectl get pods -l env=prod
+kubectl get pods -l 'app=web,env=prod'
+
+# 3. Create a deployment to label
+kubectl create deployment webserver --image=nginx:1.25 --replicas=2
+
+# Apply tier label to deployment
+kubectl label deployment webserver tier=frontend
+kubectl label deployment webserver env=prod
+
+# Verify labels
+kubectl get deployment webserver --show-labels
+
+# 4. Annotate deployment
+kubectl annotate deployment webserver ci.company.com/build-id="42" docs.company.com/url="https://wiki.internal/webserver"
+
+# Verify annotation
+kubectl describe deployment webserver | grep Annotations -A 5
+
+# Clean up
+kubectl delete pod nginx-labeled
+kubectl delete deployment webserver`
+            }
+          },
+          {
+            id: '104.MP',
+            title: 'Mini-Project: Zero-Downtime Deployment',
+            xp: 300,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Zero-Downtime Deployment
+
+In this project you'll demonstrate a complete zero-downtime rolling update workflow using a Kubernetes Deployment.
+
+## What You'll Build
+
+1. Deploy nginx 1.25 with 3 replicas and proper resource limits
+2. Verify the deployment is serving traffic
+3. Perform a rolling update to nginx 1.26 while traffic keeps flowing
+4. Verify the rollout succeeded
+5. Simulate a bad deploy and perform a rollback
+
+## Key Concepts Practiced
+
+- Deployment spec with rolling update strategy
+- Resource requests and limits
+- kubectl rollout commands
+- Zero-downtime update verification
+
+## Production Relevance
+
+Every production K8s deployment uses this exact workflow. Understanding rollout/rollback is essential before deploying to real clusters.
+
+## Expected Output
+
+\`\`\`
+deployment.apps/nginx-zero-downtime created
+Waiting for rollout... done
+v1 healthy — serving 200 OK
+Rolling update nginx:1.25 → nginx:1.26...
+Waiting for deployment to roll out... done
+v2 healthy — serving 200 OK
+Rolling back to nginx:1.25...
+Rollback complete
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write a complete Deployment manifest and a bash script that: (1) applies the deployment, (2) waits for it to be ready, (3) performs a rolling update, (4) monitors the rollout, and (5) rolls back. The script should verify HTTP 200 responses before and after the update.`,
+              boilerplate: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-zero-downtime
+spec:
+  replicas: 3
+  # TODO: add rolling update strategy (maxSurge: 1, maxUnavailable: 0)
+  selector:
+    matchLabels:
+      app: nginx-zd
+  template:
+    metadata:
+      labels:
+        app: nginx-zd
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        # TODO: add resource requests (50m/64Mi) and limits (200m/128Mi)
+
+---
+#!/bin/bash
+# deploy.sh
+
+# TODO: apply deployment
+# TODO: wait for rollout to complete
+# TODO: port-forward and check HTTP 200
+# TODO: perform rolling update to nginx:1.26
+# TODO: watch rollout status
+# TODO: rollback to previous version
+# TODO: verify rollback`,
+              rubric: [
+                'Deployment has 3 replicas',
+                'Rolling update strategy with maxSurge and maxUnavailable',
+                'Resource requests and limits present',
+                'kubectl rollout status used to wait',
+                'kubectl set image used for update',
+                'kubectl rollout undo used for rollback',
+                'HTTP 200 verification step present',
+              ],
+              hints: [
+                'Port-forward in background: kubectl port-forward deployment/nginx-zero-downtime 8080:80 &',
+                'Check HTTP: curl -s -o /dev/null -w "%{http_code}" http://localhost:8080',
+                'Watch rollout: kubectl rollout status deployment/nginx-zero-downtime --timeout=120s',
+                'Kill port-forward: kill $PF_PID after verification',
+              ],
+              solutionCode: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-zero-downtime
+  annotations:
+    kubernetes.io/change-cause: "nginx:1.25 initial deploy"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: nginx-zd
+  template:
+    metadata:
+      labels:
+        app: nginx-zd
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+
+---
+#!/bin/bash
+# deploy.sh
+set -e
+
+echo "=== Applying Deployment ==="
+kubectl apply -f deployment.yaml
+
+echo "=== Waiting for v1 rollout ==="
+kubectl rollout status deployment/nginx-zero-downtime --timeout=120s
+
+echo "=== Verifying v1 HTTP 200 ==="
+kubectl port-forward deployment/nginx-zero-downtime 8080:80 &
+PF_PID=$!
+sleep 3
+CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
+echo "HTTP status: $CODE"
+[ "$CODE" = "200" ] && echo "v1 healthy!" || echo "WARNING: unexpected status"
+kill $PF_PID 2>/dev/null
+
+echo "=== Rolling update nginx:1.25 -> nginx:1.26 ==="
+kubectl set image deployment/nginx-zero-downtime nginx=nginx:1.26
+kubectl annotate deployment nginx-zero-downtime kubernetes.io/change-cause="nginx:1.26 update" --overwrite
+
+echo "=== Monitoring rollout ==="
+kubectl rollout status deployment/nginx-zero-downtime --timeout=120s
+kubectl get pods -l app=nginx-zd
+
+echo "=== Verifying v2 ==="
+kubectl port-forward deployment/nginx-zero-downtime 8081:80 &
+PF_PID=$!
+sleep 3
+CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081)
+echo "HTTP status: $CODE"
+kill $PF_PID 2>/dev/null
+
+echo "=== Rollback to v1 ==="
+kubectl rollout undo deployment/nginx-zero-downtime
+kubectl rollout status deployment/nginx-zero-downtime --timeout=120s
+
+echo "=== Rollout history ==="
+kubectl rollout history deployment/nginx-zero-downtime
+
+echo "=== Cleanup ==="
+kubectl delete deployment nginx-zero-downtime`
+            }
+          },
+        ]
+      },
+      {
+        id: 105,
+        title: 'Networking & Services',
+        description: 'Expose and connect your applications using Kubernetes Services and Ingress.',
+        part: 'Part IV: Networking',
+        icon: '🌐',
+        topics: [
+          {
+            id: '105.1',
+            title: 'K8s Networking Model',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# The Kubernetes Networking Model
+
+## The Flat Network
+
+Kubernetes enforces a fundamental rule: **every pod gets a unique IP address** and can communicate with every other pod **without NAT**. This is the flat network model.
+
+\`\`\`
+Pod A (10.244.1.5) ──────────────────── Pod B (10.244.2.3)
+                   no NAT, direct route
+\`\`\`
+
+This makes distributed systems much simpler — services can always reach each other by IP.
+
+## kube-proxy
+
+\`kube-proxy\` runs on every node and maintains iptables (or IPVS) rules that implement Service load-balancing. When you create a Service, kube-proxy programs rules on all nodes so traffic to the Service IP gets forwarded to healthy pod IPs.
+
+\`\`\`bash
+kubectl get pods -n kube-system -l k8s-app=kube-proxy
+\`\`\`
+
+## CNI Plugins
+
+The **Container Network Interface (CNI)** is a spec that K8s calls to set up pod networking. The cluster admin chooses a CNI plugin:
+
+| CNI | Notes |
+|-----|-------|
+| **Flannel** | Simple, no NetworkPolicy support |
+| **Calico** | Full NetworkPolicy, BGP routing |
+| **Cilium** | eBPF-based, high performance, observability |
+| **Weave** | Simple mesh, automatic encryption |
+
+\`minikube\` defaults to bridge networking. Use \`minikube start --cni=calico\` for NetworkPolicy support.
+
+## Pod-to-Pod Communication
+
+\`\`\`bash
+# Get pod IP
+kubectl get pod my-pod -o jsonpath='{.status.podIP}'
+
+# Exec into pod and curl another pod
+kubectl exec -it pod-a -- curl http://10.244.2.3:8080
+\`\`\`
+
+Pods can always reach each other directly, but pod IPs are ephemeral — that's why Services exist.
+`,
+            quiz: [
+              {
+                question: 'In the K8s networking model, how do pods communicate with each other?',
+                options: ['Through a central proxy', 'Directly without NAT using unique pod IPs', 'Through the node IP only', 'Via the API server'],
+                correctIndex: 1,
+                explanation: 'Every pod gets a unique IP and can reach any other pod IP directly, without NAT. This is the fundamental guarantee of the K8s network model.'
+              },
+              {
+                question: 'What is the role of kube-proxy?',
+                options: ['It proxies kubectl commands', 'It programs iptables rules to implement Service load-balancing', 'It manages pod-to-pod encryption', 'It provides DNS for pods'],
+                correctIndex: 1,
+                explanation: 'kube-proxy runs on every node and programs iptables (or IPVS) rules that forward Service IP traffic to the appropriate pod IPs.'
+              },
+              {
+                question: 'Which CNI plugin supports Kubernetes NetworkPolicy?',
+                options: ['Flannel', 'Calico', 'Both Flannel and Calico', 'Neither — NetworkPolicy is built into K8s'],
+                correctIndex: 1,
+                explanation: 'Calico (and Cilium) support NetworkPolicy. Standard Flannel does not enforce NetworkPolicy rules despite K8s accepting them.'
+              },
+              {
+                question: 'Why are Services needed if pods can reach each other directly by IP?',
+                options: ['Services provide encryption', 'Pod IPs are ephemeral — Services provide a stable virtual IP', 'Services are faster than direct pod communication', 'Services provide authentication'],
+                correctIndex: 1,
+                explanation: 'Pod IPs change every time a pod is recreated. Services provide a stable virtual IP (ClusterIP) that always routes to the current healthy pods.'
+              },
+            ]
+          },
+          {
+            id: '105.2',
+            title: 'ClusterIP & NodePort Services',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# ClusterIP & NodePort Services
+
+## Service Basics
+
+A Service selects pods via **label selector** and provides a stable endpoint for reaching them.
+
+## ClusterIP (default)
+
+ClusterIP is a virtual IP only reachable **inside the cluster**. Perfect for internal service-to-service communication.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx           # selects pods with this label
+  ports:
+  - port: 80             # Service port (what clients connect to)
+    targetPort: 80       # container port (where traffic goes)
+\`\`\`
+
+## Port Terminology
+
+| Field | Meaning |
+|-------|---------|
+| \`port\` | Port on the Service (ClusterIP) |
+| \`targetPort\` | Port on the container |
+| \`nodePort\` | Port on the Node (NodePort only) |
+
+## NodePort
+
+NodePort opens a port on **every node** in the cluster (range 30000–32767). External traffic can reach pods via \`<NodeIP>:<nodePort>\`.
+
+\`\`\`yaml
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080      # explicit; or K8s assigns one
+\`\`\`
+
+On minikube:
+\`\`\`bash
+minikube service nginx-svc       # opens in browser automatically
+minikube service nginx-svc --url # just prints the URL
+\`\`\`
+
+## When to Use Each
+
+- **ClusterIP**: backend services, databases — internal only
+- **NodePort**: simple external access in dev/testing
+- **LoadBalancer**: production external access (Chapter 105.3)
+`,
+            codingTask: {
+              instructions: `Create an nginx Deployment and expose it first with a ClusterIP Service, then a NodePort Service. Apply both, verify the ClusterIP is accessible from inside the cluster, and access the NodePort service.`,
+              boilerplate: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-web
+  template:
+    metadata:
+      labels:
+        app: nginx-web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+# clusterip-svc.yaml — TODO: fill in selector and ports
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-clusterip
+spec:
+  type: ClusterIP
+  selector:
+    app: TODO
+  ports:
+  - port: TODO
+    targetPort: TODO
+
+# --- Commands ---
+# TODO: apply deployment and service
+# TODO: test ClusterIP from inside cluster (kubectl exec + curl)
+# TODO: create NodePort service and access via minikube`,
+              rubric: [
+                'Deployment with 2 replicas and correct labels',
+                'ClusterIP service selector matches deployment labels',
+                'Service port and targetPort both set to 80',
+                'NodePort service created',
+                'kubectl exec curl to test ClusterIP',
+              ],
+              hints: [
+                'Test ClusterIP from a pod: kubectl run test --image=busybox --rm -it -- wget -qO- nginx-clusterip',
+                'NodePort range: 30000-32767',
+                'minikube service <name> opens the NodePort in your browser',
+                'Get Service ClusterIP: kubectl get svc nginx-clusterip',
+              ],
+              solutionCode: `# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-web
+  template:
+    metadata:
+      labels:
+        app: nginx-web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+# clusterip-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-clusterip
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-web
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# nodeport-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-nodeport
+spec:
+  type: NodePort
+  selector:
+    app: nginx-web
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
+
+# Apply everything
+kubectl apply -f deployment.yaml
+kubectl apply -f clusterip-svc.yaml
+kubectl apply -f nodeport-svc.yaml
+
+# Wait for pods
+kubectl rollout status deployment/nginx-web --timeout=60s
+
+# Test ClusterIP from inside cluster
+kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- curl -s http://nginx-clusterip | grep title
+
+# View services
+kubectl get svc nginx-clusterip nginx-nodeport
+
+# Access NodePort (minikube)
+minikube service nginx-nodeport --url
+
+# Clean up
+kubectl delete deployment nginx-web
+kubectl delete svc nginx-clusterip nginx-nodeport`
+            }
+          },
+          {
+            id: '105.3',
+            title: 'LoadBalancer & ExternalName',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# LoadBalancer & ExternalName Services
+
+## LoadBalancer
+
+On cloud providers (AWS, GKE, Azure), a Service of type \`LoadBalancer\` automatically provisions an external cloud load balancer.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx
+  ports:
+  - port: 80
+    targetPort: 80
+\`\`\`
+
+On AWS EKS, this creates an ELB/ALB. The external IP appears in \`kubectl get svc\` under EXTERNAL-IP (may take 1-2 minutes to provision).
+
+## minikube LoadBalancer
+
+minikube doesn't have a cloud provider, so LoadBalancer services stay in \`<pending>\` state for EXTERNAL-IP. Use **minikube tunnel** in a separate terminal to simulate it:
+
+\`\`\`bash
+minikube tunnel    # run in separate terminal, requires sudo
+kubectl get svc nginx-lb  # EXTERNAL-IP now shows 127.0.0.1
+curl http://127.0.0.1:80
+\`\`\`
+
+## ExternalName
+
+ExternalName is a DNS alias — it maps a K8s Service name to an external hostname. No proxying happens; it's purely a DNS CNAME.
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: database
+spec:
+  type: ExternalName
+  externalName: mydb.rds.amazonaws.com
+\`\`\`
+
+Apps in the cluster can connect to \`database\` and it resolves to \`mydb.rds.amazonaws.com\`. This lets you migrate from external to internal services without changing app config.
+
+## Summary
+
+| Type | Accessibility | Use Case |
+|------|--------------|----------|
+| ClusterIP | Internal only | Microservices |
+| NodePort | Node IP + high port | Dev/test |
+| LoadBalancer | External IP | Production external traffic |
+| ExternalName | DNS alias | External service abstraction |
+`,
+            codingTask: {
+              instructions: `Create a LoadBalancer Service for an nginx Deployment. On minikube, use minikube tunnel to get an external IP. Also create an ExternalName service that maps "external-db" to "example.com".`,
+              boilerplate: `# loadbalancer-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-lb
+spec:
+  type: TODO  # LoadBalancer
+  selector:
+    app: nginx-lb-app
+  ports:
+  - port: TODO
+    targetPort: TODO
+
+---
+# externalname-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+spec:
+  type: ExternalName
+  externalName: TODO  # example.com
+
+# Commands:
+# TODO: create nginx deployment with label app=nginx-lb-app
+# TODO: apply services
+# TODO: run minikube tunnel (in background for demo)
+# TODO: check external IP`,
+              rubric: [
+                'LoadBalancer Service type set correctly',
+                'Selector matches deployment label',
+                'ExternalName service with correct type',
+                'externalName set to example.com',
+                'minikube tunnel command present',
+              ],
+              hints: [
+                'minikube tunnel requires sudo and runs in foreground — open a new terminal tab',
+                'After tunnel: kubectl get svc nginx-lb (EXTERNAL-IP will be 127.0.0.1)',
+                'ExternalName has no selector — it is purely a DNS record',
+              ],
+              solutionCode: `# nginx-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-lb-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-lb-app
+  template:
+    metadata:
+      labels:
+        app: nginx-lb-app
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+# loadbalancer-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-lb
+spec:
+  type: LoadBalancer
+  selector:
+    app: nginx-lb-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# externalname-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: external-db
+spec:
+  type: ExternalName
+  externalName: example.com
+
+# Apply
+kubectl apply -f nginx-deploy.yaml
+kubectl apply -f loadbalancer-svc.yaml
+kubectl apply -f externalname-svc.yaml
+
+# On minikube — run in a separate terminal:
+# sudo minikube tunnel
+
+# Check services
+kubectl get svc nginx-lb             # EXTERNAL-IP: 127.0.0.1 after tunnel
+kubectl get svc external-db          # shows ExternalName: example.com
+
+# Test LoadBalancer (after tunnel)
+curl -s http://127.0.0.1 | grep title
+
+# Test ExternalName DNS resolution from inside cluster
+kubectl run dns-test --image=busybox --rm -it --restart=Never -- nslookup external-db
+
+# Clean up
+kubectl delete deployment nginx-lb-app
+kubectl delete svc nginx-lb external-db`
+            }
+          },
+          {
+            id: '105.4',
+            title: 'Ingress — HTTP Routing',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Ingress — HTTP Routing
+
+## Why Ingress?
+
+With Services alone, you'd need a separate LoadBalancer per application — expensive on cloud. **Ingress** provides a single entry point for HTTP/HTTPS traffic with routing rules.
+
+## Ingress Architecture
+
+\`\`\`
+Internet
+   │
+   ▼
+IngressController (nginx pod)
+   │
+   ├── /          → frontend-svc:80
+   ├── /api       → backend-svc:8080
+   └── /admin     → admin-svc:9000
+\`\`\`
+
+## Enable Ingress on minikube
+
+\`\`\`bash
+minikube addons enable ingress
+kubectl get pods -n ingress-nginx   # wait for controller pod
+\`\`\`
+
+## Path-Based Routing
+
+\`\`\`yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: myapp.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-svc
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-svc
+            port:
+              number: 8080
+\`\`\`
+
+## Host-Based Routing
+
+Different Ingress rules can use different hostnames:
+
+\`\`\`yaml
+  rules:
+  - host: app.example.com
+    http:
+      paths: [...]
+  - host: api.example.com
+    http:
+      paths: [...]
+\`\`\`
+
+## TLS Termination
+
+\`\`\`yaml
+spec:
+  tls:
+  - hosts: [app.example.com]
+    secretName: app-tls-secret   # TLS cert/key stored in Secret
+\`\`\`
+
+## Testing with /etc/hosts
+
+For local testing without DNS:
+\`\`\`bash
+echo "$(minikube ip) myapp.local" | sudo tee -a /etc/hosts
+curl http://myapp.local/api
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a two-service setup (frontend nginx on port 80, backend nginx on port 8080) and an Ingress that routes / to the frontend and /api to the backend. Enable the ingress addon and test routing.`,
+              boilerplate: `# frontend-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# TODO: Create backend Deployment + Service (port 80, label app=backend)
+# TODO: Create Ingress routing / -> frontend-svc, /api -> backend-svc
+# Commands:
+# TODO: enable ingress addon
+# TODO: apply all resources
+# TODO: test routing`,
+              rubric: [
+                'Frontend Deployment and Service created',
+                'Backend Deployment and Service created',
+                'Ingress with two path rules (/ and /api)',
+                'ingressClassName: nginx set',
+                'minikube addons enable ingress command',
+                'curl test for both paths',
+              ],
+              hints: [
+                'Enable ingress: minikube addons enable ingress',
+                'Wait for controller: kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s',
+                'Get minikube IP: minikube ip',
+                'Add to /etc/hosts: echo "$(minikube ip) myapp.local" | sudo tee -a /etc/hosts',
+              ],
+              solutionCode: `# all-resources.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+spec:
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+spec:
+  selector:
+    app: backend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: myapp.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-svc
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-svc
+            port:
+              number: 80
+
+# Setup commands
+minikube addons enable ingress
+kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
+
+kubectl apply -f all-resources.yaml
+
+# Add local DNS
+echo "$(minikube ip) myapp.local" | sudo tee -a /etc/hosts
+
+# Test routing
+curl http://myapp.local/          # frontend
+curl http://myapp.local/api       # backend (via rewrite)
+
+# Clean up
+kubectl delete -f all-resources.yaml`
+            }
+          },
+          {
+            id: '105.5',
+            title: 'K8s DNS & Service Discovery',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# K8s DNS & Service Discovery
+
+## CoreDNS
+
+Kubernetes runs **CoreDNS** in the \`kube-system\` namespace. It provides DNS resolution for all pods and services.
+
+\`\`\`bash
+kubectl get pods -n kube-system -l k8s-app=kube-dns
+\`\`\`
+
+## Service DNS Format
+
+Every Service automatically gets a DNS name:
+
+\`\`\`
+<service-name>.<namespace>.svc.cluster.local
+\`\`\`
+
+Examples:
+- \`nginx-svc.default.svc.cluster.local\`
+- \`postgres.database.svc.cluster.local\`
+- \`redis.cache.svc.cluster.local\`
+
+## Short Forms
+
+From **within the same namespace**, you can use just the service name:
+
+\`\`\`bash
+curl http://nginx-svc          # works within default namespace
+curl http://nginx-svc.default  # also works
+curl http://nginx-svc.default.svc.cluster.local  # fully qualified
+\`\`\`
+
+From a **different namespace**, use the namespace:
+\`\`\`bash
+curl http://nginx-svc.default      # from any namespace
+\`\`\`
+
+## Testing DNS from a Pod
+
+\`\`\`bash
+# One-shot DNS lookup
+kubectl run dns-test --image=busybox --rm -it --restart=Never -- nslookup kubernetes
+
+# Curl a service
+kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- curl http://nginx-svc
+\`\`\`
+
+## Pod DNS
+
+Individual pods also get DNS entries when using headless services (Chapter 107.4), but regular pods are addressed by Service names in production.
+`,
+            quiz: [
+              {
+                question: 'What is the full DNS name for a service "api" in namespace "backend"?',
+                options: ['api.svc.cluster.local', 'api.backend.svc.cluster.local', 'backend.api.svc.local', 'api.backend.cluster.svc.local'],
+                correctIndex: 1,
+                explanation: 'The format is <service>.<namespace>.svc.cluster.local. So api in namespace backend = api.backend.svc.cluster.local.'
+              },
+              {
+                question: 'Which component provides DNS for pods and services in Kubernetes?',
+                options: ['kube-proxy', 'CoreDNS', 'etcd', 'kubelet'],
+                correctIndex: 1,
+                explanation: 'CoreDNS runs in kube-system namespace and is the cluster DNS provider. It resolves service names and pod DNS.'
+              },
+              {
+                question: 'From inside a pod in namespace "frontend", how do you reach service "api" in namespace "backend"?',
+                options: ['curl http://api', 'curl http://api.backend', 'curl http://backend/api', 'curl http://svc/api/backend'],
+                correctIndex: 1,
+                explanation: 'When accessing a service in a different namespace, use <service>.<namespace>. The short form only works within the same namespace.'
+              },
+              {
+                question: 'How do you test DNS resolution from inside a cluster?',
+                options: ['kubectl dns-lookup', 'kubectl run --image=busybox with nslookup', 'kubectl get dns', 'kubectl exec apiserver -- nslookup'],
+                correctIndex: 1,
+                explanation: 'Spin up a throwaway busybox pod: kubectl run dns-test --image=busybox --rm -it -- nslookup <service>. CoreDNS responds with the ClusterIP.'
+              },
+            ]
+          },
+          {
+            id: '105.MP',
+            title: 'Mini-Project: Two-Tier App Networking',
+            xp: 300,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Two-Tier App Networking
+
+Wire up a frontend and backend service using proper Kubernetes networking, demonstrating service discovery via DNS.
+
+## What You'll Build
+
+- **Backend**: nginx returning a simple JSON response on port 80
+- **Frontend**: nginx serving a page that references the backend API
+- **Backend Service**: ClusterIP (internal only — frontend talks to backend via DNS)
+- **Frontend Service**: NodePort (externally accessible for testing)
+
+## Architecture
+
+\`\`\`
+Browser
+  │  (NodePort: 30090)
+  ▼
+Frontend Pod (nginx)
+  │  (ClusterIP DNS: backend-svc)
+  ▼
+Backend Pod (nginx)
+\`\`\`
+
+## Key Learning
+
+This demonstrates that frontend can reach backend using just the Service name (\`backend-svc\`) — no hardcoded IPs. When backend pods are replaced, the Service IP stays constant and DNS keeps resolving correctly.
+`,
+            codingTask: {
+              instructions: `Create a two-tier application: backend Deployment + ClusterIP Service, frontend Deployment + NodePort Service. Verify frontend can reach backend via K8s DNS using kubectl exec + curl. Include all YAMLs and test commands.`,
+              boilerplate: `# backend-deploy.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+# TODO: ClusterIP Service for backend (name: backend-svc, port 80)
+# TODO: frontend Deployment (replicas: 2, label: app=frontend)
+# TODO: NodePort Service for frontend (nodePort: 30090)
+
+# Commands:
+# TODO: apply all resources
+# TODO: exec into frontend pod and curl backend-svc (DNS test)
+# TODO: access frontend via minikube service`,
+              rubric: [
+                'Backend Deployment with 2 replicas',
+                'Backend ClusterIP Service named backend-svc',
+                'Frontend Deployment with 2 replicas',
+                'Frontend NodePort Service on port 30090',
+                'kubectl exec curl to backend-svc from frontend pod',
+                'DNS name used (not hardcoded IP)',
+              ],
+              hints: [
+                'ClusterIP is the default type — you can omit type: ClusterIP',
+                'DNS test: kubectl exec -it <frontend-pod> -- curl http://backend-svc',
+                'Get frontend pod name: kubectl get pods -l app=frontend -o name | head -1',
+                'Access frontend: minikube service frontend-svc',
+              ],
+              solutionCode: `# all-services.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: backend
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+spec:
+  type: NodePort
+  selector:
+    app: frontend
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30090
+
+# Apply all
+kubectl apply -f all-services.yaml
+
+# Wait for pods
+kubectl rollout status deployment/backend --timeout=60s
+kubectl rollout status deployment/frontend --timeout=60s
+
+# DNS test: exec into frontend pod, curl backend via K8s DNS
+FRONTEND_POD=$(kubectl get pods -l app=frontend -o name | head -1)
+kubectl exec $FRONTEND_POD -- curl -s http://backend-svc | grep title
+kubectl exec $FRONTEND_POD -- curl -s http://backend-svc.default.svc.cluster.local | grep title
+
+# Access frontend from host
+minikube service frontend-svc --url
+
+# Verify Service endpoints
+kubectl get endpoints backend-svc
+kubectl get endpoints frontend-svc
+
+# Clean up
+kubectl delete -f all-services.yaml`
+            }
+          },
+        ]
+      },
+      {
+        id: 106,
+        title: 'Configuration & Secrets',
+        description: 'Externalise configuration and securely manage sensitive data.',
+        part: 'Part IV: Networking',
+        icon: '⚙️',
+        topics: [
+          {
+            id: '106.1',
+            title: 'ConfigMaps — Externalising Config',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# ConfigMaps — Externalising Configuration
+
+## Why ConfigMaps?
+
+Hard-coding configuration in container images makes them environment-specific and hard to update. ConfigMaps store configuration outside the image, enabling the same image to run in dev, staging, and production.
+
+## Creating ConfigMaps
+
+### From literals
+\`\`\`bash
+kubectl create configmap app-config \\
+  --from-literal=APP_ENV=production \\
+  --from-literal=LOG_LEVEL=info
+\`\`\`
+
+### From YAML
+\`\`\`yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: info
+  DATABASE_HOST: postgres-svc
+\`\`\`
+
+## Consuming ConfigMaps
+
+### As environment variables (envFrom — all keys)
+\`\`\`yaml
+envFrom:
+- configMapRef:
+    name: app-config
+\`\`\`
+
+### As environment variable (valueFrom — single key)
+\`\`\`yaml
+env:
+- name: MY_ENV
+  valueFrom:
+    configMapKeyRef:
+      name: app-config
+      key: APP_ENV
+\`\`\`
+
+### As a volume (appears as files)
+\`\`\`yaml
+volumes:
+- name: config-vol
+  configMap:
+    name: app-config
+containers:
+- volumeMounts:
+  - name: config-vol
+    mountPath: /etc/config
+# Inside container: /etc/config/APP_ENV contains "production"
+\`\`\`
+
+## Updating ConfigMaps
+
+Mounted volumes update automatically (eventual consistency, ~60s). Environment variables do NOT update — pod must restart. Use \`kubectl rollout restart deployment\` after changing config.
+`,
+            codingTask: {
+              instructions: `Create a ConfigMap with APP_ENV=production and LOG_LEVEL=info. Create a Deployment that mounts the ConfigMap as environment variables using envFrom. Verify the env vars are injected into the container.`,
+              boilerplate: `# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: TODO
+  LOG_LEVEL: TODO
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25
+        envFrom:
+        - configMapRef:
+            name: TODO  # reference the configmap
+
+# Commands:
+# TODO: apply configmap and deployment
+# TODO: verify env vars with kubectl exec`,
+              rubric: [
+                'ConfigMap with APP_ENV: production',
+                'ConfigMap with LOG_LEVEL: info',
+                'Deployment uses envFrom with configMapRef',
+                'configMapRef name matches ConfigMap name',
+                'kubectl exec env | grep APP_ENV verification',
+              ],
+              hints: [
+                'Apply order: ConfigMap first, then Deployment',
+                'Verify: kubectl exec -it <pod> -- env | grep APP_ENV',
+                'Or: kubectl exec -it <pod> -- printenv APP_ENV',
+                'List ConfigMaps: kubectl get configmaps',
+              ],
+              solutionCode: `# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: info
+  DATABASE_HOST: postgres-svc
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25
+        envFrom:
+        - configMapRef:
+            name: app-config
+        ports:
+        - containerPort: 80
+
+# Apply
+kubectl apply -f configmap.yaml
+kubectl apply -f deployment.yaml
+
+kubectl rollout status deployment/app-deploy --timeout=60s
+
+# Verify env vars are injected
+POD=$(kubectl get pods -l app=myapp -o name | head -1)
+kubectl exec $POD -- env | grep -E 'APP_ENV|LOG_LEVEL|DATABASE_HOST'
+
+# Expected output:
+# APP_ENV=production
+# LOG_LEVEL=info
+# DATABASE_HOST=postgres-svc
+
+# View ConfigMap
+kubectl describe configmap app-config
+
+# Update config (note: requires pod restart for envFrom)
+kubectl patch configmap app-config --type=merge -p '{"data":{"LOG_LEVEL":"debug"}}'
+kubectl rollout restart deployment/app-deploy
+
+# Clean up
+kubectl delete deployment app-deploy
+kubectl delete configmap app-config`
+            }
+          },
+          {
+            id: '106.2',
+            title: 'Secrets — Sensitive Data',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Secrets — Sensitive Data
+
+## What is a Secret?
+
+A Secret stores sensitive data: passwords, API keys, TLS certificates, Docker registry credentials. The data is **base64-encoded** (NOT encrypted by default in etcd).
+
+## Important: base64 ≠ encrypted
+
+\`\`\`bash
+echo -n "mysecretpassword" | base64    # bXlzZWNyZXRwYXNzd29yZA==
+echo "bXlzZWNyZXRwYXNzd29yZA==" | base64 -d  # mysecretpassword
+\`\`\`
+
+Anyone with \`kubectl get secret\` access can decode the value. For real encryption at rest, enable etcd encryption or use an external secrets manager.
+
+## Secret Types
+
+| Type | Use Case |
+|------|----------|
+| \`Opaque\` | Generic key-value (default) |
+| \`kubernetes.io/tls\` | TLS certificate + key |
+| \`kubernetes.io/dockerconfigjson\` | Private registry credentials |
+
+## Creating Secrets
+
+### From literals (K8s encodes for you)
+\`\`\`bash
+kubectl create secret generic db-creds \\
+  --from-literal=DB_USER=admin \\
+  --from-literal=DB_PASSWORD=supersecret
+\`\`\`
+
+### From YAML (you must base64-encode)
+\`\`\`yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-creds
+type: Opaque
+data:
+  DB_USER: YWRtaW4=           # echo -n "admin" | base64
+  DB_PASSWORD: c3VwZXJzZWNyZXQ=
+\`\`\`
+
+## Consuming Secrets
+
+### As environment variables
+\`\`\`yaml
+env:
+- name: DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: db-creds
+      key: DB_PASSWORD
+\`\`\`
+
+## Security Best Practices
+
+1. **NEVER commit Secrets to git** — even base64 encoded
+2. Use \`stringData\` in YAML (K8s encodes it): \`stringData: {key: plaintext}\`
+3. Production: use **sealed-secrets** or **external-secrets operator** (AWS SSM, Vault, GCP Secret Manager)
+4. Restrict \`kubectl get secret\` with RBAC
+`,
+            codingTask: {
+              instructions: `Create a Secret with DB_USER=admin and DB_PASSWORD=supersecret. Inject the values into a Deployment as environment variables using secretKeyRef. Verify the secret values are accessible inside the container.`,
+              boilerplate: `# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-creds
+type: Opaque
+stringData:          # use stringData to avoid manual base64
+  DB_USER: TODO
+  DB_PASSWORD: TODO
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-secrets
+  template:
+    metadata:
+      labels:
+        app: app-secrets
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: TODO
+              key: TODO
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: TODO
+              key: TODO`,
+              rubric: [
+                'Secret with DB_USER and DB_PASSWORD',
+                'stringData used (or correct base64 in data)',
+                'secretKeyRef for DB_USER',
+                'secretKeyRef for DB_PASSWORD',
+                'Correct secret name in reference',
+                'kubectl exec env verification',
+              ],
+              hints: [
+                'stringData allows plain text — K8s base64-encodes it automatically',
+                'View secret value: kubectl get secret db-creds -o jsonpath="{.data.DB_USER}" | base64 -d',
+                'Verify in pod: kubectl exec <pod> -- printenv DB_USER',
+                'NEVER put real passwords in tutorial files — use placeholder values',
+              ],
+              solutionCode: `# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-creds
+type: Opaque
+stringData:
+  DB_USER: admin
+  DB_PASSWORD: supersecret
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-with-secrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-secrets
+  template:
+    metadata:
+      labels:
+        app: app-secrets
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-creds
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-creds
+              key: DB_PASSWORD
+        ports:
+        - containerPort: 80
+
+# Apply (Secret first!)
+kubectl apply -f secret.yaml
+kubectl apply -f deployment.yaml
+kubectl rollout status deployment/app-with-secrets --timeout=60s
+
+# Verify secret values in container
+POD=$(kubectl get pods -l app=app-secrets -o name | head -1)
+kubectl exec $POD -- printenv DB_USER        # admin
+kubectl exec $POD -- printenv DB_PASSWORD    # supersecret
+
+# View encoded secret value
+kubectl get secret db-creds -o jsonpath='{.data.DB_PASSWORD}' | base64 -d
+
+# Clean up
+kubectl delete deployment app-with-secrets
+kubectl delete secret db-creds`
+            }
+          },
+          {
+            id: '106.3',
+            title: 'Environment Variable Patterns',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Environment Variable Patterns
+
+## The Downward API
+
+The Downward API lets pods access information about themselves — pod name, namespace, node name, resource limits — **without calling the K8s API**. Useful for:
+
+- Logging (include pod name in log lines)
+- Metrics tags
+- Sharding/partitioning by pod index
+
+## fieldRef — Pod Metadata
+
+\`\`\`yaml
+env:
+- name: POD_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.name
+- name: POD_NAMESPACE
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.namespace
+- name: NODE_NAME
+  valueFrom:
+    fieldRef:
+      fieldPath: spec.nodeName
+- name: POD_IP
+  valueFrom:
+    fieldRef:
+      fieldPath: status.podIP
+\`\`\`
+
+## resourceFieldRef — Resource Limits
+
+\`\`\`yaml
+env:
+- name: CPU_LIMIT
+  valueFrom:
+    resourceFieldRef:
+      resource: limits.cpu
+- name: MEM_REQUEST
+  valueFrom:
+    resourceFieldRef:
+      resource: requests.memory
+\`\`\`
+
+## Multiple Env Sources Together
+
+A container can combine all env sources:
+
+\`\`\`yaml
+envFrom:
+- configMapRef:
+    name: app-config          # all keys from ConfigMap
+- secretRef:
+    name: db-creds            # all keys from Secret
+env:
+- name: POD_NAME              # Downward API
+  valueFrom:
+    fieldRef:
+      fieldPath: metadata.name
+- name: OVERRIDE              # direct value (highest precedence)
+  value: "manual-value"
+\`\`\`
+
+Precedence: direct \`env\` values override \`envFrom\` values with the same key.
+`,
+            codingTask: {
+              instructions: `Create a Pod that injects POD_NAME, POD_NAMESPACE, and NODE_NAME using the Downward API fieldRef. Verify all three values are set correctly inside the container.`,
+              boilerplate: `# downward-api-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: downward-api-demo
+  namespace: default
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'env | grep POD_ && env | grep NODE_ && sleep 3600']
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: TODO  # metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: TODO  # metadata.namespace
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: TODO  # spec.nodeName`,
+              rubric: [
+                'POD_NAME using fieldRef metadata.name',
+                'POD_NAMESPACE using fieldRef metadata.namespace',
+                'NODE_NAME using fieldRef spec.nodeName',
+                'kubectl apply command',
+                'kubectl logs or kubectl exec verification',
+              ],
+              hints: [
+                'Available fieldRef paths: metadata.name, metadata.namespace, metadata.uid, spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP',
+                'The busybox command prints env vars on startup — check with kubectl logs',
+                'Wait for pod: kubectl wait --for=condition=Ready pod/downward-api-demo',
+              ],
+              solutionCode: `# downward-api-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: downward-api-demo
+  namespace: default
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'echo "POD_NAME=$POD_NAME NAMESPACE=$POD_NAMESPACE NODE=$NODE_NAME" && sleep 3600']
+    env:
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    - name: POD_NAMESPACE
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.namespace
+    - name: NODE_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: spec.nodeName
+    - name: POD_IP
+      valueFrom:
+        fieldRef:
+          fieldPath: status.podIP
+
+# Apply
+kubectl apply -f downward-api-pod.yaml
+kubectl wait --for=condition=Ready pod/downward-api-demo --timeout=60s
+
+# View the startup log (env vars printed on start)
+kubectl logs downward-api-demo
+
+# Inspect individual values
+kubectl exec downward-api-demo -- printenv POD_NAME
+kubectl exec downward-api-demo -- printenv POD_NAMESPACE
+kubectl exec downward-api-demo -- printenv NODE_NAME
+
+# Clean up
+kubectl delete pod downward-api-demo`
+            }
+          },
+          {
+            id: '106.4',
+            title: 'Managing Config Across Environments',
+            xp: 100,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Managing Config Across Environments
+
+## The Multi-Environment Challenge
+
+The same application runs in dev, staging, and production — but with different:
+- Database hosts
+- Log levels
+- Replica counts
+- Feature flags
+
+## Kustomize Overlays
+
+Kustomize (built into kubectl) uses a **base + overlay** pattern:
+
+\`\`\`
+base/
+  deployment.yaml      # shared template
+  configmap.yaml       # shared defaults
+  kustomization.yaml
+
+overlays/
+  dev/
+    kustomization.yaml # patches for dev
+    configmap-patch.yaml
+  prod/
+    kustomization.yaml # patches for prod
+    configmap-patch.yaml
+\`\`\`
+
+\`\`\`bash
+kubectl apply -k overlays/prod    # apply prod overlay
+kubectl diff -k overlays/dev      # dry-run diff
+\`\`\`
+
+## ConfigMap Immutability
+
+Mark a ConfigMap immutable to prevent accidental changes:
+
+\`\`\`yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config-v2
+immutable: true
+data:
+  APP_ENV: production
+\`\`\`
+
+Immutable ConfigMaps cannot be modified — you must create a new version and update the Deployment to reference it. This pairs well with versioned ConfigMap names (\`app-config-v1\`, \`app-config-v2\`).
+
+## Config Promotion Strategy
+
+A simple GitOps-friendly approach:
+
+1. Merge code → dev branch → deploys to dev namespace with dev ConfigMap
+2. QA passes → promote to staging branch → staging namespace
+3. Release → production namespace with production ConfigMap
+
+Each environment is a **separate namespace** with its own ConfigMaps and Secrets.
+
+## Namespace-per-Environment
+
+\`\`\`bash
+kubectl create namespace dev
+kubectl apply -f manifests/ -n dev    # deploy to dev
+kubectl create namespace prod
+kubectl apply -f manifests/ -n prod   # deploy to prod
+\`\`\`
+
+Services, ConfigMaps, and Secrets are namespace-scoped — complete isolation.
+`,
+            quiz: [
+              {
+                question: 'What is the advantage of immutable ConfigMaps?',
+                options: ['They are automatically encrypted', 'They prevent accidental modification and force versioned names', 'They sync faster to pods', 'They can be shared across namespaces'],
+                correctIndex: 1,
+                explanation: 'immutable: true prevents changes to the ConfigMap. This forces a versioning pattern (app-config-v2) and protects prod config from accidental edits.'
+              },
+              {
+                question: 'In a Kustomize overlay, what does the base contain?',
+                options: ['Production-specific values', 'Shared template resources used by all environments', 'Secrets and credentials', 'Just the kustomization.yaml'],
+                correctIndex: 1,
+                explanation: 'The base contains shared resources — Deployment templates, default ConfigMaps. Overlays (dev/prod) patch or extend the base with environment-specific values.'
+              },
+              {
+                question: 'When does a ConfigMap environment variable update take effect in a running pod?',
+                options: ['Immediately when ConfigMap is updated', 'Only when the pod is restarted', 'After 30 seconds', 'It never updates'],
+                correctIndex: 1,
+                explanation: 'envFrom/env values are set at pod startup. Changing the ConfigMap does not update running pods. Use kubectl rollout restart deployment to pick up changes.'
+              },
+              {
+                question: 'How do you isolate dev and prod config completely in Kubernetes?',
+                options: ['Use different ConfigMap names', 'Use separate namespaces for each environment', 'Use different clusters only', 'Apply different labels'],
+                correctIndex: 1,
+                explanation: 'Separate namespaces provide complete isolation — each namespace has its own ConfigMaps, Secrets, and Services. Same resource names can exist in different namespaces.'
+              },
+            ]
+          },
+          {
+            id: '106.MP',
+            title: 'Mini-Project: Config-Driven App',
+            xp: 300,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Config-Driven App
+
+Build a fully config-externalised Deployment that combines ConfigMap, Secret, and Downward API — the production-standard pattern.
+
+## What You'll Build
+
+- **ConfigMap**: APP_ENV and LOG_LEVEL
+- **Secret**: DB_PASSWORD
+- **Deployment**: injects all three sources + Downward API (POD_NAME)
+- **Init container**: verifies required config is present (masks secret values) before the main container starts
+
+## Why an Init Container for Config Verification?
+
+In production, a misconfigured app may start, crash after receiving traffic, and create an incident. An init container that validates config before the main container starts catches these issues at deployment time — the pod stays \`Pending\` with a clear error message rather than crashing in production.
+
+## Expected Output
+
+When you \`kubectl logs\` the init container:
+\`\`\`
+Config verification starting...
+APP_ENV=production ✓
+LOG_LEVEL=info ✓
+DB_PASSWORD=[MASKED] ✓
+POD_NAME=app-deploy-xxxxx-yyyyy ✓
+All config verified. Starting main container.
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write a complete manifest set: (1) ConfigMap with APP_ENV and LOG_LEVEL, (2) Secret with DB_PASSWORD, (3) Deployment with an init container that verifies all env vars are set (masking the secret), and main container using all three sources plus Downward API.`,
+              boilerplate: `# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: info
+---
+# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+type: Opaque
+stringData:
+  DB_PASSWORD: TODO
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-demo
+  template:
+    metadata:
+      labels:
+        app: config-demo
+    spec:
+      initContainers:
+      - name: config-check
+        image: busybox
+        command: ['sh', '-c', 'TODO: verify APP_ENV, LOG_LEVEL, DB_PASSWORD, POD_NAME are set']
+        env:
+        - name: TODO  # inject all four vars
+      containers:
+      - name: app
+        image: nginx:1.25
+        envFrom:
+        - configMapRef:
+            name: TODO
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: TODO
+              key: TODO
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: TODO`,
+              rubric: [
+                'ConfigMap with APP_ENV and LOG_LEVEL',
+                'Secret with DB_PASSWORD',
+                'Init container with config verification command',
+                'Main container uses envFrom for ConfigMap',
+                'Main container uses secretKeyRef for DB_PASSWORD',
+                'POD_NAME injected via Downward API',
+                'Init container masks secret in output (does not print plaintext)',
+              ],
+              hints: [
+                'Init container command: sh -c "[ -z $DB_PASSWORD ] && echo MISSING DB_PASSWORD && exit 1 || echo DB_PASSWORD=[MASKED]"',
+                'Init container must have the same env vars to verify them',
+                'kubectl logs <pod> -c config-check shows init container logs',
+                'kubectl get pod shows Init:0/1 while init is running, then Running when done',
+              ],
+              solutionCode: `# configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  APP_ENV: production
+  LOG_LEVEL: info
+---
+# secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+type: Opaque
+stringData:
+  DB_PASSWORD: securepassword123
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-demo
+  template:
+    metadata:
+      labels:
+        app: config-demo
+    spec:
+      initContainers:
+      - name: config-check
+        image: busybox
+        command:
+        - sh
+        - -c
+        - |
+          echo "Config verification starting..."
+          fail=0
+          [ -z "$APP_ENV" ] && echo "MISSING: APP_ENV" && fail=1 || echo "APP_ENV=$APP_ENV OK"
+          [ -z "$LOG_LEVEL" ] && echo "MISSING: LOG_LEVEL" && fail=1 || echo "LOG_LEVEL=$LOG_LEVEL OK"
+          [ -z "$DB_PASSWORD" ] && echo "MISSING: DB_PASSWORD" && fail=1 || echo "DB_PASSWORD=[MASKED] OK"
+          [ -z "$POD_NAME" ] && echo "MISSING: POD_NAME" && fail=1 || echo "POD_NAME=$POD_NAME OK"
+          [ $fail -eq 1 ] && echo "Config verification FAILED" && exit 1
+          echo "All config verified. Starting main container."
+        envFrom:
+        - configMapRef:
+            name: app-config
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_PASSWORD
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+      containers:
+      - name: app
+        image: nginx:1.25
+        envFrom:
+        - configMapRef:
+            name: app-config
+        env:
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_PASSWORD
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+
+# Apply in order
+kubectl apply -f configmap.yaml
+kubectl apply -f secret.yaml
+kubectl apply -f deployment.yaml
+
+# Watch pod lifecycle (Init -> Running)
+kubectl get pods -w -l app=config-demo
+
+# View init container logs
+POD=$(kubectl get pods -l app=config-demo -o name | head -1)
+kubectl logs $POD -c config-check
+
+# Verify main container env vars
+kubectl exec $POD -- printenv APP_ENV
+kubectl exec $POD -- printenv LOG_LEVEL
+
+# Clean up
+kubectl delete deployment app-deploy
+kubectl delete configmap app-config
+kubectl delete secret app-secrets`
+            }
+          },
+        ]
+      },
+      {
+        id: 107,
+        title: 'Storage — Persistent Data',
+        description: 'Make your data survive pod restarts with Kubernetes storage primitives.',
+        part: 'Part V: Storage',
+        icon: '💾',
+        topics: [
+          {
+            id: '107.1',
+            title: 'Why Storage in K8s is Hard',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Why Storage in Kubernetes is Hard
+
+## The Ephemeral Pod Problem
+
+Pods are **ephemeral** by design. When a pod is deleted, restarted, or rescheduled to a different node, all data written inside its containers is lost. This is the stateless model — great for web apps, terrible for databases.
+
+## Volume Types
+
+### emptyDir
+Shared scratch space between containers **in the same pod**. Created when pod starts, **destroyed when pod ends**.
+
+\`\`\`yaml
+volumes:
+- name: shared-data
+  emptyDir: {}
+\`\`\`
+
+Use cases: sharing files between sidecar and main container, caching build artifacts within a job.
+
+### hostPath
+Mount a directory from the **host node's filesystem**. Dangerous — ties pod to a specific node, breaks pod rescheduling.
+
+\`\`\`yaml
+volumes:
+- name: host-logs
+  hostPath:
+    path: /var/log/myapp
+    type: DirectoryOrCreate
+\`\`\`
+
+Only for DaemonSets (which intentionally run on specific nodes) or development.
+
+### PersistentVolume (PV)
+Storage resource with lifecycle **independent of pods**. Admins create PVs; users claim them with PVCs.
+
+## Access Modes
+
+| Mode | Abbreviation | Meaning |
+|------|-------------|---------|
+| ReadWriteOnce | RWO | One node, read+write |
+| ReadWriteMany | RWX | Many nodes, read+write (NFS, EFS) |
+| ReadOnlyMany | ROX | Many nodes, read only |
+
+Most cloud block storage (EBS, GCE PD) only supports **ReadWriteOnce**.
+
+## Reclaim Policies
+
+What happens to the PV when the PVC is deleted:
+- **Delete** (default for dynamic): PV and data are deleted
+- **Retain**: PV and data remain, must be manually cleaned up
+- **Recycle** (deprecated): data is wiped, PV reused
+`,
+            quiz: [
+              {
+                question: 'What happens to data in an emptyDir volume when the pod is deleted?',
+                options: ['It is persisted to the node', 'It is permanently deleted with the pod', 'It is copied to a new pod', 'It is stored in etcd'],
+                correctIndex: 1,
+                explanation: 'emptyDir exists only for the lifetime of the pod. When the pod is deleted (not just restarted), the data is gone. Use PersistentVolumes for durability.'
+              },
+              {
+                question: 'Which volume access mode allows multiple nodes to write simultaneously?',
+                options: ['ReadWriteOnce', 'ReadWriteMany', 'ReadOnlyMany', 'ReadWriteAll'],
+                correctIndex: 1,
+                explanation: 'ReadWriteMany (RWX) allows multiple nodes to mount the volume for reading and writing. EBS only supports RWO; NFS/EFS supports RWX.'
+              },
+              {
+                question: 'Why is hostPath dangerous for regular pods?',
+                options: ['It is too slow', 'It ties the pod to a specific node and breaks rescheduling', 'It does not support read/write', 'It requires root access'],
+                correctIndex: 1,
+                explanation: 'hostPath mounts a node-specific directory. If the pod is rescheduled to a different node, the data is on the old node. Use PersistentVolumes instead.'
+              },
+              {
+                question: 'What does the Retain reclaim policy do when a PVC is deleted?',
+                options: ['Deletes the PV and its data', 'Keeps the PV and data, requires manual cleanup', 'Automatically reuses the PV for the next PVC', 'Snapshots the data before deleting'],
+                correctIndex: 1,
+                explanation: 'Retain keeps the PV and its data intact. An admin must manually inspect, clean, and release the PV before it can be reused. Good for valuable data.'
+              },
+            ]
+          },
+          {
+            id: '107.2',
+            title: 'PersistentVolumes & PVCs',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# PersistentVolumes & PersistentVolumeClaims
+
+## The Two-Step Model
+
+1. **PersistentVolume (PV)** — cluster-level resource. Admin creates it. Represents actual storage.
+2. **PersistentVolumeClaim (PVC)** — namespace-level resource. User creates it. Requests specific storage.
+
+K8s binds a PVC to a matching PV automatically.
+
+## PV Example (minikube uses hostPath)
+
+\`\`\`yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  reclaimPolicy: Retain
+  hostPath:
+    path: /data/my-pv   # on the minikube node
+\`\`\`
+
+## PVC Example
+
+\`\`\`yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: my-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi    # request 500Mi from the 1Gi PV
+\`\`\`
+
+## Using PVC in a Pod
+
+\`\`\`yaml
+volumes:
+- name: data-volume
+  persistentVolumeClaim:
+    claimName: my-pvc
+containers:
+- name: app
+  volumeMounts:
+  - name: data-volume
+    mountPath: /data
+\`\`\`
+
+## Binding Process
+
+PVC → K8s finds PV where capacity ≥ request AND accessModes match → binds them. Status:
+\`\`\`bash
+kubectl get pv    # STATUS: Bound
+kubectl get pvc   # STATUS: Bound
+\`\`\`
+
+## Persistence Demo
+
+Write a file, delete the pod, create a new pod, verify the file is still there.
+`,
+            codingTask: {
+              instructions: `Create a hostPath PersistentVolume (1Gi), a PVC (500Mi), and a Pod that writes a file to the mounted volume. Then delete the pod, create a new pod using the same PVC, and verify the file still exists — demonstrating data persistence.`,
+              boilerplate: `# pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: demo-pv
+spec:
+  capacity:
+    storage: TODO
+  accessModes:
+  - ReadWriteOnce
+  reclaimPolicy: Retain
+  hostPath:
+    path: /data/demo-pv
+---
+# pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: TODO
+---
+# pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer-pod
+spec:
+  containers:
+  - name: writer
+    image: busybox
+    command: ['sh', '-c', 'echo "Hello PV!" > /data/hello.txt && sleep 3600']
+    volumeMounts:
+    - name: storage
+      mountPath: /data
+  volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: TODO`,
+              rubric: [
+                'PV with 1Gi capacity and hostPath',
+                'PVC requesting 500Mi',
+                'Pod mounts PVC at /data',
+                'File written to /data/hello.txt',
+                'Pod deleted and recreated to verify persistence',
+                'kubectl exec shows file still exists',
+              ],
+              hints: [
+                'Check binding: kubectl get pv,pvc',
+                'After pod creation: kubectl exec writer-pod -- cat /data/hello.txt',
+                'Delete pod: kubectl delete pod writer-pod',
+                'Create reader pod with same PVC and verify file',
+              ],
+              solutionCode: `# pv.yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: demo-pv
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  reclaimPolicy: Retain
+  hostPath:
+    path: /data/demo-pv
+---
+# pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demo-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+---
+# writer-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: writer-pod
+spec:
+  containers:
+  - name: writer
+    image: busybox
+    command: ['sh', '-c', 'echo "Hello PV! Written at $(date)" > /data/hello.txt && cat /data/hello.txt && sleep 3600']
+    volumeMounts:
+    - name: storage
+      mountPath: /data
+  volumes:
+  - name: storage
+    persistentVolumeClaim:
+      claimName: demo-pvc
+
+# Apply and verify
+kubectl apply -f pv.yaml
+kubectl apply -f pvc.yaml
+kubectl get pv,pvc   # both should show Bound
+
+kubectl apply -f writer-pod.yaml
+kubectl wait --for=condition=Ready pod/writer-pod --timeout=60s
+
+# Read the file
+kubectl exec writer-pod -- cat /data/hello.txt
+
+# Delete pod — data survives!
+kubectl delete pod writer-pod
+
+# Create a new pod using same PVC
+kubectl run reader-pod --image=busybox --restart=Never --overrides='
+{
+  "spec": {
+    "containers": [{"name":"reader","image":"busybox","command":["sh","-c","cat /data/hello.txt && sleep 60"],"volumeMounts":[{"name":"storage","mountPath":"/data"}]}],
+    "volumes": [{"name":"storage","persistentVolumeClaim":{"claimName":"demo-pvc"}}]
+  }
+}'
+kubectl wait --for=condition=Ready pod/reader-pod --timeout=60s
+kubectl exec reader-pod -- cat /data/hello.txt  # file still there!
+
+# Clean up
+kubectl delete pod reader-pod
+kubectl delete pvc demo-pvc
+kubectl delete pv demo-pv`
+            }
+          },
+          {
+            id: '107.3',
+            title: 'StorageClasses & Dynamic Provisioning',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# StorageClasses & Dynamic Provisioning
+
+## The Static Provisioning Problem
+
+With PVs, an admin must pre-create storage before users can claim it. For large clusters, this is operationally difficult — you'd need to pre-create hundreds of PVs of various sizes.
+
+## Dynamic Provisioning
+
+A **StorageClass** is a template that describes how to create a PV on demand. When a PVC references a StorageClass, K8s **automatically creates the PV**.
+
+\`\`\`yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: standard
+provisioner: k8s.io/minikube-hostpath    # creates hostPath PVs
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+\`\`\`
+
+## PVC with StorageClass
+
+\`\`\`yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+spec:
+  storageClassName: standard      # reference the StorageClass
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+\`\`\`
+
+K8s calls the provisioner, which creates a PV automatically. No admin action needed.
+
+## minikube Default StorageClass
+
+\`\`\`bash
+kubectl get storageclass
+# NAME                 PROVISIONER                RECLAIMPOLICY   VOLUMEBINDINGMODE
+# standard (default)  k8s.io/minikube-hostpath   Delete          Immediate
+\`\`\`
+
+The \`(default)\` StorageClass is used when no \`storageClassName\` is specified in a PVC.
+
+## Cloud StorageClasses
+
+| Cloud | Class | Backing |
+|-------|-------|---------|
+| AWS EKS | gp2, gp3 | EBS volume |
+| GKE | standard | GCE Persistent Disk |
+| AKS | default | Azure Disk |
+
+## WaitForFirstConsumer
+
+Setting \`volumeBindingMode: WaitForFirstConsumer\` delays PV creation until a pod is scheduled — ensures the PV is created in the same zone as the pod.
+`,
+            codingTask: {
+              instructions: `Create a PVC using the minikube 'standard' StorageClass (without pre-creating a PV). Apply it, then create a Pod using that PVC. Verify that K8s automatically created a PV through dynamic provisioning.`,
+              boilerplate: `# dynamic-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+spec:
+  storageClassName: standard   # minikube default
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: TODO   # 1Gi
+
+---
+# pod.yaml - uses the dynamic PVC
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dynamic-pod
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'echo dynamic > /data/test.txt && sleep 3600']
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: TODO
+
+# Commands:
+# TODO: apply PVC and pod
+# TODO: verify PV was auto-created
+# TODO: check PVC is bound`,
+              rubric: [
+                'PVC uses storageClassName: standard',
+                'storage request set (500Mi or 1Gi)',
+                'Pod mounts the dynamic PVC',
+                'kubectl get pv shows auto-created PV',
+                'kubectl get pvc shows Bound status',
+              ],
+              hints: [
+                'Do NOT create a PV manually — that defeats the purpose',
+                'After apply: kubectl get pv (a pvc-xxxx PV appears automatically)',
+                'kubectl get pvc dynamic-pvc shows STATUS: Bound',
+                'On minikube, provisioner is k8s.io/minikube-hostpath',
+              ],
+              solutionCode: `# dynamic-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dynamic-pvc
+spec:
+  storageClassName: standard
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# dynamic-pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dynamic-pod
+spec:
+  containers:
+  - name: app
+    image: busybox
+    command: ['sh', '-c', 'echo "Dynamic PV works!" > /data/test.txt && sleep 3600']
+    volumeMounts:
+    - name: data
+      mountPath: /data
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: dynamic-pvc
+
+# Apply PVC first
+kubectl apply -f dynamic-pvc.yaml
+
+# Watch PV get created automatically
+kubectl get pvc dynamic-pvc      # STATUS: Bound (may take a few seconds)
+kubectl get pv                   # shows auto-created pvc-xxx PV
+
+# Apply pod
+kubectl apply -f dynamic-pod.yaml
+kubectl wait --for=condition=Ready pod/dynamic-pod --timeout=60s
+
+# Verify
+kubectl exec dynamic-pod -- cat /data/test.txt   # "Dynamic PV works!"
+
+# Inspect the auto-created PV
+kubectl describe pv $(kubectl get pv -o name | head -1)
+
+# Clean up (PV is auto-deleted because reclaimPolicy: Delete)
+kubectl delete pod dynamic-pod
+kubectl delete pvc dynamic-pvc
+# kubectl get pv   # PV is also deleted!`
+            }
+          },
+          {
+            id: '107.4',
+            title: 'StatefulSets — Ordered, Stable Storage',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# StatefulSets — Ordered, Stable Storage
+
+## Why Not Deployments for Databases?
+
+Deployments give pods random names (pod-74d9f-xxxxx) and no stable identity. For databases and message queues you need:
+
+1. **Stable pod names**: \`redis-0\`, \`redis-1\`, \`redis-2\`
+2. **Stable DNS**: \`redis-0.redis-svc.default.svc.cluster.local\`
+3. **Individual PVCs**: each pod gets its own persistent storage that follows it
+
+StatefulSets provide all three.
+
+## StatefulSet vs Deployment
+
+| Feature | Deployment | StatefulSet |
+|---------|-----------|-------------|
+| Pod names | Random | Ordered: pod-0, pod-1 |
+| Startup order | Parallel | Sequential (0→1→2) |
+| Shutdown order | Parallel | Reverse (2→1→0) |
+| Per-pod PVC | Shared PVC | Individual via volumeClaimTemplates |
+| DNS | Service IP | Per-pod stable DNS |
+
+## Headless Service
+
+StatefulSets require a **headless service** (clusterIP: None). It creates DNS entries for each pod but doesn't load-balance:
+
+\`\`\`yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+spec:
+  clusterIP: None          # headless!
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+\`\`\`
+
+## volumeClaimTemplates
+
+Instead of a single PVC, each pod gets its own:
+
+\`\`\`yaml
+volumeClaimTemplates:
+- metadata:
+    name: data
+  spec:
+    accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        storage: 1Gi
+\`\`\`
+
+Pod \`redis-0\` gets PVC \`data-redis-0\`, pod \`redis-1\` gets \`data-redis-1\`. These PVCs are **not deleted** when the StatefulSet is deleted — data is preserved.
+
+## Canary Updates
+
+\`\`\`yaml
+updateStrategy:
+  rollingUpdate:
+    partition: 2    # only update pods with index >= 2
+\`\`\`
+
+Useful for testing a new version on just the last pod first.
+`,
+            codingTask: {
+              instructions: `Create a StatefulSet with 2 replicas using nginx (as a stand-in). Include a headless Service and volumeClaimTemplates for per-pod storage. Verify stable pod names, individual PVCs, and DNS resolution.`,
+              boilerplate: `# headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+spec:
+  clusterIP: TODO   # headless
+  selector:
+    app: web-sts
+  ports:
+  - port: 80
+---
+# statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: web-svc     # must match headless service name
+  replicas: TODO
+  selector:
+    matchLabels:
+      app: web-sts
+  template:
+    metadata:
+      labels:
+        app: web-sts
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: TODO`,
+              rubric: [
+                'Headless service with clusterIP: None',
+                'StatefulSet serviceName matches headless service',
+                'replicas: 2',
+                'volumeClaimTemplates with storage request',
+                'volumeMount referencing template name',
+                'kubectl get pods shows web-0 and web-1',
+                'kubectl get pvc shows data-web-0 and data-web-1',
+              ],
+              hints: [
+                'clusterIP: None makes a service headless',
+                'Pod names will be: web-0 and web-1 (stable!)',
+                'PVCs created: data-web-0 and data-web-1',
+                'DNS test: kubectl exec web-0 -- nslookup web-1.web-svc',
+              ],
+              solutionCode: `# headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-svc
+spec:
+  clusterIP: None
+  selector:
+    app: web-sts
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: web
+spec:
+  serviceName: web-svc
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-sts
+  template:
+    metadata:
+      labels:
+        app: web-sts
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: data
+          mountPath: /usr/share/nginx/html
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 100Mi
+
+# Apply
+kubectl apply -f headless-svc.yaml
+kubectl apply -f statefulset.yaml
+
+# Watch sequential startup (web-0 first, then web-1)
+kubectl get pods -w -l app=web-sts
+
+# Verify stable names
+kubectl get pods -l app=web-sts
+# web-0   Running
+# web-1   Running
+
+# Verify individual PVCs
+kubectl get pvc
+# data-web-0   Bound
+# data-web-1   Bound
+
+# Write unique content to each pod
+kubectl exec web-0 -- sh -c 'echo "I am web-0" > /usr/share/nginx/html/index.html'
+kubectl exec web-1 -- sh -c 'echo "I am web-1" > /usr/share/nginx/html/index.html'
+
+# Test DNS resolution (web-0 can reach web-1 by stable DNS)
+kubectl exec web-0 -- nslookup web-1.web-svc
+kubectl exec web-0 -- wget -qO- http://web-1.web-svc:80
+
+# Clean up (PVCs remain after StatefulSet deletion!)
+kubectl delete statefulset web
+kubectl delete service web-svc
+kubectl get pvc   # still exists!
+kubectl delete pvc data-web-0 data-web-1`
+            }
+          },
+          {
+            id: '107.5',
+            title: 'Postgres on Kubernetes',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Postgres on Kubernetes
+
+## Production Pattern
+
+Running Postgres on K8s requires:
+
+1. **StatefulSet** (1 replica for simple setups, 3+ for HA)
+2. **Headless Service** for stable DNS
+3. **Secret** for the database password
+4. **PVC/volumeClaimTemplates** for persistent data at \`/var/lib/postgresql/data\`
+
+## Critical: Data Directory
+
+PostgreSQL stores data at \`/var/lib/postgresql/data\`. This MUST be backed by a PersistentVolume — if this is an emptyDir, all your data is gone when the pod restarts.
+
+## Connecting to Postgres
+
+\`\`\`bash
+# Interactive psql session
+kubectl exec -it postgres-0 -- psql -U postgres
+
+# Run a command
+kubectl exec -it postgres-0 -- psql -U postgres -c "SELECT version();"
+
+# From another pod in the cluster
+kubectl run psql-client --image=postgres:15 --rm -it --restart=Never -- psql -h postgres-svc -U postgres
+\`\`\`
+
+## Environment Variables
+
+The official \`postgres\` Docker image uses:
+- \`POSTGRES_PASSWORD\` — required, sets superuser password
+- \`POSTGRES_USER\` — default: \`postgres\`
+- \`POSTGRES_DB\` — default: same as POSTGRES_USER
+
+## Common Issue: Permission Denied
+
+If Postgres can't write to the mounted volume (permission denied), add:
+\`\`\`yaml
+securityContext:
+  fsGroup: 999    # postgres user GID in the image
+\`\`\`
+
+This sets the mounted volume's group ownership to the postgres user.
+`,
+            codingTask: {
+              instructions: `Deploy a Postgres StatefulSet with: a headless Service, a Secret for POSTGRES_PASSWORD, and a volumeClaimTemplate for data persistence. Then connect with psql and create a test table to verify it works.`,
+              boilerplate: `# postgres-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: TODO
+
+---
+# postgres-svc.yaml (headless)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+---
+# postgres-sts.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: TODO
+              key: TODO
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: TODO   # postgres data directory
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 1Gi`,
+              rubric: [
+                'Secret with POSTGRES_PASSWORD',
+                'Headless service on port 5432',
+                'StatefulSet with postgres:15 image',
+                'POSTGRES_PASSWORD injected from Secret',
+                'volumeMount at /var/lib/postgresql/data',
+                'volumeClaimTemplate with 1Gi',
+                'kubectl exec psql connection test',
+              ],
+              hints: [
+                'Postgres data dir: /var/lib/postgresql/data',
+                'Wait for postgres to be ready: kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s',
+                'Connect: kubectl exec -it postgres-0 -- psql -U postgres',
+                'If permission error, add securityContext.fsGroup: 999',
+              ],
+              solutionCode: `# postgres-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: mysecretpassword
+---
+# postgres-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+# postgres-sts.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: appdb
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 1Gi
+
+# Apply
+kubectl apply -f postgres-secret.yaml
+kubectl apply -f postgres-svc.yaml
+kubectl apply -f postgres-sts.yaml
+
+# Wait for postgres to be ready (takes 20-30s)
+kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s
+
+# Connect and test
+kubectl exec -it postgres-0 -- psql -U postgres -d appdb -c "
+  CREATE TABLE todos (id serial PRIMARY KEY, task TEXT, done BOOLEAN DEFAULT false);
+  INSERT INTO todos (task) VALUES ('Learn Kubernetes');
+  SELECT * FROM todos;
+"
+
+# Clean up
+kubectl delete statefulset postgres
+kubectl delete service postgres-svc
+kubectl delete secret postgres-secret
+kubectl delete pvc data-postgres-0`
+            }
+          },
+          {
+            id: '107.MP',
+            title: 'Mini-Project: Stateful Todo API',
+            xp: 300,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Stateful Todo API
+
+Deploy a full stateful application: a Postgres database backend and a simple Python API frontend, demonstrating that data persists across pod restarts.
+
+## Architecture
+
+\`\`\`
+NodePort (30095)
+      │
+  API Deployment (Python/Flask-like)
+      │  ClusterIP: postgres-svc
+      ▼
+Postgres StatefulSet
+      │
+  PVC: data-postgres-0
+      │
+ /var/lib/postgresql/data (node filesystem)
+\`\`\`
+
+## What You'll Prove
+
+1. Insert a todo via the API
+2. Delete the API pods (they restart)
+3. Insert another todo via the new API pods
+4. Delete the Postgres pod (it restarts, reloads from PVC)
+5. Both todos are still there — data survived everything
+
+## Key Design Decisions
+
+- Postgres uses StatefulSet (stable name, stable PVC)
+- API uses Deployment (stateless — any replica can handle any request)
+- API connects to Postgres via K8s DNS: \`postgres-svc\`
+- Secret holds DB credentials — not hard-coded in the API image
+`,
+            codingTask: {
+              instructions: `Create: (1) Postgres StatefulSet + Secret + headless service, (2) a simple Python API Deployment that connects to Postgres and exposes /todos endpoint + NodePort service, (3) bash script that applies all, inserts todos, deletes pods, and verifies persistence.`,
+              boilerplate: `# db-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: todopassword
+  DATABASE_URL: "postgresql://postgres:todopassword@postgres-svc:5432/tododb"
+---
+# postgres StatefulSet + headless service
+# (same pattern as 107.5 — adapt it here)
+# TODO: StatefulSet name=postgres, DB=tododb, 1Gi PVC
+---
+# api-deploy.yaml
+# Use image: python:3.11-slim with inline command
+# TODO: Deployment with 2 replicas, injects DATABASE_URL from secret
+# TODO: NodePort service on port 30095
+---
+# verify.sh
+#!/bin/bash
+# TODO: apply all resources
+# TODO: wait for both deployments
+# TODO: insert a todo via curl to NodePort
+# TODO: delete API pods and verify data survives
+# TODO: delete postgres pod and verify data still survives`,
+              rubric: [
+                'Postgres StatefulSet with persistent storage',
+                'Secret with DATABASE_URL',
+                'API Deployment with 2 replicas',
+                'DATABASE_URL injected from Secret',
+                'NodePort Service on 30095',
+                'curl inserts todo successfully',
+                'Data survives API pod deletion',
+                'Data survives Postgres pod restart',
+              ],
+              hints: [
+                'Python inline command: python3 -c "import http.server..." is complex — use a simple bash loop or busybox echo instead for the demo',
+                'Simpler: use postgres CLI to directly insert/query rather than a real API',
+                'kubectl rollout restart deployment/api triggers new pods',
+                'kubectl delete pod postgres-0 causes StatefulSet to recreate it from PVC',
+              ],
+              solutionCode: `# db-secret.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: todopassword
+---
+# postgres-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-svc
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+---
+# postgres-sts.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+spec:
+  serviceName: postgres-svc
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: postgres:15
+        env:
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_PASSWORD
+        - name: POSTGRES_DB
+          value: tododb
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 1Gi
+
+# Apply and verify persistence
+kubectl apply -f db-secret.yaml
+kubectl apply -f postgres-svc.yaml
+kubectl apply -f postgres-sts.yaml
+
+echo "Waiting for Postgres..."
+kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s
+
+# Create table and insert first todo
+kubectl exec -it postgres-0 -- psql -U postgres -d tododb -c "
+  CREATE TABLE IF NOT EXISTS todos (id serial PRIMARY KEY, task TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
+  INSERT INTO todos (task) VALUES ('Learn Kubernetes Storage');
+  SELECT * FROM todos;
+"
+
+echo "=== Deleting postgres pod (StatefulSet will recreate it) ==="
+kubectl delete pod postgres-0
+kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s
+
+# Data still there!
+kubectl exec -it postgres-0 -- psql -U postgres -d tododb -c "SELECT * FROM todos;"
+
+# Insert more data
+kubectl exec -it postgres-0 -- psql -U postgres -d tododb -c "
+  INSERT INTO todos (task) VALUES ('Data survived pod restart!');
+  SELECT * FROM todos;
+"
+
+echo "=== Cleanup ==="
+kubectl delete statefulset postgres
+kubectl delete service postgres-svc
+kubectl delete secret db-secret
+kubectl delete pvc data-postgres-0`
+            }
+          },
+        ]
+      },
+      {
+        id: 108,
+        title: 'Observability & Health',
+        description: 'Make your applications self-healing and observable with probes and metrics.',
+        part: 'Part VI: Observability',
+        icon: '📊',
+        topics: [
+          {
+            id: '108.1',
+            title: 'Liveness, Readiness & Startup Probes',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Liveness, Readiness & Startup Probes
+
+## Why Probes?
+
+Without probes, Kubernetes only knows a container has started — not whether your application is actually healthy and ready to serve traffic. Probes close this gap.
+
+## Three Probe Types
+
+### Liveness Probe
+Is the container alive? If it fails \`failureThreshold\` times, K8s **restarts** the container.
+
+\`\`\`yaml
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 15    # wait before first check
+  periodSeconds: 10          # check every 10s
+  failureThreshold: 3        # restart after 3 consecutive failures
+\`\`\`
+
+### Readiness Probe
+Is the container ready to receive traffic? If it fails, the pod is **removed from Service endpoints** (no traffic, no restart).
+
+\`\`\`yaml
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  successThreshold: 1        # one success to mark ready
+\`\`\`
+
+### Startup Probe
+For slow-starting apps, the startup probe disables liveness until the app has started successfully. Prevents CrashLoopBackOff during initialization.
+
+\`\`\`yaml
+startupProbe:
+  exec:
+    command: [cat, /tmp/app-ready]
+  failureThreshold: 30       # 30 * 10s = 5 minutes max startup time
+  periodSeconds: 10
+\`\`\`
+
+## Probe Types
+
+| Type | Method | Use When |
+|------|--------|----------|
+| httpGet | HTTP GET, checks status code | Web servers |
+| tcpSocket | TCP connection attempt | TCP servers (DB, etc.) |
+| exec | Run command, check exit code | Custom checks |
+
+## Production Rule
+
+**Always set readinessProbe** — without it, pods receive traffic before your app is ready, causing errors during deployments. Liveness is optional but recommended for long-running services that can deadlock.
+`,
+            codingTask: {
+              instructions: `Create an nginx Deployment with liveness probe (GET /), readiness probe (GET /), and startup probe (exec: ls /var/run/nginx.pid). Include appropriate timing parameters and verify probes are working.`,
+              boilerplate: `# probed-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-probed
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-probed
+  template:
+    metadata:
+      labels:
+        app: nginx-probed
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: TODO
+            port: TODO
+          initialDelaySeconds: TODO
+          periodSeconds: TODO
+          failureThreshold: TODO
+        readinessProbe:
+          httpGet:
+            path: TODO
+            port: TODO
+          initialDelaySeconds: TODO
+          periodSeconds: TODO
+        startupProbe:
+          exec:
+            command: TODO
+          failureThreshold: TODO
+          periodSeconds: TODO`,
+              rubric: [
+                'livenessProbe httpGet path: / port: 80',
+                'readinessProbe httpGet path: / port: 80',
+                'startupProbe exec with ls /var/run/nginx.pid or similar',
+                'initialDelaySeconds set on liveness',
+                'periodSeconds set on all probes',
+                'kubectl describe pod shows probe configuration',
+              ],
+              hints: [
+                'nginx serves / on port 80 by default — use that for http probes',
+                'nginx.pid exists at /var/run/nginx.pid when running — good for exec probe',
+                'kubectl describe pod shows probe status under Containers section',
+                'To test failed probe: change path to /nonexistent and watch events',
+              ],
+              solutionCode: `# probed-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-probed
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-probed
+  template:
+    metadata:
+      labels:
+        app: nginx-probed
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        startupProbe:
+          exec:
+            command: [ls, /var/run/nginx.pid]
+          failureThreshold: 30
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+
+# Apply
+kubectl apply -f probed-deployment.yaml
+kubectl rollout status deployment/nginx-probed --timeout=90s
+
+# Verify probes in describe output
+kubectl describe pod -l app=nginx-probed | grep -A 15 "Liveness:"
+
+# Watch probe failures by trying a bad path
+kubectl patch deployment nginx-probed --type=json \
+  -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/bad"}]'
+
+# Watch pod restart count increase
+kubectl get pods -l app=nginx-probed -w
+
+# Restore correct path
+kubectl patch deployment nginx-probed --type=json \
+  -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/"}]'
+
+# Clean up
+kubectl delete deployment nginx-probed`
+            }
+          },
+          {
+            id: '108.2',
+            title: 'Resource Management & QoS Classes',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Resource Management & QoS Classes
+
+## QoS Classes
+
+Kubernetes assigns a **Quality of Service class** to every pod based on its resource specification. This determines eviction priority under node memory pressure.
+
+| Class | Condition | Eviction Priority |
+|-------|-----------|------------------|
+| **Guaranteed** | requests == limits for all containers | Last to be evicted |
+| **Burstable** | at least one container has requests < limits | Middle |
+| **BestEffort** | no requests or limits set | First evicted |
+
+\`\`\`bash
+kubectl get pod my-pod -o jsonpath='{.status.qosClass}'
+\`\`\`
+
+## LimitRange
+
+A **LimitRange** sets namespace-level defaults. Containers without explicit requests/limits receive the LimitRange defaults.
+
+\`\`\`yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+spec:
+  limits:
+  - type: Container
+    default:             # limit applied if none specified
+      cpu: 200m
+      memory: 128Mi
+    defaultRequest:      # request applied if none specified
+      cpu: 50m
+      memory: 64Mi
+    max:                 # cannot exceed
+      cpu: 2000m
+      memory: 1Gi
+    min:                 # must be at least
+      cpu: 10m
+      memory: 16Mi
+\`\`\`
+
+## ResourceQuota
+
+A **ResourceQuota** caps total resource consumption in a namespace:
+
+\`\`\`yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "20"
+    persistentvolumeclaims: "5"
+\`\`\`
+
+\`\`\`bash
+kubectl describe resourcequota   # shows used vs. hard limits
+kubectl describe limitrange      # shows current defaults
+\`\`\`
+
+## Production Use
+
+Multi-tenant clusters use ResourceQuotas per team/project namespace to prevent one team from consuming all cluster resources.
+`,
+            codingTask: {
+              instructions: `Create a LimitRange that sets default CPU/memory requests and limits for a namespace. Then create a ResourceQuota capping the namespace at 4 CPU / 8Gi memory / 20 pods. Verify both are active and check how they affect pod creation.`,
+              boilerplate: `# limitrange.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: default
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: TODO    # 200m
+      memory: TODO # 128Mi
+    defaultRequest:
+      cpu: TODO    # 50m
+      memory: TODO # 64Mi
+---
+# resourcequota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: default
+spec:
+  hard:
+    requests.cpu: TODO    # "4"
+    requests.memory: TODO # 8Gi
+    limits.cpu: TODO      # "8"
+    limits.memory: TODO   # 16Gi
+    pods: TODO            # "20"`,
+              rubric: [
+                'LimitRange with default cpu: 200m and memory: 128Mi',
+                'LimitRange with defaultRequest cpu: 50m and memory: 64Mi',
+                'ResourceQuota with requests.cpu: 4',
+                'ResourceQuota with requests.memory: 8Gi',
+                'ResourceQuota with pods: 20',
+                'kubectl describe limitrange verification',
+                'kubectl describe resourcequota verification',
+              ],
+              hints: [
+                'Apply: kubectl apply -f limitrange.yaml && kubectl apply -f resourcequota.yaml',
+                'Check LimitRange: kubectl describe limitrange default-limits',
+                'Check quota usage: kubectl describe resourcequota namespace-quota',
+                'Pods without resources now get defaults from LimitRange automatically',
+              ],
+              solutionCode: `# limitrange.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: 200m
+      memory: 128Mi
+    defaultRequest:
+      cpu: 50m
+      memory: 64Mi
+    max:
+      cpu: 2000m
+      memory: 1Gi
+    min:
+      cpu: 10m
+      memory: 16Mi
+---
+# resourcequota.yaml
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "20"
+    persistentvolumeclaims: "5"
+
+# Apply
+kubectl apply -f limitrange.yaml
+kubectl apply -f resourcequota.yaml
+
+# Verify LimitRange
+kubectl describe limitrange default-limits
+
+# Verify ResourceQuota (shows used vs hard)
+kubectl describe resourcequota namespace-quota
+
+# Create a pod without explicit resources — it gets LimitRange defaults
+kubectl run no-resources-pod --image=nginx:1.25 --restart=Never
+kubectl get pod no-resources-pod -o jsonpath='{.spec.containers[0].resources}' | python3 -m json.tool
+
+# Check the pod's QoS class (Burstable, since defaultRequest != default limit)
+kubectl get pod no-resources-pod -o jsonpath='{.status.qosClass}'
+
+# Verify quota consumption changed
+kubectl describe resourcequota namespace-quota
+
+# Clean up
+kubectl delete pod no-resources-pod
+kubectl delete limitrange default-limits
+kubectl delete resourcequota namespace-quota`
+            }
+          },
+          {
+            id: '108.3',
+            title: 'Logging — kubectl & Beyond',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Logging — kubectl & Beyond
+
+## kubectl logs — Essentials
+
+\`\`\`bash
+# Basic
+kubectl logs my-pod
+kubectl logs my-pod -f                   # follow (stream)
+
+# Filtering
+kubectl logs my-pod --since=1h          # last hour only
+kubectl logs my-pod --tail=50           # last 50 lines
+kubectl logs my-pod --since-time="2024-01-01T12:00:00Z"
+
+# Crashed containers
+kubectl logs my-pod --previous          # logs from previous (crashed) instance
+
+# Multi-container pods
+kubectl logs my-pod -c sidecar-container
+
+# All pods matching a label
+kubectl logs -l app=myapp -f --max-log-requests=5
+\`\`\`
+
+## Structured Logging
+
+JSON logs are much easier to filter and ship to log aggregators:
+
+\`\`\`json
+{"level":"info","ts":"2024-01-01T12:00:00Z","msg":"Request handled","path":"/api/todos","latency_ms":12}
+\`\`\`
+
+Filter on the command line:
+\`\`\`bash
+kubectl logs my-pod | grep '"level":"error"'
+kubectl logs my-pod | jq 'select(.level == "error")'
+\`\`\`
+
+## Production Logging Stack
+
+kubectl logs is for quick debugging. In production, ship logs to a centralized system:
+
+| Stack | Components |
+|-------|-----------|
+| ELK | Fluentd → Elasticsearch → Kibana |
+| Grafana | Promtail → Loki → Grafana |
+| Cloud | CloudWatch (AWS), Cloud Logging (GCP) |
+| SaaS | Datadog, Papertrail, Splunk |
+
+A **DaemonSet** runs the log shipper (Fluentd/Promtail) on every node, collecting logs from \`/var/log/containers\`.
+
+## Log Retention
+
+kubectl logs shows logs from the current container's stdout/stderr. Logs are stored on the node and rotated. There's no persistent history — use a log aggregator for long-term retention.
+`,
+            codingTask: {
+              instructions: `Write a bash script that: (1) deploys 3 nginx replicas, (2) streams logs from all pods with app=nginx-log label, filtering for specific patterns, (3) demonstrates --previous flag usage with a deliberately failing container, (4) shows --since and --tail flags.`,
+              boilerplate: `#!/bin/bash
+# logging-demo.sh
+
+# 1. Deploy nginx with label
+kubectl create deployment nginx-log --image=nginx:1.25 --replicas=3
+
+# TODO: wait for pods to be ready
+
+# 2. Generate some log entries by curling the pods
+# TODO: port-forward and send a few requests
+
+# 3. View logs from all pods with the label
+# TODO: kubectl logs with -l app=nginx-log
+
+# 4. View last 20 lines only
+# TODO: kubectl logs with --tail=20
+
+# 5. View logs from last 5 minutes
+# TODO: kubectl logs with --since=5m
+
+# 6. Create a failing pod to demo --previous
+# TODO: create pod with image that crashes (busybox exit 1)
+# TODO: show kubectl logs --previous`,
+              rubric: [
+                'kubectl create deployment with --replicas=3',
+                'kubectl logs with -l label selector',
+                'kubectl logs with --tail flag',
+                'kubectl logs with --since flag',
+                'Failing pod created to demonstrate --previous',
+                'kubectl logs --previous shown',
+              ],
+              hints: [
+                'Log all pods: kubectl logs -l app=nginx-log --max-log-requests=5',
+                'Failing pod: kubectl run crash-pod --image=busybox --restart=Always -- sh -c "echo crashing; exit 1"',
+                'After crash-pod is in CrashLoopBackOff: kubectl logs crash-pod --previous',
+                'Follow all pods: kubectl logs -l app=nginx-log -f --max-log-requests=5',
+              ],
+              solutionCode: `#!/bin/bash
+# logging-demo.sh
+
+echo "=== 1. Deploy nginx replicas ==="
+kubectl create deployment nginx-log --image=nginx:1.25 --replicas=3
+kubectl rollout status deployment/nginx-log --timeout=60s
+
+echo "=== 2. Generate log entries ==="
+kubectl port-forward deployment/nginx-log 8090:80 &
+PF_PID=$!
+sleep 3
+for i in 1 2 3 4 5; do
+  curl -s http://localhost:8090 > /dev/null
+done
+kill $PF_PID 2>/dev/null
+
+echo "=== 3. View logs from all pods with label ==="
+kubectl logs -l app=nginx-log --max-log-requests=5
+
+echo "=== 4. Last 10 lines from all pods ==="
+kubectl logs -l app=nginx-log --tail=10 --max-log-requests=5
+
+echo "=== 5. Logs from last 2 minutes ==="
+kubectl logs -l app=nginx-log --since=2m --max-log-requests=5
+
+echo "=== 6. Demo --previous with a crashing container ==="
+kubectl run crash-pod --image=busybox --restart=Always -- sh -c "echo 'I am about to crash!'; exit 1"
+
+echo "Waiting for crash-pod to crash and restart..."
+sleep 15
+
+kubectl get pod crash-pod    # should show CrashLoopBackOff or Error
+
+echo "Logs from previous crashed container:"
+kubectl logs crash-pod --previous
+
+echo "=== Cleanup ==="
+kubectl delete deployment nginx-log
+kubectl delete pod crash-pod`
+            }
+          },
+          {
+            id: '108.4',
+            title: 'Events & Debugging Crashed Pods',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Events & Debugging Crashed Pods
+
+## Kubernetes Events
+
+Events are records of what happened to K8s objects. They're your first stop when something is wrong.
+
+\`\`\`bash
+# All events in namespace, sorted by time
+kubectl get events --sort-by='.lastTimestamp'
+
+# Events for a specific pod
+kubectl describe pod my-pod    # events section at bottom
+
+# Watch events in real time
+kubectl get events -w
+\`\`\`
+
+## kubectl describe — Your Best Friend
+
+\`kubectl describe pod\` shows everything: state, conditions, volumes, events. Always run this first when debugging.
+
+\`\`\`bash
+kubectl describe pod my-pod | grep -A 20 Events:
+\`\`\`
+
+## Common Issues & Diagnosis
+
+### CrashLoopBackOff
+Container crashes repeatedly. Check logs from the crashed container:
+\`\`\`bash
+kubectl logs my-pod --previous
+kubectl describe pod my-pod   # exit code, reason
+\`\`\`
+
+### OOMKilled
+Memory limit exceeded. The OOM killer terminated the container.
+\`\`\`bash
+kubectl describe pod my-pod | grep OOMKilled
+# Fix: increase memory limit or fix memory leak
+\`\`\`
+
+### ImagePullBackOff / ErrImagePull
+Image cannot be pulled — wrong name, tag, or missing registry secret.
+\`\`\`bash
+kubectl describe pod my-pod | grep -A 5 Events
+# Look for: Failed to pull image "...": rpc error
+\`\`\`
+
+Fix: check image name, check tag exists, add imagePullSecret.
+
+### Pending (no events about scheduling)
+Insufficient resources on nodes.
+\`\`\`bash
+kubectl describe pod my-pod | grep Events -A 10
+# Look for: 0/1 nodes are available: 1 Insufficient cpu
+# Fix: reduce resource requests or add nodes
+\`\`\`
+
+## Debugging Workflow
+
+1. \`kubectl get pods\` — what's the status?
+2. \`kubectl describe pod <name>\` — what happened? (events section)
+3. \`kubectl logs <pod>\` — what did the app print?
+4. \`kubectl logs <pod> --previous\` — if it crashed
+5. \`kubectl exec -it <pod> -- sh\` — interactive debugging if pod is running
+`,
+            codingTask: {
+              instructions: `Demonstrate the debugging workflow: (1) deploy a pod with a non-existent image tag to trigger ImagePullBackOff, (2) use kubectl describe to identify the issue, (3) patch the image to a valid tag, (4) verify the fix. Show all commands and their expected output.`,
+              boilerplate: `#!/bin/bash
+# debug-demo.sh
+
+# 1. Create a pod with a bad image tag
+kubectl run broken-pod --image=nginx:nonexistent-tag-999
+
+# TODO: wait a moment for the error to appear
+
+# 2. Show status
+# TODO: kubectl get pod broken-pod
+
+# 3. Describe to see the error event
+# TODO: kubectl describe pod broken-pod (grep Events)
+
+# 4. Fix: patch with correct image tag
+# TODO: kubectl patch or kubectl set image to fix the image
+
+# 5. Verify pod is now running
+# TODO: verify the pod is Running`,
+              rubric: [
+                'kubectl run with nonexistent image tag',
+                'kubectl get pod shows ImagePullBackOff or ErrImagePull',
+                'kubectl describe pod used to diagnose',
+                'Events section shows pull failure',
+                'kubectl patch or set image used to fix',
+                'Verification shows pod Running after fix',
+              ],
+              hints: [
+                'Status check: kubectl get pod broken-pod',
+                'Diagnose: kubectl describe pod broken-pod | grep -A 10 Events',
+                'Fix image: kubectl set image pod/broken-pod broken-pod=nginx:1.25',
+                'Note: you cannot patch a standalone pod image easily — delete and recreate, or use kubectl set image',
+              ],
+              solutionCode: `#!/bin/bash
+# debug-demo.sh
+set -e
+
+echo "=== 1. Deploy pod with bad image ==="
+kubectl run broken-pod --image=nginx:nonexistent-tag-999 --restart=Never
+
+echo "Waiting 20s for error to appear..."
+sleep 20
+
+echo "=== 2. Check status ==="
+kubectl get pod broken-pod
+# Shows: ErrImagePull or ImagePullBackOff
+
+echo "=== 3. Describe to diagnose ==="
+kubectl describe pod broken-pod
+# Events section shows:
+#   Warning  Failed  Failed to pull image "nginx:nonexistent-tag-999"
+#   Warning  Failed  Error: ErrImagePull
+
+echo "=== 4. Fix: delete and recreate with correct image ==="
+kubectl delete pod broken-pod
+
+kubectl run fixed-pod --image=nginx:1.25 --restart=Never
+kubectl wait --for=condition=Ready pod/fixed-pod --timeout=60s
+
+echo "=== 5. Verify ==="
+kubectl get pod fixed-pod
+# Shows: Running
+
+echo "=== Demonstrating other errors ==="
+
+# OOMKilled example (small memory limit)
+kubectl run oom-demo --image=nginx:1.25 --restart=Never \
+  --overrides='{"spec":{"containers":[{"name":"oom-demo","image":"nginx:1.25","resources":{"limits":{"memory":"1Mi"}}}]}}'
+
+sleep 15
+kubectl describe pod oom-demo | grep -E 'OOMKilled|Last State|Reason' | head -5
+
+echo "=== Cleanup ==="
+kubectl delete pod fixed-pod oom-demo 2>/dev/null || true`
+            }
+          },
+          {
+            id: '108.5',
+            title: 'Metrics Server & kubectl top',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Metrics Server & kubectl top
+
+## What is Metrics Server?
+
+The **Metrics Server** is a cluster add-on that collects real-time CPU and memory usage from kubelets. It provides the data for:
+
+- \`kubectl top\` — human-readable usage display
+- **Horizontal Pod Autoscaler (HPA)** — automatic scaling based on CPU/memory
+- Kubernetes Dashboard resource graphs
+
+Without metrics-server, \`kubectl top\` returns: *"error: Metrics API not available"*
+
+## Enabling on minikube
+
+\`\`\`bash
+minikube addons enable metrics-server
+\`\`\`
+
+Wait ~60 seconds for it to collect initial metrics.
+
+## kubectl top
+
+\`\`\`bash
+# Node-level usage
+kubectl top nodes
+# NAME       CPU(cores)   CPU%   MEMORY(bytes)   MEMORY%
+# minikube   189m         9%     1231Mi          69%
+
+# Pod usage (current namespace)
+kubectl top pods
+
+# All namespaces
+kubectl top pods --all-namespaces
+
+# Sort by CPU
+kubectl top pods --sort-by=cpu
+
+# Sort by memory
+kubectl top pods --sort-by=memory
+
+# Specific pod
+kubectl top pod my-pod
+
+# Containers within a pod
+kubectl top pod my-pod --containers
+\`\`\`
+
+## Reading the Output
+
+- **CPU(cores)**: millicores — 189m = 18.9% of one core
+- **MEMORY(bytes)**: working set memory (Mi = mebibytes)
+
+## Production Metrics
+
+metrics-server provides only **current** usage — no history. For historical metrics and alerting use:
+
+- **Prometheus** — pull-based metrics scraping
+- **Grafana** — dashboards and visualization
+- **kube-state-metrics** — exposes K8s object state (replica counts, deployment status) as Prometheus metrics
+`,
+            codingTask: {
+              instructions: `Enable metrics-server on minikube, wait for it to be ready, then display top nodes and top pods for all namespaces. Deploy a CPU-consuming workload and verify its usage appears in kubectl top.`,
+              boilerplate: `#!/bin/bash
+# metrics-demo.sh
+
+# 1. Enable metrics-server
+# TODO: minikube addons enable metrics-server
+
+# 2. Wait for metrics-server pod to be ready
+# TODO: kubectl wait for metrics-server pod in kube-system
+
+# 3. Wait for metrics to be collected (metrics take ~60s)
+# TODO: sleep or loop until kubectl top nodes works
+
+# 4. Show top nodes
+# TODO: kubectl top nodes
+
+# 5. Show top pods in all namespaces
+# TODO: kubectl top pods --all-namespaces
+
+# 6. Deploy CPU-consuming workload and check its metrics
+# TODO: create busybox deployment running CPU loop
+# TODO: wait and show kubectl top pods`,
+              rubric: [
+                'minikube addons enable metrics-server',
+                'kubectl wait for metrics-server pod',
+                'kubectl top nodes command',
+                'kubectl top pods --all-namespaces command',
+                'CPU-consuming workload deployed',
+                'kubectl top pods shows workload usage',
+              ],
+              hints: [
+                'Wait for API: until kubectl top nodes 2>/dev/null; do echo "Waiting for metrics..."; sleep 10; done',
+                'CPU loop in busybox: while true; do :; done',
+                'Limit the CPU loop: --overrides with cpu limits to avoid starving the node',
+                'Metrics update every ~15s from kubelet scrapes',
+              ],
+              solutionCode: `#!/bin/bash
+# metrics-demo.sh
+
+echo "=== 1. Enable metrics-server ==="
+minikube addons enable metrics-server
+
+echo "=== 2. Wait for metrics-server pod ==="
+kubectl wait --for=condition=Ready pod \
+  --selector=k8s-app=metrics-server \
+  -n kube-system \
+  --timeout=120s
+
+echo "=== 3. Wait for initial metrics collection (up to 90s) ==="
+READY=false
+for i in $(seq 1 18); do
+  if kubectl top nodes 2>/dev/null; then
+    READY=true
+    break
+  fi
+  echo "Waiting for metrics... ($i/18)"
+  sleep 5
+done
+[ "$READY" = "false" ] && echo "Metrics not ready yet — try again in 30s"
+
+echo "=== 4. Top nodes ==="
+kubectl top nodes
+
+echo "=== 5. Top pods (all namespaces) ==="
+kubectl top pods --all-namespaces
+
+echo "=== 6. Deploy CPU-consuming workload ==="
+kubectl create deployment cpu-burner --image=busybox --replicas=1 \
+  -- sh -c 'while true; do x=1; done'
+
+kubectl rollout status deployment/cpu-burner --timeout=60s
+
+echo "Waiting 30s for CPU metrics..."
+sleep 30
+
+echo "=== Top pods (showing CPU usage) ==="
+kubectl top pods --sort-by=cpu
+kubectl top pod -l app=cpu-burner
+
+echo "=== Cleanup ==="
+kubectl delete deployment cpu-burner`
+            }
+          },
+          {
+            id: '108.MP',
+            title: 'Mini-Project: Observable Deployment',
+            xp: 300,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Observable Deployment
+
+Build a production-grade deployment with full observability — probes, resource limits, LimitRange defaults, and live metric monitoring.
+
+## What You'll Build
+
+- **LimitRange**: namespace defaults so containers without resources get sensible limits
+- **nginx Deployment**: 3 replicas with liveness + readiness probes + explicit resource limits
+- **Observability Script**: applies resources, monitors health, checks metrics, triggers rolling restart, watches events
+
+## Production Relevance
+
+This combination is the baseline for any production workload:
+- Probes ensure traffic only reaches healthy pods
+- Resource limits prevent noisy-neighbour problems
+- LimitRange protects namespaces from unlimited resource consumption
+- kubectl top and events give instant visibility into what's happening
+
+## Expected Result
+
+\`\`\`
+All 3 pods Running and Ready ✓
+Liveness and readiness probes configured ✓
+kubectl top pods shows real usage ✓
+Rolling restart completed with zero traffic interruption ✓
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write a LimitRange manifest, an nginx Deployment (3 replicas, liveness probe, readiness probe, resource limits), and a bash script that applies both, waits for readiness, checks health via HTTP, shows kubectl top, triggers a rolling restart, and watches events during the restart.`,
+              boilerplate: `# limitrange.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: obs-defaults
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: TODO
+      memory: TODO
+    defaultRequest:
+      cpu: TODO
+      memory: TODO
+---
+# obs-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obs-nginx
+spec:
+  replicas: TODO
+  selector:
+    matchLabels:
+      app: obs-nginx
+  template:
+    metadata:
+      labels:
+        app: obs-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: TODO
+            memory: TODO
+          limits:
+            cpu: TODO
+            memory: TODO
+        livenessProbe:
+          # TODO
+        readinessProbe:
+          # TODO
+
+---
+#!/bin/bash
+# observe.sh
+# TODO: apply resources, wait, check health, top, rolling restart, watch events`,
+              rubric: [
+                'LimitRange with cpu and memory defaults',
+                'Deployment with 3 replicas',
+                'Liveness probe httpGet /',
+                'Readiness probe httpGet /',
+                'Resource requests and limits set',
+                'kubectl rollout status used',
+                'kubectl top pods shown',
+                'kubectl rollout restart used',
+                'kubectl get events during restart',
+              ],
+              hints: [
+                'Enable metrics-server first: minikube addons enable metrics-server',
+                'Rolling restart: kubectl rollout restart deployment/obs-nginx',
+                'Watch events during restart: kubectl get events -w &',
+                'Health check via port-forward: kubectl port-forward deployment/obs-nginx 8095:80',
+              ],
+              solutionCode: `# limitrange.yaml
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: obs-defaults
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: 200m
+      memory: 128Mi
+    defaultRequest:
+      cpu: 50m
+      memory: 64Mi
+---
+# obs-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: obs-nginx
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: obs-nginx
+  template:
+    metadata:
+      labels:
+        app: obs-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        startupProbe:
+          exec:
+            command: [ls, /var/run/nginx.pid]
+          failureThreshold: 10
+          periodSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          failureThreshold: 2
+---
+#!/bin/bash
+# observe.sh
+set -e
+
+echo "=== Apply resources ==="
+kubectl apply -f limitrange.yaml
+kubectl apply -f obs-deployment.yaml
+
+echo "=== Wait for all 3 pods ==="
+kubectl rollout status deployment/obs-nginx --timeout=90s
+
+echo "=== Verify probes and resources ==="
+kubectl describe pod -l app=obs-nginx | grep -E 'Liveness:|Readiness:|Requests:|Limits:' | head -12
+
+echo "=== Health check ==="
+kubectl port-forward deployment/obs-nginx 8095:80 &
+PF_PID=$!
+sleep 3
+CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8095)
+echo "HTTP status: $CODE"
+kill $PF_PID 2>/dev/null
+
+echo "=== kubectl top (if metrics-server enabled) ==="
+kubectl top pods -l app=obs-nginx 2>/dev/null || echo "metrics-server not ready — run: minikube addons enable metrics-server"
+
+echo "=== Trigger rolling restart ==="
+kubectl get events -w &
+EVENTS_PID=$!
+kubectl rollout restart deployment/obs-nginx
+kubectl rollout status deployment/obs-nginx --timeout=90s
+kill $EVENTS_PID 2>/dev/null
+
+echo "=== All pods healthy after restart ==="
+kubectl get pods -l app=obs-nginx
+
+echo "=== Cleanup ==="
+kubectl delete deployment obs-nginx
+kubectl delete limitrange obs-defaults`
+            }
+          },
+        ]
+      },
+      {
+        id: 109,
+        title: 'Security & RBAC',
+        description: 'Secure your cluster with RBAC, NetworkPolicies, and pod security standards.',
+        part: 'Part VI: Observability',
+        icon: '🔒',
+        topics: [
+          {
+            id: '109.1',
+            title: 'K8s Security Model Overview',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Kubernetes Security Model Overview
+
+## Three-Stage Security
+
+Every request to the K8s API server passes through three gates:
+
+\`\`\`
+Request → Authentication → Authorization → Admission Control → etcd
+\`\`\`
+
+### 1. Authentication — Who are you?
+
+K8s supports multiple auth methods:
+- **X.509 certificates** — embedded in kubeconfig (kubectl uses this)
+- **Bearer tokens** — ServiceAccount tokens, OIDC tokens
+- **OIDC** — integrate with your identity provider (Okta, Google, GitHub)
+- **Webhook** — delegate to external auth service
+
+K8s has **no User resource** — users are identified by the CN field in their TLS certificate.
+
+### 2. Authorization — Can you do it?
+
+RBAC (Role-Based Access Control) is the standard. It checks: can this **subject** (user/group/ServiceAccount) perform this **verb** (get/list/create) on this **resource** (pods/secrets) in this **namespace**?
+
+### 3. Admission Control — Is it valid?
+
+Webhooks and built-in admission controllers validate and mutate requests:
+- **PodSecurity** — enforce pod security standards (privileged/baseline/restricted)
+- **LimitRanger** — apply LimitRange defaults
+- **ResourceQuota** — enforce namespace quotas
+- **MutatingAdmission** — modify requests (e.g. inject sidecar)
+
+## ServiceAccounts
+
+Every pod runs with a **ServiceAccount** (default: \`default\`). The SA's token is mounted at \`/var/run/secrets/kubernetes.io/serviceaccount/token\`. Pods use this to call the K8s API.
+
+Grant permissions to SAs using RBAC, not to pod images directly.
+`,
+            quiz: [
+              {
+                question: 'What does the Authentication stage of K8s security verify?',
+                options: ['Whether you have permission to create pods', 'Who is making the request (identity)', 'Whether the YAML is valid', 'Whether namespace quotas are exceeded'],
+                correctIndex: 1,
+                explanation: 'Authentication verifies identity — who you are. Authorization (RBAC) comes next to check what you are allowed to do.'
+              },
+              {
+                question: 'Where are K8s User objects stored?',
+                options: ['In the users namespace', 'In etcd as User resources', 'They do not exist — users are identified via certificates or tokens', 'In the kube-system namespace'],
+                correctIndex: 2,
+                explanation: 'Kubernetes has no User resource. Users are identified by the CN field in X.509 certificates, or by OIDC claims. Only ServiceAccounts have a K8s resource.'
+              },
+              {
+                question: 'What is the role of a ServiceAccount in Kubernetes?',
+                options: ['To store secrets for pods', 'To provide an identity for pods to authenticate with the K8s API', 'To define network policies for pods', 'To schedule pods to specific nodes'],
+                correctIndex: 1,
+                explanation: 'ServiceAccounts give pods a Kubernetes identity. A token is mounted into the pod and used when the pod calls the K8s API (e.g. to list pods or read ConfigMaps).'
+              },
+              {
+                question: 'What does Admission Control do that Authorization does not?',
+                options: ['Check identity', 'Check permissions', 'Validate and mutate requests after authorization passes', 'Encrypt traffic to etcd'],
+                correctIndex: 2,
+                explanation: 'After auth passes, Admission Controllers can modify (mutate) and validate requests. They enforce policies like PodSecurity standards and ResourceQuota limits.'
+              },
+            ]
+          },
+          {
+            id: '109.2',
+            title: 'RBAC — Roles & RoleBindings',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# RBAC — Roles & RoleBindings
+
+## Core Concepts
+
+| Resource | Scope | Purpose |
+|----------|-------|---------|
+| **Role** | Namespace | Grants permissions within one namespace |
+| **ClusterRole** | Cluster-wide | Grants cluster-wide permissions |
+| **RoleBinding** | Namespace | Binds Role or ClusterRole to subjects in a namespace |
+| **ClusterRoleBinding** | Cluster-wide | Binds ClusterRole to subjects cluster-wide |
+
+## Role Example
+
+\`\`\`yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: default
+rules:
+- apiGroups: [""]           # "" = core API group
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+\`\`\`
+
+## Verbs
+
+| Verb | HTTP Method | Action |
+|------|------------|--------|
+| get | GET single | Read one resource |
+| list | GET collection | Read multiple resources |
+| watch | GET with watch | Stream changes |
+| create | POST | Create resource |
+| update | PUT | Replace resource |
+| patch | PATCH | Partial update |
+| delete | DELETE | Delete resource |
+
+## RoleBinding
+
+\`\`\`yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: my-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+\`\`\`
+
+## Testing Permissions
+
+\`\`\`bash
+# Can the SA list pods?
+kubectl auth can-i list pods --as=system:serviceaccount:default:my-sa
+
+# Can the SA create secrets?
+kubectl auth can-i create secrets --as=system:serviceaccount:default:my-sa
+\`\`\`
+
+## Principle of Least Privilege
+
+Grant only the verbs and resources actually needed. Start with no permissions and add. Avoid \`*\` wildcards in production.
+`,
+            codingTask: {
+              instructions: `Create a ServiceAccount, a Role that allows get/list/watch on pods, and a RoleBinding that grants the SA this role. Test the permissions with kubectl auth can-i.`,
+              boilerplate: `# serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-reader-sa
+  namespace: default
+---
+# role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: TODO   # ["pods"]
+  verbs: TODO       # ["get", "list", "watch"]
+---
+# rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-reader-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: TODO
+  namespace: default
+roleRef:
+  kind: Role
+  name: TODO
+  apiGroup: rbac.authorization.k8s.io
+
+# Commands:
+# TODO: apply all three resources
+# TODO: test can-i list pods as pod-reader-sa
+# TODO: test can-i create pods (should be denied)
+# TODO: test can-i get secrets (should be denied)`,
+              rubric: [
+                'ServiceAccount pod-reader-sa created',
+                'Role with resources: pods',
+                'Role with verbs: get, list, watch',
+                'RoleBinding subjects references the SA',
+                'RoleBinding roleRef references the Role',
+                'kubectl auth can-i list pods returns yes',
+                'kubectl auth can-i create pods returns no',
+              ],
+              hints: [
+                'Apply: kubectl apply -f serviceaccount.yaml -f role.yaml -f rolebinding.yaml',
+                'Test: kubectl auth can-i list pods --as=system:serviceaccount:default:pod-reader-sa',
+                'The --as flag impersonates the SA',
+                'Core API resources (pods, services, configmaps) use apiGroups: [""]',
+              ],
+              solutionCode: `# serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pod-reader-sa
+  namespace: default
+---
+# role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+  namespace: default
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "pods/status"]
+  verbs: ["get", "list", "watch"]
+---
+# rolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pod-reader-binding
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: pod-reader-sa
+  namespace: default
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+
+# Apply
+kubectl apply -f serviceaccount.yaml
+kubectl apply -f role.yaml
+kubectl apply -f rolebinding.yaml
+
+# Test permissions
+SA="system:serviceaccount:default:pod-reader-sa"
+
+echo "=== Allowed actions ==="
+kubectl auth can-i list pods --as=$SA      # yes
+kubectl auth can-i get pods --as=$SA       # yes
+kubectl auth can-i watch pods --as=$SA     # yes
+
+echo "=== Denied actions ==="
+kubectl auth can-i create pods --as=$SA    # no
+kubectl auth can-i delete pods --as=$SA    # no
+kubectl auth can-i get secrets --as=$SA    # no
+kubectl auth can-i list deployments --as=$SA  # no
+
+echo "=== Verify binding ==="
+kubectl describe rolebinding pod-reader-binding
+
+# Clean up
+kubectl delete rolebinding pod-reader-binding
+kubectl delete role pod-reader
+kubectl delete serviceaccount pod-reader-sa`
+            }
+          },
+          {
+            id: '109.3',
+            title: 'ServiceAccounts & Pod Identity',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# ServiceAccounts & Pod Identity
+
+## Default ServiceAccount
+
+Every namespace has a \`default\` ServiceAccount. By default, every pod uses the default SA and gets its token mounted at \`/var/run/secrets/kubernetes.io/serviceaccount/\`.
+
+\`\`\`bash
+kubectl get serviceaccount default
+kubectl describe serviceaccount default
+\`\`\`
+
+## Disable Token Automount (Security Best Practice)
+
+Most pods don't need to call the K8s API. Disable the token mount:
+
+\`\`\`yaml
+spec:
+  automountServiceAccountToken: false
+\`\`\`
+
+This removes the mounted token from the container, reducing the attack surface.
+
+## Custom ServiceAccount Per App
+
+\`\`\`yaml
+# Create SA
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-app-sa
+
+---
+# Use in Deployment
+spec:
+  template:
+    spec:
+      serviceAccountName: my-app-sa
+      automountServiceAccountToken: false  # disable if not calling K8s API
+\`\`\`
+
+## IRSA — IAM Roles for ServiceAccounts (AWS EKS)
+
+On AWS EKS, you can attach an **IAM Role** to a ServiceAccount. Pods using that SA automatically get AWS credentials (without storing keys in Secrets).
+
+\`\`\`yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s3-reader
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789:role/my-s3-reader-role
+\`\`\`
+
+The pod can then read from S3 without credentials in the pod spec.
+
+## Verifying SA in a Pod
+
+\`\`\`bash
+kubectl exec my-pod -- cat /var/run/secrets/kubernetes.io/serviceaccount/token
+kubectl exec my-pod -- cat /var/run/secrets/kubernetes.io/serviceaccount/namespace
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a custom ServiceAccount with automountServiceAccountToken: false. Create a Deployment that uses this SA. Verify that the SA token is NOT mounted in the container (demonstrating the security best practice).`,
+              boilerplate: `# custom-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: no-token-sa
+  namespace: default
+automountServiceAccountToken: TODO  # disable at SA level
+---
+# deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-app
+  template:
+    metadata:
+      labels:
+        app: secure-app
+    spec:
+      serviceAccountName: TODO     # reference the SA
+      automountServiceAccountToken: TODO  # disable at pod level too
+      containers:
+      - name: app
+        image: nginx:1.25
+        ports:
+        - containerPort: 80`,
+              rubric: [
+                'Custom ServiceAccount created',
+                'automountServiceAccountToken: false on SA',
+                'Deployment uses serviceAccountName: no-token-sa',
+                'automountServiceAccountToken: false on pod spec',
+                'kubectl exec verify token is NOT mounted',
+              ],
+              hints: [
+                'Verify no token: kubectl exec <pod> -- ls /var/run/secrets/ (should fail or be empty)',
+                'Compare: a pod using default SA has the token directory',
+                'The SA name in pod spec must match the SA name exactly',
+                'kubectl get pod <name> -o yaml | grep serviceAccount to verify',
+              ],
+              solutionCode: `# custom-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: no-token-sa
+  namespace: default
+automountServiceAccountToken: false
+---
+# secure-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-app
+  template:
+    metadata:
+      labels:
+        app: secure-app
+    spec:
+      serviceAccountName: no-token-sa
+      automountServiceAccountToken: false
+      containers:
+      - name: app
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+
+# Apply
+kubectl apply -f custom-sa.yaml
+kubectl apply -f secure-deployment.yaml
+kubectl rollout status deployment/secure-app --timeout=60s
+
+# Verify SA token is NOT mounted
+POD=$(kubectl get pods -l app=secure-app -o name | head -1)
+echo "=== Checking for SA token ==="
+kubectl exec $POD -- ls /var/run/secrets/kubernetes.io/serviceaccount/ 2>&1 || echo "Token directory not mounted — GOOD!"
+
+# Compare with default SA pod
+kubectl run with-token --image=nginx:1.25 --restart=Never
+kubectl wait --for=condition=Ready pod/with-token --timeout=60s
+echo "=== Default SA pod HAS token ==="
+kubectl exec with-token -- ls /var/run/secrets/kubernetes.io/serviceaccount/
+# Shows: ca.crt  namespace  token
+
+# Verify SA assignment
+kubectl get pod $POD -o jsonpath='{.spec.serviceAccountName}'    # no-token-sa
+
+echo "=== Cleanup ==="
+kubectl delete deployment secure-app
+kubectl delete pod with-token
+kubectl delete serviceaccount no-token-sa`
+            }
+          },
+          {
+            id: '109.4',
+            title: 'Network Policies — Firewall for Pods',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Network Policies — Firewall for Pods
+
+## The Default: Everything Open
+
+By default, every pod can communicate with every other pod in the cluster — and receive traffic from anywhere. This is the "flat network" model. Fine for development, dangerous for production.
+
+## NetworkPolicy
+
+A NetworkPolicy acts as a **firewall rule** for pods. It restricts which pods/namespaces can reach which pods and on which ports.
+
+**CRITICAL**: NetworkPolicy requires a CNI plugin that enforces it — Calico, Cilium, or Weave. Flannel does NOT enforce NetworkPolicy by default.
+
+On minikube with NetworkPolicy support:
+\`\`\`bash
+minikube start --cni=calico
+\`\`\`
+
+## Deny-All Ingress (Default Deny)
+
+Apply this first to block all inbound traffic to a namespace:
+
+\`\`\`yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+spec:
+  podSelector: {}    # applies to ALL pods in namespace
+  policyTypes:
+  - Ingress
+  # No ingress rules = deny all ingress
+\`\`\`
+
+## Allow Specific Traffic
+
+Then add policies to permit what you need:
+
+\`\`\`yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+spec:
+  podSelector:
+    matchLabels:
+      app: backend       # this policy protects backend pods
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend  # only allow traffic from frontend pods
+    ports:
+    - port: 8080
+      protocol: TCP
+\`\`\`
+
+## Egress Policies
+
+\`\`\`yaml
+policyTypes:
+- Egress
+egress:
+- to:
+  - podSelector:
+      matchLabels:
+        app: database
+  ports:
+  - port: 5432
+\`\`\`
+
+## Important Behavior
+
+- NetworkPolicies are **additive** — multiple policies combine with OR logic
+- A pod with NO matching NetworkPolicy = allow all
+- A pod with ANY matching NetworkPolicy = deny all non-matching
+`,
+            codingTask: {
+              instructions: `Create a deny-all ingress NetworkPolicy for the default namespace, then add an allow policy permitting traffic from frontend pods to backend pods on port 80. Verify the setup (requires Calico CNI — on standard minikube this tests the manifest structure, not enforcement).`,
+              boilerplate: `# deny-all.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: default
+spec:
+  podSelector: TODO   # {} for all pods
+  policyTypes:
+  - Ingress
+  # No ingress rules means deny all
+
+---
+# allow-frontend-backend.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: TODO        # backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: TODO    # frontend
+    ports:
+    - port: TODO
+      protocol: TCP`,
+              rubric: [
+                'deny-all policy with empty podSelector {}',
+                'deny-all has Ingress in policyTypes and no ingress rules',
+                'allow policy targets app: backend',
+                'allow policy ingress.from has app: frontend',
+                'allow policy port: 80 specified',
+                'kubectl apply for both policies',
+                'kubectl get networkpolicies shows both',
+              ],
+              hints: [
+                'Empty podSelector {} matches ALL pods in the namespace',
+                'Deny-all has policyTypes: [Ingress] but NO ingress: field',
+                'Test enforcement: kubectl exec frontend-pod -- curl http://backend-svc',
+                'Without Calico, NetworkPolicies are accepted by K8s but not enforced',
+              ],
+              solutionCode: `# deny-all.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: default
+spec:
+  podSelector: {}      # applies to ALL pods
+  policyTypes:
+  - Ingress            # deny all ingress (no ingress rules = deny)
+---
+# deny-all-egress.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-egress
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - port: 53        # allow DNS
+      protocol: UDP
+---
+# allow-frontend-backend.yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-frontend-to-backend
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: backend           # protects backend pods
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: frontend      # only from frontend pods
+    ports:
+    - port: 80
+      protocol: TCP
+
+# Apply
+kubectl apply -f deny-all.yaml
+kubectl apply -f deny-all-egress.yaml
+kubectl apply -f allow-frontend-backend.yaml
+
+# Verify policies
+kubectl get networkpolicies
+kubectl describe networkpolicy deny-all-ingress
+kubectl describe networkpolicy allow-frontend-to-backend
+
+# Deploy test pods to verify (on Calico cluster)
+kubectl run backend --image=nginx:1.25 --labels=app=backend
+kubectl run frontend --image=curlimages/curl --labels=app=frontend \
+  --restart=Never -- sleep 3600
+
+kubectl wait --for=condition=Ready pod/frontend --timeout=60s
+kubectl wait --for=condition=Ready pod/backend --timeout=60s
+
+BACKEND_IP=$(kubectl get pod backend -o jsonpath='{.status.podIP}')
+
+# This should succeed (frontend -> backend allowed)
+kubectl exec frontend -- curl -s --connect-timeout 5 http://$BACKEND_IP | grep title
+
+# Clean up
+kubectl delete pod frontend backend
+kubectl delete networkpolicy deny-all-ingress deny-all-egress allow-frontend-to-backend`
+            }
+          },
+          {
+            id: '109.5',
+            title: 'Pod Security — Non-Root & Read-Only',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Pod Security — Non-Root & Read-Only
+
+## The Problem with Root Containers
+
+By default, containers run as root (UID 0). If an attacker compromises the container, they have root access to everything the container can reach. On misconfigured clusters, this can escalate to node compromise.
+
+## securityContext
+
+Set at the pod level (applies to all containers) or container level (overrides pod):
+
+\`\`\`yaml
+spec:
+  securityContext:              # pod-level
+    runAsNonRoot: true          # fail if image runs as root
+    runAsUser: 1000             # run as this UID
+    runAsGroup: 3000
+    fsGroup: 2000               # volume files owned by this GID
+  containers:
+  - name: app
+    securityContext:            # container-level
+      allowPrivilegeEscalation: false   # cannot gain more privileges
+      readOnlyRootFilesystem: true      # container FS is read-only
+      capabilities:
+        drop: [ALL]                     # drop all Linux capabilities
+        add: [NET_BIND_SERVICE]         # add only what's needed
+\`\`\`
+
+## readOnlyRootFilesystem
+
+When \`readOnlyRootFilesystem: true\`, the container cannot write anywhere except:
+- Mounted volumes (PVCs, ConfigMaps, Secrets)
+- emptyDir volumes explicitly mounted for writable directories
+
+\`\`\`yaml
+volumeMounts:
+- name: tmp
+  mountPath: /tmp               # apps that need /tmp
+volumes:
+- name: tmp
+  emptyDir: {}
+\`\`\`
+
+## Pod Security Standards
+
+Applied at namespace level:
+
+\`\`\`bash
+kubectl label namespace prod pod-security.kubernetes.io/enforce=restricted
+\`\`\`
+
+| Standard | Requirements |
+|----------|-------------|
+| **privileged** | No restrictions |
+| **baseline** | Block privileged pods, hostPath, host networking |
+| **restricted** | All baseline + non-root, no privilege escalation, read-only FS |
+
+## verify Non-Root
+
+\`\`\`bash
+kubectl exec my-pod -- whoami      # should print a non-root user
+kubectl exec my-pod -- id          # uid=1000 gid=3000
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a Deployment with a full security context: runAsNonRoot, runAsUser: 1000, readOnlyRootFilesystem: true, allowPrivilegeEscalation: false, capabilities drop ALL. Mount an emptyDir for /tmp. Verify the container runs as non-root.`,
+              boilerplate: `# secure-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardened-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hardened
+  template:
+    metadata:
+      labels:
+        app: hardened
+    spec:
+      securityContext:
+        runAsNonRoot: TODO
+        runAsUser: TODO    # 1000
+        fsGroup: TODO      # 2000
+      containers:
+      - name: app
+        image: nginx:1.25
+        securityContext:
+          allowPrivilegeEscalation: TODO
+          readOnlyRootFilesystem: TODO
+          capabilities:
+            drop: TODO   # [ALL]
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-run
+          mountPath: /var/run
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}`,
+              rubric: [
+                'runAsNonRoot: true in pod securityContext',
+                'runAsUser: 1000 in pod securityContext',
+                'readOnlyRootFilesystem: true',
+                'allowPrivilegeEscalation: false',
+                'capabilities.drop: [ALL]',
+                'emptyDir for /tmp mounted',
+                'kubectl exec whoami shows non-root user',
+              ],
+              hints: [
+                'nginx by default runs as root and writes to /var/run and /var/cache/nginx',
+                'Mount emptyDir for all directories nginx writes to: /tmp, /var/run, /var/cache/nginx',
+                'Verify: kubectl exec <pod> -- whoami or kubectl exec <pod> -- id',
+                'If pod fails to start, kubectl describe pod shows security violation',
+              ],
+              solutionCode: `# hardened-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hardened-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hardened
+  template:
+    metadata:
+      labels:
+        app: hardened
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101        # nginx official image uses UID 101 for nginx user
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+      - name: app
+        image: nginxinc/nginx-unprivileged:1.25   # designed to run as non-root
+        ports:
+        - containerPort: 8080   # unprivileged nginx uses 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-run
+          mountPath: /var/run
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+
+# Apply
+kubectl apply -f hardened-deployment.yaml
+kubectl rollout status deployment/hardened-app --timeout=90s
+
+# Verify non-root
+POD=$(kubectl get pods -l app=hardened -o name | head -1)
+kubectl exec $POD -- whoami    # nginx (not root)
+kubectl exec $POD -- id        # uid=101(nginx) gid=101(nginx)
+
+# Verify read-only FS (should fail)
+kubectl exec $POD -- touch /test.txt 2>&1 || echo "Read-only filesystem — GOOD!"
+
+# Verify tmp is writable
+kubectl exec $POD -- touch /tmp/test.txt && echo "/tmp is writable — correct!"
+
+# Verify capabilities
+kubectl exec $POD -- cat /proc/1/status | grep CapEff
+
+# Clean up
+kubectl delete deployment hardened-app`
+            }
+          },
+          {
+            id: '109.MP',
+            title: 'Mini-Project: Hardened Namespace',
+            xp: 350,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Hardened Namespace
+
+Apply defence-in-depth to a dedicated namespace, combining all security primitives from this chapter.
+
+## What You'll Build
+
+A \`secure-app\` namespace with:
+1. **Deny-all NetworkPolicy** (block all ingress by default)
+2. **ResourceQuota** (prevent resource exhaustion)
+3. **Custom ServiceAccount** with read-only pod RBAC
+4. **Hardened Deployment** (non-root, read-only FS, dropped capabilities)
+
+## Defence in Depth
+
+Each layer stops a different attack vector:
+
+| Layer | What it prevents |
+|-------|----------------|
+| NetworkPolicy | Lateral movement between pods |
+| ResourceQuota | Denial of service via resource exhaustion |
+| RBAC (minimal SA) | Privilege escalation via K8s API |
+| Non-root container | Container breakout as root |
+| Read-only FS | Persistent malware installation |
+
+## Verification
+
+After applying, you'll run:
+- \`kubectl auth can-i\` to verify SA permissions
+- \`kubectl exec whoami\` to verify non-root
+- \`kubectl get networkpolicies\` to verify network rules
+- \`kubectl describe resourcequota\` to verify quota
+`,
+            codingTask: {
+              instructions: `Create namespace 'secure-app', apply a deny-all NetworkPolicy, a ResourceQuota (4 CPU / 8Gi / 20 pods), a custom SA with read-only pod access, and a Deployment using the hardened pod security pattern. Provide a bash verification script.`,
+              boilerplate: `#!/bin/bash
+# harden.sh
+
+# 1. Create namespace
+kubectl create namespace secure-app
+
+# 2. Apply deny-all NetworkPolicy in secure-app namespace
+# TODO: kubectl apply with namespace=secure-app
+
+# 3. Apply ResourceQuota in secure-app
+# TODO: create quota YAML and apply
+
+# 4. Create custom SA with read-only pod RBAC
+# TODO: SA + Role + RoleBinding in secure-app namespace
+
+# 5. Hardened Deployment (non-root, readOnlyRootFilesystem)
+# TODO: Deployment in secure-app using the custom SA
+
+# 6. Verification
+# TODO: kubectl auth can-i list pods as the SA (yes)
+# TODO: kubectl auth can-i create pods as the SA (no)
+# TODO: kubectl exec whoami (non-root)
+# TODO: kubectl get networkpolicies -n secure-app
+# TODO: kubectl describe resourcequota -n secure-app`,
+              rubric: [
+                'Namespace secure-app created',
+                'NetworkPolicy deny-all in secure-app',
+                'ResourceQuota with CPU/memory/pod limits',
+                'Custom ServiceAccount in secure-app',
+                'Role with read-only pod verbs',
+                'RoleBinding connecting SA to Role',
+                'Deployment with runAsNonRoot and readOnlyRootFilesystem',
+                'Deployment using custom SA',
+                'kubectl auth can-i verification',
+                'kubectl exec whoami shows non-root',
+              ],
+              hints: [
+                'Apply to namespace: kubectl apply -f policy.yaml -n secure-app',
+                'Or set namespace in metadata: namespace: secure-app',
+                'SA impersonation: system:serviceaccount:secure-app:my-sa',
+                'Use nginxinc/nginx-unprivileged for non-root nginx',
+              ],
+              solutionCode: `#!/bin/bash
+# harden.sh
+set -e
+
+NS=secure-app
+
+echo "=== 1. Create namespace ==="
+kubectl create namespace $NS --dry-run=client -o yaml | kubectl apply -f -
+
+echo "=== 2. NetworkPolicy: deny all ingress ==="
+kubectl apply -n $NS -f - <<'YAML'
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+YAML
+
+echo "=== 3. ResourceQuota ==="
+kubectl apply -n $NS -f - <<'YAML'
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    pods: "20"
+YAML
+
+echo "=== 4. ServiceAccount, Role, RoleBinding ==="
+kubectl apply -n $NS -f - <<'YAML'
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: app-sa
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pod-reader
+rules:
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-pod-reader
+subjects:
+- kind: ServiceAccount
+  name: app-sa
+  namespace: secure-app
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+YAML
+
+echo "=== 5. Hardened Deployment ==="
+kubectl apply -n $NS -f - <<'YAML'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: secure-nginx
+  template:
+    metadata:
+      labels:
+        app: secure-nginx
+    spec:
+      serviceAccountName: app-sa
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+      containers:
+      - name: nginx
+        image: nginxinc/nginx-unprivileged:1.25
+        ports:
+        - containerPort: 8080
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: [ALL]
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nginx-run
+          mountPath: /var/run
+        - name: nginx-cache
+          mountPath: /var/cache/nginx
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+YAML
+
+echo "=== 6. Wait for deployment ==="
+kubectl rollout status deployment/secure-nginx -n $NS --timeout=90s
+
+echo "=== 7. Verification ==="
+SA="system:serviceaccount:$NS:app-sa"
+
+echo "--- RBAC checks ---"
+kubectl auth can-i list pods -n $NS --as=$SA    # yes
+kubectl auth can-i get pods -n $NS --as=$SA     # yes
+kubectl auth can-i create pods -n $NS --as=$SA  # no
+kubectl auth can-i delete pods -n $NS --as=$SA  # no
+
+echo "--- Non-root check ---"
+POD=$(kubectl get pods -n $NS -l app=secure-nginx -o name | head -1)
+kubectl exec -n $NS $POD -- whoami    # nginx (not root)
+kubectl exec -n $NS $POD -- id
+
+echo "--- Read-only FS check ---"
+kubectl exec -n $NS $POD -- touch /etc/test 2>&1 || echo "Read-only FS confirmed!"
+
+echo "--- NetworkPolicies ---"
+kubectl get networkpolicies -n $NS
+
+echo "--- ResourceQuota ---"
+kubectl describe resourcequota -n $NS
+
+echo "=== Cleanup ==="
+kubectl delete namespace $NS`
+            }
+          },
+        ]
+      },
+      {
+        id: 110,
+        title: 'Helm — Package Management',
+        description: 'Package, version, and deploy Kubernetes applications with Helm charts.',
+        part: 'Part VII: Helm',
+        icon: '⛵',
+        topics: [
+          {
+            id: '110.1',
+            title: 'Why Helm? The Package Problem',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Why Helm? The Package Problem
+
+## The YAML Copy-Paste Problem
+
+Deploying a real application to Kubernetes means writing:
+- Deployment YAML
+- Service YAML
+- ConfigMap YAML
+- Ingress YAML
+- HPA YAML
+- ... plus all their variants for dev/staging/prod
+
+Managing these files by hand — copying and editing values for each environment — is error-prone and hard to maintain.
+
+## What Helm Solves
+
+**Helm** is the package manager for Kubernetes. It solves:
+
+| Problem | Helm Solution |
+|---------|--------------|
+| Repeated YAML | Templates with variable substitution |
+| Environment differences | Values files (values-prod.yaml) |
+| Version management | Chart versions + release revisions |
+| Dependency management | Chart dependencies (Chart.yaml) |
+| Rollbacks | \`helm rollback\` |
+| Repeatable deploys | \`helm install\` idempotent with same chart |
+
+## Core Concepts
+
+- **Chart**: A package of K8s templates + default values
+- **Release**: An installed instance of a chart in a cluster
+- **Repository**: A collection of charts (like npm registry)
+- **Values**: User-supplied overrides for chart defaults
+
+## Helm vs Kustomize
+
+| Feature | Helm | Kustomize |
+|---------|------|-----------|
+| Templating | Go templates (full programming) | Patch/overlay (no logic) |
+| Packaging | Charts distributed via repos | Just YAML directories |
+| Dependencies | Declarative (Chart.yaml) | Manual |
+| Learning curve | Steeper | Gentler |
+| Best for | Distributable packages | Environment overlays |
+
+Use Kustomize for simple environment overlays. Use Helm for complex, distributable application packages.
+`,
+            quiz: [
+              {
+                question: 'What is a Helm Chart?',
+                options: ['A visual diagram of K8s resources', 'A package of K8s templates with default values', 'A K8s resource type for deployments', 'A monitoring dashboard template'],
+                correctIndex: 1,
+                explanation: 'A Helm Chart is a package containing K8s resource templates, a values.yaml with defaults, and metadata in Chart.yaml. Users install charts as "releases".'
+              },
+              {
+                question: 'What is a Helm Release?',
+                options: ['A new version of the Helm binary', 'A new version of a chart', 'An installed instance of a chart in a cluster', 'A rollback operation'],
+                correctIndex: 2,
+                explanation: 'A Release is a specific installation of a chart. You can have multiple releases of the same chart with different configurations (e.g. myapp-prod, myapp-staging).'
+              },
+              {
+                question: 'When would you choose Kustomize over Helm?',
+                options: ['When you need complex Go template logic', 'When distributing a package to other teams', 'When managing simple environment-specific overlays without templating', 'When you need dependency management'],
+                correctIndex: 2,
+                explanation: 'Kustomize is ideal for simple environment overlays (patch values for dev vs prod). Helm is better for complex packages distributed across teams with dependencies.'
+              },
+              {
+                question: 'What does helm rollback do?',
+                options: ['Reverts the Helm binary to a previous version', 'Reverts a release to a previous revision', 'Deletes the release and reinstalls from scratch', 'Rolls back all releases in the cluster'],
+                correctIndex: 1,
+                explanation: 'helm rollback <release> <revision> reverts a release to a previous revision. Helm tracks revision history, making rollbacks fast and safe.'
+              },
+            ]
+          },
+          {
+            id: '110.2',
+            title: 'Installing Helm & Exploring Charts',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Installing Helm & Exploring Charts
+
+## Installation
+
+\`\`\`bash
+# macOS
+brew install helm
+
+# Verify
+helm version
+\`\`\`
+
+## Adding Chart Repositories
+
+\`\`\`bash
+# Bitnami — popular collection of application charts
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+# Update local repo cache
+helm repo update
+
+# List configured repos
+helm repo list
+\`\`\`
+
+## Searching for Charts
+
+\`\`\`bash
+# Search for nginx charts
+helm search repo nginx
+
+# Specific app
+helm search repo bitnami/nginx
+
+# All versions
+helm search repo bitnami/nginx --versions
+\`\`\`
+
+## Installing a Chart
+
+\`\`\`bash
+# Install nginx chart as release "my-nginx"
+helm install my-nginx bitnami/nginx
+
+# Install with custom values
+helm install my-nginx bitnami/nginx --set replicaCount=3
+
+# Install to specific namespace
+helm install my-nginx bitnami/nginx -n webapps --create-namespace
+\`\`\`
+
+## Managing Releases
+
+\`\`\`bash
+helm list                   # all releases in current namespace
+helm list -A                # all namespaces
+helm status my-nginx        # details about a release
+helm get values my-nginx    # what values were used
+helm get manifest my-nginx  # the rendered K8s manifests
+\`\`\`
+
+## Uninstalling
+
+\`\`\`bash
+helm uninstall my-nginx         # removes all K8s resources
+helm uninstall my-nginx --keep-history  # keep revision history
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Install Helm (if not present), add the Bitnami repo, install an nginx release, inspect it, then cleanly uninstall it. Show the full workflow including helm list and helm status.`,
+              boilerplate: `#!/bin/bash
+# helm-basics.sh
+
+# 1. Check/install helm
+# TODO: check if helm is installed, install if not
+
+# 2. Add bitnami repo
+# TODO: helm repo add bitnami
+
+# 3. Update repo
+# TODO: helm repo update
+
+# 4. Search for nginx
+# TODO: helm search repo nginx
+
+# 5. Install nginx chart
+# TODO: helm install my-nginx bitnami/nginx
+
+# 6. Wait for pod to be ready
+# TODO: kubectl wait
+
+# 7. List releases
+# TODO: helm list
+
+# 8. Show status
+# TODO: helm status my-nginx
+
+# 9. Uninstall
+# TODO: helm uninstall my-nginx
+# TODO: verify kubectl get pods shows no nginx pods`,
+              rubric: [
+                'helm repo add bitnami command',
+                'helm repo update command',
+                'helm install my-nginx bitnami/nginx command',
+                'kubectl wait or rollout status for pods',
+                'helm list command',
+                'helm status my-nginx command',
+                'helm uninstall my-nginx command',
+              ],
+              hints: [
+                'Check helm: command -v helm || brew install helm',
+                'bitnami/nginx pulls from: https://charts.bitnami.com/bitnami',
+                'helm install takes 30-60s for image pull',
+                'helm get manifest my-nginx shows the actual K8s YAML',
+              ],
+              solutionCode: `#!/bin/bash
+# helm-basics.sh
+
+echo "=== 1. Check/Install Helm ==="
+if ! command -v helm &>/dev/null; then
+  echo "Installing helm via brew..."
+  brew install helm
+fi
+helm version
+
+echo "=== 2. Add Bitnami Repository ==="
+helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null || echo "Repo already added"
+helm repo update
+
+echo "=== 3. Search for nginx charts ==="
+helm search repo bitnami/nginx
+
+echo "=== 4. Install nginx chart ==="
+helm install my-nginx bitnami/nginx \
+  --set replicaCount=1 \
+  --set service.type=ClusterIP \
+  --wait \
+  --timeout=120s
+
+echo "=== 5. List releases ==="
+helm list
+
+echo "=== 6. Release status ==="
+helm status my-nginx
+
+echo "=== 7. Deployed resources ==="
+kubectl get pods,svc -l app.kubernetes.io/instance=my-nginx
+
+echo "=== 8. View rendered manifests ==="
+helm get manifest my-nginx | head -40
+
+echo "=== 9. View used values ==="
+helm get values my-nginx
+
+echo "=== 10. Uninstall ==="
+helm uninstall my-nginx
+kubectl get pods | grep nginx || echo "No nginx pods remaining — clean uninstall!"
+
+echo "=== Verify helm list is empty ==="
+helm list`
+            }
+          },
+          {
+            id: '110.3',
+            title: 'Anatomy of a Helm Chart',
+            xp: 150,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Anatomy of a Helm Chart
+
+## Creating a Chart
+
+\`\`\`bash
+helm create myapp
+\`\`\`
+
+This generates a scaffold:
+
+\`\`\`
+myapp/
+├── Chart.yaml           # chart metadata
+├── values.yaml          # default values
+├── charts/              # chart dependencies
+└── templates/           # Go-templated K8s resources
+    ├── deployment.yaml
+    ├── service.yaml
+    ├── ingress.yaml
+    ├── hpa.yaml
+    ├── serviceaccount.yaml
+    ├── NOTES.txt        # printed after install
+    └── _helpers.tpl     # reusable template functions
+\`\`\`
+
+## Chart.yaml
+
+\`\`\`yaml
+apiVersion: v2
+name: myapp
+description: My application chart
+type: application
+version: 0.1.0        # chart version (semver)
+appVersion: "1.2.3"   # the application version (informational)
+\`\`\`
+
+## values.yaml — Defaults
+
+\`\`\`yaml
+replicaCount: 1
+
+image:
+  repository: nginx
+  tag: "1.25"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 200m
+    memory: 128Mi
+\`\`\`
+
+## templates/deployment.yaml — Go Templates
+
+\`\`\`yaml
+spec:
+  replicas: {{ .Values.replicaCount }}
+  template:
+    spec:
+      containers:
+      - name: {{ .Chart.Name }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+\`\`\`
+
+## Rendering Without Applying
+
+\`\`\`bash
+helm template myapp .           # render to stdout
+helm template myapp . --debug   # extra debug info
+helm lint .                     # check for errors
+\`\`\`
+
+## Overriding Values
+
+\`\`\`bash
+helm install myapp . --set replicaCount=3
+helm install myapp . -f production-values.yaml
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a Helm chart with helm create, modify values.yaml (replicaCount: 2, image.tag: "1.26"), then run helm template to see the rendered output. Lint the chart and verify the rendered replicas match.`,
+              boilerplate: `#!/bin/bash
+# chart-anatomy.sh
+
+# 1. Create chart
+# TODO: helm create mywebapp
+
+# 2. View generated structure
+# TODO: ls -la mywebapp/
+
+# 3. Modify values.yaml: set replicaCount to 2, image.tag to "1.26"
+# TODO: edit mywebapp/values.yaml
+
+# 4. Render templates (dry run)
+# TODO: helm template mywebapp ./mywebapp | grep -A 2 "replicas:"
+
+# 5. Lint chart
+# TODO: helm lint ./mywebapp
+
+# 6. Show chart info
+# TODO: helm show chart ./mywebapp`,
+              rubric: [
+                'helm create mywebapp command',
+                'values.yaml modified with replicaCount: 2',
+                'values.yaml modified with image.tag: "1.26"',
+                'helm template command to render',
+                'rendered output shows replicas: 2',
+                'helm lint shows no errors',
+              ],
+              hints: [
+                'Edit values.yaml: change replicaCount: 1 to replicaCount: 2',
+                'Change image tag: tag: "" to tag: "1.26" (or "latest" line in values.yaml)',
+                'Render and filter: helm template my-release ./mywebapp | grep -A 3 replicas',
+                'helm lint returns "1 chart(s) linted, 0 chart(s) failed" on success',
+              ],
+              solutionCode: `#!/bin/bash
+# chart-anatomy.sh
+
+echo "=== 1. Create Helm chart ==="
+helm create mywebapp
+
+echo "=== 2. Chart structure ==="
+find mywebapp -type f | sort
+
+echo "=== 3. Modify values.yaml ==="
+# Set replicaCount to 2
+sed -i.bak 's/^replicaCount: 1/replicaCount: 2/' mywebapp/values.yaml
+
+# Set image tag to 1.26
+sed -i.bak 's/  tag: ""/  tag: "1.26"/' mywebapp/values.yaml
+
+echo "Current values (relevant lines):"
+grep -E 'replicaCount|tag:' mywebapp/values.yaml
+
+echo "=== 4. Render templates ==="
+helm template my-release ./mywebapp | grep -A 3 "replicas:"
+# Should show: replicas: 2
+
+echo "=== 5. Show image in rendered output ==="
+helm template my-release ./mywebapp | grep -A 2 "image:"
+# Should show: nginx:1.26
+
+echo "=== 6. Lint chart ==="
+helm lint ./mywebapp
+# Should show: 1 chart(s) linted, 0 chart(s) failed
+
+echo "=== 7. Chart metadata ==="
+helm show chart ./mywebapp
+
+echo "=== 8. Default values ==="
+helm show values ./mywebapp | head -20
+
+echo "=== 9. Install the chart ==="
+helm install my-webrelease ./mywebapp --wait --timeout=90s
+
+echo "=== 10. Verify deployed ==="
+helm list
+kubectl get pods -l app.kubernetes.io/instance=my-webrelease
+
+echo "=== Cleanup ==="
+helm uninstall my-webrelease
+rm -rf mywebapp`
+            }
+          },
+          {
+            id: '110.4',
+            title: 'Templating — Values, Conditionals, Loops',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Helm Templating — Values, Conditionals, Loops
+
+## Go Template Basics
+
+Helm uses Go's \`text/template\` engine. All template expressions are inside \`{{ }}\`.
+
+\`\`\`yaml
+replicas: {{ .Values.replicaCount }}
+name: {{ .Release.Name }}-{{ .Chart.Name }}
+image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default "latest" }}"
+\`\`\`
+
+## Built-in Objects
+
+| Object | Contains |
+|--------|----------|
+| \`.Values\` | Contents of values.yaml |
+| \`.Release\` | Release metadata (Name, Namespace, IsInstall) |
+| \`.Chart\` | Chart metadata (Name, Version) |
+| \`.Files\` | Access to non-template files |
+
+## Conditionals
+
+\`\`\`yaml
+{{- if .Values.resources.enabled }}
+        resources:
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+{{- end }}
+\`\`\`
+
+The \`-\` trims whitespace before/after the block.
+
+## Loops
+
+\`\`\`yaml
+env:
+{{- range .Values.env }}
+- name: {{ .name }}
+  value: {{ .value | quote }}
+{{- end }}
+\`\`\`
+
+With values:
+\`\`\`yaml
+env:
+  - name: APP_ENV
+    value: production
+  - name: LOG_LEVEL
+    value: info
+\`\`\`
+
+## toYaml & nindent
+
+For nested objects (resources, tolerations), use \`toYaml\` with \`nindent\`:
+
+\`\`\`yaml
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+\`\`\`
+
+## Helper Templates (_helpers.tpl)
+
+\`\`\`
+{{- define "myapp.fullname" -}}
+{{ .Release.Name }}-{{ .Chart.Name }}
+{{- end }}
+\`\`\`
+
+Used as: \`{{ include "myapp.fullname" . }}\`
+
+## required & default
+
+\`\`\`yaml
+image: {{ required "image.repository is required" .Values.image.repository }}
+tag: {{ .Values.image.tag | default "latest" }}
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a Helm chart with a Deployment template that uses: (1) conditional resources block based on .Values.resources.enabled, (2) range loop for env vars from .Values.env list. Add matching values.yaml and verify the template renders correctly with helm template.`,
+              boilerplate: `# Create chart: helm create condloop && cd condloop
+
+# Modify templates/deployment.yaml to add:
+# 1. Conditional resources block
+# 2. env loop
+
+# templates/deployment.yaml (relevant section)
+        containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+          {{- range .Values.env }}
+          - name: TODO
+            value: TODO
+          {{- end }}
+          {{- if .Values.resources.enabled }}
+          resources:
+            {{- toYaml .Values.resources.config | nindent 12 }}
+          {{- end }}
+
+# values.yaml additions:
+# env:
+#   - name: APP_ENV
+#     value: production
+#   - name: LOG_LEVEL
+#     value: info
+# resources:
+#   enabled: true
+#   config:
+#     requests:
+#       cpu: 50m
+#       memory: 64Mi
+#     limits:
+#       cpu: 200m
+#       memory: 128Mi`,
+              rubric: [
+                'range loop over .Values.env in template',
+                '.name and .value used inside range',
+                'if .Values.resources.enabled conditional',
+                'toYaml | nindent used for resources',
+                'values.yaml has env list with two items',
+                'values.yaml has resources.enabled: true',
+                'helm template shows env vars in output',
+                'helm template shows resources block',
+              ],
+              hints: [
+                'Inside range, use .name and .value (dot refers to the current item)',
+                'Quote string values: {{ .value | quote }}',
+                '{{- if ... }} vs {{ if ... }}: the dash removes surrounding whitespace',
+                'nindent 12 adds 12 spaces of indentation to the toYaml output',
+              ],
+              solutionCode: `#!/bin/bash
+# templating-demo.sh
+
+# Create chart
+helm create condloop
+cd condloop
+
+# Replace the container spec in templates/deployment.yaml
+cat > /tmp/deployment-patch.yaml << 'PATCH'
+          env:
+          {{- range .Values.env }}
+          - name: {{ .name | quote }}
+            value: {{ .value | quote }}
+          {{- end }}
+          {{- if .Values.resources.enabled }}
+          resources:
+            {{- toYaml .Values.resources.config | nindent 12 }}
+          {{- end }}
+PATCH
+
+# Update values.yaml
+cat >> values.yaml << 'VALUES'
+
+env:
+  - name: APP_ENV
+    value: production
+  - name: LOG_LEVEL
+    value: info
+  - name: SERVICE_NAME
+    value: myapp
+
+resources:
+  enabled: true
+  config:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+VALUES
+
+# Manually edit deployment.yaml to include the template
+# (In real workflow, edit the file directly)
+# Here we show the critical template section:
+
+cat << 'TEMPLATE'
+# In templates/deployment.yaml, under containers:
+          env:
+          {{- range .Values.env }}
+          - name: {{ .name | quote }}
+            value: {{ .value | quote }}
+          {{- end }}
+          {{- if .Values.resources.enabled }}
+          resources:
+            {{- toYaml .Values.resources.config | nindent 12 }}
+          {{- end }}
+TEMPLATE
+
+echo "=== Lint chart ==="
+helm lint .
+
+echo "=== Render with resources.enabled=true ==="
+helm template my-release . | grep -A 15 "env:"
+
+echo "=== Render with resources.enabled=false ==="
+helm template my-release . --set resources.enabled=false | grep -B 2 -A 5 "image:"
+# resources block should not appear
+
+echo "=== Render with extra env var ==="
+helm template my-release . --set-json 'env[3]={"name":"DEBUG","value":"true"}' | grep -A 10 "env:"
+
+cd ..
+rm -rf condloop`
+            }
+          },
+          {
+            id: '110.5',
+            title: 'Helm Upgrades, Rollbacks & Hooks',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Helm Upgrades, Rollbacks & Hooks
+
+## Upgrading a Release
+
+\`\`\`bash
+# Upgrade with new values
+helm upgrade my-nginx bitnami/nginx --set replicaCount=3
+
+# Upgrade to new chart version
+helm upgrade my-nginx bitnami/nginx --version 15.0.0
+
+# Upgrade with values file
+helm upgrade my-nginx bitnami/nginx -f production-values.yaml
+
+# Upgrade or install if not exists
+helm upgrade --install my-nginx bitnami/nginx
+\`\`\`
+
+## Revision History
+
+Each install and upgrade creates a new **revision**:
+
+\`\`\`bash
+helm history my-nginx
+# REVISION  STATUS     DESCRIPTION
+# 1         superseded  Install complete
+# 2         deployed    Upgrade complete
+\`\`\`
+
+## Rollback
+
+\`\`\`bash
+helm rollback my-nginx 1       # rollback to revision 1
+helm rollback my-nginx         # rollback to previous revision
+\`\`\`
+
+Rollback creates a new revision (not a revert in git sense).
+
+## Helm Hooks
+
+Hooks run Jobs at specific lifecycle points:
+
+\`\`\`yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+  annotations:
+    "helm.sh/hook": pre-upgrade          # run before upgrade
+    "helm.sh/hook-weight": "-5"          # run this hook first
+    "helm.sh/hook-delete-policy": hook-succeeded
+spec:
+  template:
+    spec:
+      containers:
+      - name: migrate
+        image: myapp:latest
+        command: [python, manage.py, migrate]
+      restartPolicy: Never
+\`\`\`
+
+### Hook Types
+
+| Hook | When |
+|------|------|
+| \`pre-install\` | Before first install |
+| \`post-install\` | After first install |
+| \`pre-upgrade\` | Before upgrade |
+| \`post-upgrade\` | After upgrade |
+| \`pre-delete\` | Before uninstall |
+| \`post-delete\` | After uninstall |
+
+Hook-delete-policy controls when the hook resource is deleted: \`hook-succeeded\`, \`hook-failed\`, or \`before-hook-creation\`.
+`,
+            codingTask: {
+              instructions: `Install a Helm chart, upgrade it with a different replicaCount, check helm history showing 2 revisions, then rollback to revision 1 and verify. Include all commands with expected output comments.`,
+              boilerplate: `#!/bin/bash
+# upgrade-rollback.sh
+
+# 1. Install nginx chart (replicaCount=1)
+# TODO: helm install
+
+# 2. Wait for it to be ready
+# TODO: helm status or kubectl wait
+
+# 3. Check initial replica count
+# TODO: kubectl get deployment
+
+# 4. Upgrade to replicaCount=3
+# TODO: helm upgrade with --set
+
+# 5. Verify upgrade
+# TODO: kubectl get deployment (should show 3 replicas)
+
+# 6. Check revision history
+# TODO: helm history
+
+# 7. Rollback to revision 1
+# TODO: helm rollback
+
+# 8. Verify rollback (should be 1 replica again)
+# TODO: kubectl get deployment
+
+# 9. Cleanup
+# TODO: helm uninstall`,
+              rubric: [
+                'helm install command for initial install',
+                'helm upgrade with --set replicaCount=3',
+                'helm history showing 2 revisions',
+                'helm rollback to revision 1',
+                'kubectl get deployment verifying replica counts',
+                'helm uninstall at end',
+              ],
+              hints: [
+                'Use --wait on install and upgrade to block until ready',
+                'helm history <release-name> shows revision table',
+                'helm rollback <release-name> <revision> (revision 1 = initial install)',
+                'helm get values my-release shows current values',
+              ],
+              solutionCode: `#!/bin/bash
+# upgrade-rollback.sh
+set -e
+
+RELEASE=demo-nginx
+
+echo "=== 1. Initial Install (replicaCount=1) ==="
+helm install $RELEASE bitnami/nginx \
+  --set replicaCount=1 \
+  --set service.type=ClusterIP \
+  --wait \
+  --timeout=120s
+
+echo "=== 2. Check initial state ==="
+kubectl get deployment -l app.kubernetes.io/instance=$RELEASE
+# Shows: READY 1/1
+
+echo "=== 3. Upgrade to replicaCount=3 ==="
+helm upgrade $RELEASE bitnami/nginx \
+  --set replicaCount=3 \
+  --set service.type=ClusterIP \
+  --wait \
+  --timeout=120s
+
+echo "=== 4. Verify upgrade ==="
+kubectl get deployment -l app.kubernetes.io/instance=$RELEASE
+# Shows: READY 3/3
+
+echo "=== 5. Check revision history ==="
+helm history $RELEASE
+# REVISION  STATUS      DESCRIPTION
+# 1         superseded  Install complete
+# 2         deployed    Upgrade complete
+
+echo "=== 6. Get current values ==="
+helm get values $RELEASE
+
+echo "=== 7. Rollback to revision 1 ==="
+helm rollback $RELEASE 1 --wait --timeout=120s
+
+echo "=== 8. Verify rollback ==="
+kubectl get deployment -l app.kubernetes.io/instance=$RELEASE
+# Shows: READY 1/1 (back to original)
+
+echo "=== 9. History after rollback ==="
+helm history $RELEASE
+# REVISION  STATUS      DESCRIPTION
+# 1         superseded  Install complete
+# 2         superseded  Upgrade complete
+# 3         deployed    Rollback to 1
+
+echo "=== 10. Cleanup ==="
+helm uninstall $RELEASE
+echo "Done!"`
+            }
+          },
+          {
+            id: '110.MP',
+            title: 'Mini-Project: Helm Two-Tier App',
+            xp: 350,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Helm Two-Tier App
+
+Build a complete Helm chart from scratch for a two-tier application (frontend + backend), with templating, values override, and lifecycle hooks.
+
+## What You'll Build
+
+A single Helm chart that deploys:
+- **Frontend**: nginx, configurable replicas
+- **Backend**: nginx (stub), configurable replicas
+- **Services**: ClusterIP for backend, NodePort for frontend
+- **Post-install Hook**: Job that verifies both services are accessible
+- **Values override**: production-values.yaml with higher replica counts
+
+## Chart Structure
+
+\`\`\`
+twotier/
+├── Chart.yaml
+├── values.yaml              # defaults: 1 replica each, NodePort 30200
+├── production-values.yaml   # overrides: 2 replicas each
+└── templates/
+    ├── frontend-deploy.yaml
+    ├── backend-deploy.yaml
+    ├── frontend-svc.yaml
+    ├── backend-svc.yaml
+    └── post-install-hook.yaml
+\`\`\`
+
+## Key Learning
+
+- Writing multi-resource charts
+- Values hierarchy (defaults vs overrides)
+- helm lint, helm template, helm install, helm upgrade --values, helm rollback
+- Post-install hooks for integration testing
+`,
+            codingTask: {
+              instructions: `Create a Helm chart "twotier" with frontend and backend Deployments, their Services, and a post-install Job hook. Write values.yaml and production-values.yaml. Show the full workflow: lint, template, install, upgrade with production values, rollback, uninstall.`,
+              boilerplate: `# Chart structure to create:
+# twotier/Chart.yaml
+# twotier/values.yaml
+# twotier/production-values.yaml
+# twotier/templates/frontend-deploy.yaml
+# twotier/templates/backend-deploy.yaml
+# twotier/templates/frontend-svc.yaml
+# twotier/templates/backend-svc.yaml
+# twotier/templates/post-install-hook.yaml
+
+# Chart.yaml
+apiVersion: v2
+name: twotier
+description: Two-tier web application
+type: application
+version: 0.1.0
+appVersion: "1.0"
+
+# values.yaml skeleton:
+# TODO: frontend.replicaCount, frontend.image, frontend.service.nodePort
+# TODO: backend.replicaCount, backend.image, backend.service.port
+
+# Commands to implement:
+# TODO: helm lint ./twotier
+# TODO: helm template release ./twotier
+# TODO: helm install twotier-dev ./twotier
+# TODO: helm upgrade with -f production-values.yaml
+# TODO: helm rollback
+# TODO: helm uninstall`,
+              rubric: [
+                'Chart.yaml with correct apiVersion and metadata',
+                'values.yaml with frontend and backend sections',
+                'Frontend Deployment template using .Values.frontend.*',
+                'Backend Deployment template using .Values.backend.*',
+                'Service templates with correct ports',
+                'Post-install Job hook with annotation',
+                'production-values.yaml overrides replica counts',
+                'helm lint passes',
+                'helm install, upgrade with -f, rollback, uninstall all shown',
+              ],
+              hints: [
+                'Post-install hook: annotations: "helm.sh/hook": post-install',
+                'Use helm.sh/hook-delete-policy: hook-succeeded to clean up Job',
+                'Templates can reference both .Values.frontend and .Values.backend',
+                'helm upgrade twotier-dev ./twotier -f production-values.yaml',
+              ],
+              solutionCode: `#!/bin/bash
+# twotier-demo.sh
+
+mkdir -p twotier/templates
+
+# Chart.yaml
+cat > twotier/Chart.yaml << 'EOF'
+apiVersion: v2
+name: twotier
+description: Two-tier frontend + backend web application
+type: application
+version: 0.1.0
+appVersion: "1.0"
+EOF
+
+# values.yaml
+cat > twotier/values.yaml << 'EOF'
+frontend:
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.25"
+  service:
+    type: NodePort
+    port: 80
+    nodePort: 30200
+
+backend:
+  replicaCount: 1
+  image:
+    repository: nginx
+    tag: "1.25"
+  service:
+    type: ClusterIP
+    port: 80
+EOF
+
+# production-values.yaml
+cat > twotier/production-values.yaml << 'EOF'
+frontend:
+  replicaCount: 2
+backend:
+  replicaCount: 2
+EOF
+
+# templates/frontend-deploy.yaml
+cat > twotier/templates/frontend-deploy.yaml << 'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-frontend
+  labels:
+    app: {{ .Release.Name }}-frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-frontend
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+EOF
+
+# templates/backend-deploy.yaml
+cat > twotier/templates/backend-deploy.yaml << 'EOF'
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-backend
+  labels:
+    app: {{ .Release.Name }}-backend
+spec:
+  replicas: {{ .Values.backend.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-backend
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-backend
+    spec:
+      containers:
+      - name: backend
+        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+EOF
+
+# templates/frontend-svc.yaml
+cat > twotier/templates/frontend-svc.yaml << 'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-frontend
+spec:
+  type: {{ .Values.frontend.service.type }}
+  selector:
+    app: {{ .Release.Name }}-frontend
+  ports:
+  - port: {{ .Values.frontend.service.port }}
+    targetPort: 80
+    nodePort: {{ .Values.frontend.service.nodePort }}
+EOF
+
+# templates/backend-svc.yaml
+cat > twotier/templates/backend-svc.yaml << 'EOF'
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-backend
+spec:
+  type: {{ .Values.backend.service.type }}
+  selector:
+    app: {{ .Release.Name }}-backend
+  ports:
+  - port: {{ .Values.backend.service.port }}
+    targetPort: 80
+EOF
+
+# templates/post-install-hook.yaml
+cat > twotier/templates/post-install-hook.yaml << 'EOF'
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-post-install-check
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-delete-policy": hook-succeeded
+    "helm.sh/hook-weight": "0"
+spec:
+  template:
+    spec:
+      containers:
+      - name: verify
+        image: busybox
+        command: ['sh', '-c', 'wget -qO- http://{{ .Release.Name }}-frontend:80 && echo "Frontend OK" && wget -qO- http://{{ .Release.Name }}-backend:80 && echo "Backend OK"']
+      restartPolicy: Never
+  backoffLimit: 3
+EOF
+
+echo "=== Lint chart ==="
+helm lint ./twotier
+
+echo "=== Render templates ==="
+helm template twotier-dev ./twotier | grep -E 'replicas:|name:|type:'
+
+echo "=== Install ==="
+helm install twotier-dev ./twotier --wait --timeout=120s
+
+echo "=== Verify (1 replica each) ==="
+kubectl get deployments | grep twotier
+
+echo "=== Upgrade with production values (2 replicas) ==="
+helm upgrade twotier-dev ./twotier -f twotier/production-values.yaml --wait --timeout=120s
+
+echo "=== Verify upgrade (2 replicas each) ==="
+kubectl get deployments | grep twotier
+
+echo "=== Helm history ==="
+helm history twotier-dev
+
+echo "=== Rollback ==="
+helm rollback twotier-dev 1 --wait --timeout=120s
+kubectl get deployments | grep twotier   # back to 1 replica
+
+echo "=== Cleanup ==="
+helm uninstall twotier-dev
+rm -rf twotier`
+            }
+          },
+        ]
+      },
+      {
+        id: 111,
+        title: 'Scaling & Advanced Workloads',
+        description: 'Scale automatically and run specialized workloads with HPA, Jobs, and DaemonSets.',
+        part: 'Part VII: Helm',
+        icon: '📈',
+        topics: [
+          {
+            id: '111.1',
+            title: 'Horizontal Pod Autoscaler (HPA)',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Horizontal Pod Autoscaler (HPA)
+
+## What is HPA?
+
+The HPA automatically scales the number of pod replicas based on observed metrics. It watches the Metrics API (requires metrics-server) and adjusts replica count to maintain target utilization.
+
+## HPA Spec
+
+\`\`\`yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50    # scale up when avg CPU > 50%
+\`\`\`
+
+## Prerequisites
+
+1. metrics-server must be running
+2. Pod must have **CPU requests** set (HPA calculates utilization as usage/request)
+
+## Monitoring HPA
+
+\`\`\`bash
+kubectl get hpa myapp-hpa -w
+# TARGETS           MINPODS  MAXPODS  REPLICAS
+# <unknown>/50%     2        10       2        # metrics not yet collected
+# 23%/50%           2        10       2        # normal
+# 89%/50%           2        10       4        # scaled up!
+\`\`\`
+
+## Scale-Down Behaviour
+
+By default, HPA waits **5 minutes** before scaling down (stabilization window). This prevents rapid flapping when load oscillates. Customize:
+
+\`\`\`yaml
+behavior:
+  scaleDown:
+    stabilizationWindowSeconds: 300
+    policies:
+    - type: Pods
+      value: 1
+      periodSeconds: 60    # scale down max 1 pod per minute
+\`\`\`
+
+## KEDA — Custom Metrics Scaling
+
+For scaling on non-CPU metrics (queue depth, Kafka lag, HTTP requests/second), use **KEDA** (Kubernetes Event-driven Autoscaling). KEDA runs as a K8s operator and adds ScaledObject CRD.
+`,
+            codingTask: {
+              instructions: `Create an nginx Deployment with CPU requests set, then create an HPA that targets 50% CPU utilization (2-10 replicas). Generate CPU load with a busybox loop to trigger autoscaling. Watch the HPA scale up.`,
+              boilerplate: `# deployment-hpa.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hpa-nginx
+  template:
+    metadata:
+      labels:
+        app: hpa-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: TODO   # must set CPU request for HPA
+            memory: TODO
+          limits:
+            cpu: TODO
+            memory: TODO
+---
+# hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-nginx
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-nginx
+  minReplicas: TODO
+  maxReplicas: TODO
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: TODO   # 50`,
+              rubric: [
+                'Deployment with CPU requests set',
+                'HPA scaleTargetRef points to Deployment',
+                'minReplicas: 2 and maxReplicas: 10',
+                'averageUtilization: 50',
+                'kubectl get hpa shows current utilization',
+                'Load generation command present',
+                'kubectl get hpa -w shows replica count increase',
+              ],
+              hints: [
+                'Enable metrics-server: minikube addons enable metrics-server',
+                'HPA targets show <unknown>/50% until metrics are collected (~60s)',
+                'Generate load: kubectl run load-gen --image=busybox --restart=Never -- sh -c "while true; do wget -qO- http://hpa-nginx; done"',
+                'Watch HPA: kubectl get hpa hpa-nginx -w',
+              ],
+              solutionCode: `# deployment-hpa.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hpa-nginx
+  template:
+    metadata:
+      labels:
+        app: hpa-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 300m
+            memory: 128Mi
+---
+# hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-nginx
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-nginx
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60   # faster scale-down for demo
+
+# Setup
+minikube addons enable metrics-server
+
+kubectl apply -f deployment-hpa.yaml
+kubectl rollout status deployment/hpa-nginx --timeout=60s
+kubectl apply -f hpa.yaml
+
+echo "Waiting 60s for metrics to be collected..."
+sleep 60
+
+echo "=== Initial HPA state ==="
+kubectl get hpa hpa-nginx
+# TARGETS: ~5%/50% with 2 replicas
+
+echo "=== Create ClusterIP service for load generator ==="
+kubectl expose deployment hpa-nginx --name=hpa-nginx-svc --port=80
+
+echo "=== Generate CPU load (run for 3 minutes) ==="
+kubectl run load-gen --image=busybox --restart=Never \
+  -- sh -c 'for i in $(seq 1 1000); do wget -qO- http://hpa-nginx-svc; done'
+
+echo "=== Watch HPA scale up (Ctrl+C when done) ==="
+kubectl get hpa hpa-nginx -w &
+HPA_PID=$!
+
+# Watch pods
+kubectl get pods -l app=hpa-nginx -w &
+PODS_PID=$!
+
+sleep 120
+kill $HPA_PID $PODS_PID 2>/dev/null
+
+echo "=== Final state ==="
+kubectl get hpa hpa-nginx
+kubectl get pods -l app=hpa-nginx
+
+echo "=== Cleanup ==="
+kubectl delete deployment hpa-nginx
+kubectl delete hpa hpa-nginx
+kubectl delete svc hpa-nginx-svc
+kubectl delete pod load-gen 2>/dev/null || true`
+            }
+          },
+          {
+            id: '111.2',
+            title: 'Jobs & CronJobs',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Jobs & CronJobs
+
+## Jobs
+
+A **Job** creates pods that run to completion. Unlike Deployments, pods are not restarted after success — they're meant to run once and terminate.
+
+\`\`\`yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-processor
+spec:
+  completions: 5         # total successful completions needed
+  parallelism: 2         # run 2 pods at a time
+  backoffLimit: 3        # retry up to 3 times on failure
+  template:
+    spec:
+      containers:
+      - name: worker
+        image: busybox
+        command: [sh, -c, 'echo Processing item; sleep 5; exit 0']
+      restartPolicy: OnFailure    # or Never
+\`\`\`
+
+## Monitoring Jobs
+
+\`\`\`bash
+kubectl get jobs
+kubectl describe job data-processor
+kubectl logs job/data-processor           # latest pod
+kubectl logs -l job-name=data-processor   # all pods
+\`\`\`
+
+## CronJobs
+
+A **CronJob** creates Jobs on a schedule (standard cron format):
+
+\`\`\`yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-job
+spec:
+  schedule: "0 2 * * *"           # 2 AM every day
+  concurrencyPolicy: Forbid        # skip if previous still running
+  successfulJobsHistoryLimit: 3    # keep 3 successful job records
+  failedJobsHistoryLimit: 1        # keep 1 failed job record
+  startingDeadlineSeconds: 300     # skip if >5m late to start
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: busybox
+            command: [sh, -c, 'echo Backing up at $(date)']
+          restartPolicy: OnFailure
+\`\`\`
+
+## concurrencyPolicy
+
+| Value | Behaviour |
+|-------|-----------|
+| \`Allow\` | Run multiple jobs concurrently |
+| \`Forbid\` | Skip new job if previous still running |
+| \`Replace\` | Kill running job, start new one |
+
+## Manual Trigger
+
+\`\`\`bash
+kubectl create job manual-run --from=cronjob/backup-job
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a CronJob that runs every minute (for demo purposes), prints the current date and node name, keeps 3 successful jobs, and has backoffLimit: 2. Verify it creates Jobs and show the output.`,
+              boilerplate: `# cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: demo-cron
+spec:
+  schedule: TODO      # every minute: "*/1 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: TODO   # 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: TODO   # 2
+      template:
+        spec:
+          containers:
+          - name: reporter
+            image: busybox
+            command:
+            - sh
+            - -c
+            - TODO  # echo date and hostname
+          restartPolicy: OnFailure
+
+# Commands:
+# TODO: apply cronjob
+# TODO: wait for first job to appear
+# TODO: show jobs created
+# TODO: show logs from completed pod`,
+              rubric: [
+                'schedule: */1 * * * * (every minute)',
+                'successfulJobsHistoryLimit: 3',
+                'failedJobsHistoryLimit: 1',
+                'backoffLimit: 2',
+                'restartPolicy: OnFailure',
+                'kubectl get jobs shows created jobs',
+                'kubectl logs shows date and hostname output',
+              ],
+              hints: [
+                'Wait 70 seconds after applying before checking for jobs',
+                'Watch jobs appear: kubectl get jobs -w',
+                'Get pod logs: kubectl logs -l job-name=<job-name>',
+                'Manually trigger: kubectl create job manual --from=cronjob/demo-cron',
+              ],
+              solutionCode: `# cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: demo-cron
+spec:
+  schedule: "*/1 * * * *"        # every minute
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  startingDeadlineSeconds: 60
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+          - name: reporter
+            image: busybox
+            command:
+            - sh
+            - -c
+            - echo "CronJob ran at $(date) on host $(hostname)"
+          restartPolicy: OnFailure
+
+# Apply
+kubectl apply -f cronjob.yaml
+kubectl get cronjob demo-cron
+
+echo "Waiting 70s for first job..."
+sleep 70
+
+echo "=== Jobs created ==="
+kubectl get jobs | grep demo-cron
+
+echo "=== Logs from completed pod ==="
+JOB=$(kubectl get jobs -l 'cronjob.kubernetes.io/cronjob-name=demo-cron' --sort-by=.metadata.creationTimestamp -o name | tail -1)
+kubectl logs $JOB
+# Output: CronJob ran at Mon Jan  1 12:01:00 UTC 2024 on host demo-cron-xxxx
+
+echo "Waiting for 2nd job..."
+sleep 65
+
+echo "=== Two jobs now ==="
+kubectl get jobs | grep demo-cron
+
+echo "=== Manually trigger a job ==="
+kubectl create job manual-run --from=cronjob/demo-cron
+kubectl wait --for=condition=complete job/manual-run --timeout=60s
+kubectl logs job/manual-run
+
+echo "=== CronJob status ==="
+kubectl describe cronjob demo-cron
+
+echo "=== Cleanup ==="
+kubectl delete cronjob demo-cron
+kubectl delete job manual-run 2>/dev/null || true`
+            }
+          },
+          {
+            id: '111.3',
+            title: 'DaemonSets — Node-Level Workloads',
+            xp: 100,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# DaemonSets — Node-Level Workloads
+
+## What is a DaemonSet?
+
+A **DaemonSet** ensures one pod runs on **every node** in the cluster (or a subset matching a nodeSelector). When a new node is added, the DaemonSet automatically schedules a pod on it.
+
+## Use Cases
+
+| Use Case | Example |
+|----------|---------|
+| Log collection | Fluentd, Promtail (one per node collects all container logs) |
+| Monitoring agent | node-exporter, Datadog agent |
+| Network plugin | CNI agents (Calico, Cilium) |
+| Storage plugin | Ceph, Gluster |
+| Security scanner | Falco, Sysdig |
+
+## DaemonSet Spec
+
+\`\`\`yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: log-collector
+spec:
+  selector:
+    matchLabels:
+      app: log-collector
+  template:
+    metadata:
+      labels:
+        app: log-collector
+    spec:
+      containers:
+      - name: fluentd
+        image: fluentd:v1.16
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log         # access node's log directory
+\`\`\`
+
+## Running on Control-Plane Nodes
+
+By default, DaemonSets don't run on control-plane nodes (tainted). To run everywhere:
+
+\`\`\`yaml
+tolerations:
+- key: node-role.kubernetes.io/control-plane
+  operator: Exists
+  effect: NoSchedule
+\`\`\`
+
+## Rolling Updates
+
+DaemonSets support rolling updates via:
+\`\`\`yaml
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1   # update one node at a time
+\`\`\`
+
+## kubectl for DaemonSets
+
+\`\`\`bash
+kubectl get daemonset
+kubectl rollout status daemonset/log-collector
+kubectl rollout restart daemonset/log-collector
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a DaemonSet that runs a busybox container on every node. The container should write the node's hostname to /var/log/node-name.log using a hostPath volume. Verify it runs on all nodes and the file is created.`,
+              boilerplate: `# node-reporter-ds.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-reporter
+spec:
+  selector:
+    matchLabels:
+      app: node-reporter
+  template:
+    metadata:
+      labels:
+        app: node-reporter
+    spec:
+      containers:
+      - name: reporter
+        image: busybox
+        command:
+        - sh
+        - -c
+        - TODO  # write hostname to /var/log/node-name.log then sleep
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+      volumes:
+      - name: varlog
+        hostPath:
+          path: TODO  # /var/log
+
+# Commands:
+# TODO: apply DaemonSet
+# TODO: verify one pod per node
+# TODO: exec into pod and cat the log file`,
+              rubric: [
+                'DaemonSet kind used',
+                'busybox command writes hostname to /var/log/node-name.log',
+                'hostPath volume /var/log mounted',
+                'volumeMount at /var/log',
+                'kubectl get daemonset shows correct DESIRED count',
+                'kubectl exec cat /var/log/node-name.log verifies file',
+              ],
+              hints: [
+                'Command: sh -c "echo $(hostname) > /var/log/node-name.log && sleep 3600"',
+                'On minikube (1 node): kubectl get daemonset shows DESIRED=1 CURRENT=1',
+                'hostPath should be /var/log (node filesystem)',
+                'DaemonSets don\'t have replicas — count is determined by node count',
+              ],
+              solutionCode: `# node-reporter-ds.yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-reporter
+spec:
+  selector:
+    matchLabels:
+      app: node-reporter
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: node-reporter
+    spec:
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: reporter
+        image: busybox
+        command:
+        - sh
+        - -c
+        - |
+          echo "Node: $(hostname), Time: $(date)" > /var/log/node-name.log
+          echo "DaemonSet pod started on $(hostname)"
+          while true; do
+            date >> /var/log/node-name.log
+            sleep 60
+          done
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+          type: DirectoryOrCreate
+
+# Apply
+kubectl apply -f node-reporter-ds.yaml
+
+# Verify (1 pod per node)
+kubectl get daemonset node-reporter
+# DESIRED=1 CURRENT=1 (1 minikube node)
+
+kubectl get pods -l app=node-reporter -o wide
+# Shows which node each pod is on
+
+kubectl rollout status daemonset/node-reporter --timeout=60s
+
+# Verify file written to node
+POD=$(kubectl get pods -l app=node-reporter -o name | head -1)
+kubectl exec $POD -- cat /var/log/node-name.log
+# Output: Node: minikube, Time: ...
+
+# On multi-node cluster: one pod per node
+# kubectl get nodes   # shows all nodes
+# kubectl get pods -l app=node-reporter -o wide   # one pod per node
+
+# Cleanup
+kubectl delete daemonset node-reporter`
+            }
+          },
+          {
+            id: '111.4',
+            title: 'StatefulSets Patterns & Headless Services',
+            xp: 125,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# StatefulSets Patterns & Headless Services
+
+## Stable DNS per Pod
+
+The headless service (clusterIP: None) combined with StatefulSet gives each pod a stable DNS:
+
+\`\`\`
+<pod-name>.<service-name>.<namespace>.svc.cluster.local
+\`\`\`
+
+Examples for StatefulSet "redis" with service "redis-svc":
+- \`redis-0.redis-svc.default.svc.cluster.local\`
+- \`redis-1.redis-svc.default.svc.cluster.local\`
+- \`redis-2.redis-svc.default.svc.cluster.local\`
+
+This DNS survives pod restarts — even if the pod is rescheduled to a different node, the DNS name stays the same.
+
+## Pod Management Policies
+
+\`\`\`yaml
+podManagementPolicy: OrderedReady    # default: sequential startup/shutdown
+podManagementPolicy: Parallel        # all pods start simultaneously (faster)
+\`\`\`
+
+Use Parallel for stateless-but-stable-name workloads; keep OrderedReady for databases.
+
+## Partition-Based Canary Updates
+
+\`\`\`yaml
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    partition: 2     # update only pods with ordinal >= 2
+\`\`\`
+
+With 3 replicas (0,1,2) and partition: 2 — only pod-2 gets updated when you change the image. Pods 0 and 1 stay on the old version. Test pod-2 in production, then set partition: 0 to roll out to all.
+
+## Scaling StatefulSets
+
+\`\`\`bash
+kubectl scale statefulset mydb --replicas=5  # scale up (in order: 3,4)
+kubectl scale statefulset mydb --replicas=2  # scale down (in order: 4,3,2 deleted)
+\`\`\`
+
+**Scale down is ordered and one-at-a-time** — K8s ensures the highest-ordinal pod is removed first.
+
+## PVC Retention
+
+When a StatefulSet is deleted, the PVCs are **NOT deleted** by default. This prevents accidental data loss. Delete them explicitly:
+
+\`\`\`bash
+kubectl delete pvc -l app=mydb
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a 3-replica StatefulSet (using busybox to write unique content per pod) with a headless Service. Verify stable DNS by exec-ing into pod-0 and reaching pod-2 by its stable DNS name. Demonstrate partition-based rolling update.`,
+              boilerplate: `# headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+spec:
+  clusterIP: None
+  selector:
+    app: redis-sts
+  ports:
+  - port: 6379
+---
+# statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis-svc
+  replicas: TODO    # 3
+  selector:
+    matchLabels:
+      app: redis-sts
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: TODO  # 2 for canary
+  template:
+    metadata:
+      labels:
+        app: redis-sts
+    spec:
+      containers:
+      - name: redis
+        image: busybox
+        command: ['sh', '-c', 'echo My name is $(hostname) > /data/id.txt && sleep 3600']
+        volumeMounts:
+        - name: data
+          mountPath: /data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: TODO  # 100Mi`,
+              rubric: [
+                'Headless service clusterIP: None',
+                'StatefulSet with 3 replicas',
+                'serviceName matches headless service',
+                'volumeClaimTemplates with storage',
+                'kubectl exec nslookup pod-2.redis-svc DNS test',
+                'kubectl exec from pod-0 reaches pod-2 by DNS',
+                'partition set for canary update demo',
+              ],
+              hints: [
+                'DNS test: kubectl exec redis-0 -- nslookup redis-2.redis-svc',
+                'Get pod-2 content: kubectl exec redis-0 -- wget -qO- http://redis-2.redis-svc:8080 (if serving HTTP)',
+                'Or just nslookup to verify DNS resolves',
+                'StatefulSet name + ordinal = pod name: redis-0, redis-1, redis-2',
+              ],
+              solutionCode: `# headless-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-svc
+spec:
+  clusterIP: None
+  selector:
+    app: redis-sts
+  ports:
+  - port: 80
+---
+# statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis-svc
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-sts
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 2    # canary: only pod with ordinal >= 2 gets new version
+  template:
+    metadata:
+      labels:
+        app: redis-sts
+    spec:
+      containers:
+      - name: redis
+        image: busybox
+        command:
+        - sh
+        - -c
+        - |
+          echo "My name is $(hostname). PVC data:" > /data/id.txt
+          cat /data/id.txt
+          sleep 3600
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 100Mi
+
+# Apply
+kubectl apply -f headless-svc.yaml
+kubectl apply -f statefulset.yaml
+
+# Watch sequential startup
+kubectl get pods -l app=redis-sts -w
+
+# Wait for all 3
+kubectl wait --for=condition=Ready pod/redis-0 pod/redis-1 pod/redis-2 --timeout=120s
+
+echo "=== Verify stable pod names ==="
+kubectl get pods -l app=redis-sts
+# redis-0  Running
+# redis-1  Running
+# redis-2  Running
+
+echo "=== Stable DNS test: pod-0 reaches pod-2 by DNS ==="
+kubectl exec redis-0 -- nslookup redis-2.redis-svc
+# Should resolve to redis-2's IP
+
+kubectl exec redis-0 -- nslookup redis-1.redis-svc.default.svc.cluster.local
+
+echo "=== Per-pod PVCs ==="
+kubectl get pvc | grep redis
+# data-redis-0  Bound
+# data-redis-1  Bound
+# data-redis-2  Bound
+
+echo "=== Partition canary update: only redis-2 gets new image ==="
+kubectl set image statefulset/redis redis=busybox:1.36
+# partition: 2 means only redis-2 is updated; redis-0 and redis-1 stay on busybox:latest
+
+sleep 10
+kubectl get pods -l app=redis-sts -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.containers[0].image}{"\n"}{end}'
+
+echo "=== Full rollout: set partition to 0 ==="
+kubectl patch statefulset redis -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":0}}}}'
+
+echo "=== Cleanup (PVCs NOT auto-deleted) ==="
+kubectl delete statefulset redis
+kubectl delete service redis-svc
+kubectl get pvc | grep redis   # still exists!
+kubectl delete pvc data-redis-0 data-redis-1 data-redis-2`
+            }
+          },
+          {
+            id: '111.5',
+            title: 'Vertical Pod Autoscaler & Cluster Autoscaler',
+            xp: 100,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Vertical Pod Autoscaler & Cluster Autoscaler
+
+## Vertical Pod Autoscaler (VPA)
+
+The **HPA** scales horizontally (more replicas). The **VPA** scales vertically — adjusting CPU/memory requests and limits on existing pods.
+
+### VPA Modes
+
+| Mode | Behaviour |
+|------|-----------|
+| **Off** | Recommend only — no automatic changes |
+| **Initial** | Set resources only when pod is first created |
+| **Auto** | Evict pods to apply new resource recommendations |
+
+\`\`\`yaml
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: myapp-vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  updatePolicy:
+    updateMode: "Off"   # just recommend, don't change
+\`\`\`
+
+\`\`\`bash
+kubectl describe vpa myapp-vpa
+# Shows: Lower Bound, Target, Upper Bound for CPU and memory
+\`\`\`
+
+**Warning**: VPA in Auto mode restarts pods. Don't use VPA Auto with HPA on the same deployment — they conflict.
+
+## Cluster Autoscaler
+
+The **Cluster Autoscaler** adds or removes nodes:
+- **Scale up**: when pods are Pending due to insufficient resources
+- **Scale down**: when nodes are underutilised for 10+ minutes
+
+### Cloud Provider Support
+
+| Cloud | Cluster Autoscaler | Modern Alternative |
+|-------|-------------------|-------------------|
+| AWS EKS | CA with Node Groups | **Karpenter** |
+| GKE | Built-in | Same CA |
+| AKS | Built-in | Same CA |
+
+### Karpenter (AWS) — The Better Choice
+
+Karpenter replaces Cluster Autoscaler on EKS:
+- Faster provisioning (seconds vs minutes)
+- Selects optimal instance type automatically
+- Consolidates workloads to reduce costs
+- Spot instance support natively
+
+### Cost Warning
+
+Cluster Autoscaler adds real EC2 instances — real costs. Always set:
+- Maximum node count limits
+- Budget alerts in AWS Cost Explorer
+- Use Spot instances for non-critical workloads
+- Delete dev clusters when not in use
+`,
+            quiz: [
+              {
+                question: 'What is the difference between HPA and VPA?',
+                options: ['HPA adjusts CPU limits, VPA adjusts replica count', 'HPA adjusts replica count, VPA adjusts resource requests/limits', 'HPA works with CPU, VPA works with memory', 'HPA is for Deployments, VPA is for StatefulSets'],
+                correctIndex: 1,
+                explanation: 'HPA scales horizontally (more/fewer pods). VPA scales vertically (bigger/smaller pods by adjusting requests and limits). They solve different problems.'
+              },
+              {
+                question: 'What does VPA "Off" mode do?',
+                options: ['Disables autoscaling completely', 'Provides recommendations without making any changes', 'Only scales down, not up', 'Only scales pods when they are first created'],
+                correctIndex: 1,
+                explanation: 'VPA Off mode generates resource recommendations but does not automatically apply them. Use it to get rightsizing recommendations without disrupting running pods.'
+              },
+              {
+                question: 'When does Cluster Autoscaler add a new node?',
+                options: ['When CPU utilization exceeds 80%', 'When pods are Pending due to insufficient resources', 'When HPA requests more replicas', 'When the admin manually triggers it'],
+                correctIndex: 1,
+                explanation: 'CA watches for Pending pods that cannot be scheduled due to resource constraints. It provisions new nodes to accommodate them.'
+              },
+              {
+                question: 'Why is Karpenter preferred over Cluster Autoscaler on EKS?',
+                options: ['It is cheaper to run', 'It is faster, selects optimal instance types, and consolidates workloads', 'It works with all cloud providers', 'It requires no configuration'],
+                correctIndex: 1,
+                explanation: 'Karpenter provisions nodes in seconds (vs minutes for CA), automatically selects the most cost-effective instance type for the pending workload, and consolidates underutilised nodes.'
+              },
+            ]
+          },
+          {
+            id: '111.MP',
+            title: 'Mini-Project: Auto-Scaling Stack',
+            xp: 350,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: Auto-Scaling Stack
+
+Combine HPA, CronJob, and DaemonSet in one cohesive demo that shows each workload type doing its job.
+
+## What You'll Build
+
+1. **Deployment + HPA**: nginx auto-scales 2→N replicas under CPU load
+2. **CronJob**: runs every 5 minutes, logs system info
+3. **DaemonSet**: writes node hostname to host filesystem every 60s
+
+## Why These Together?
+
+This mirrors a real production cluster:
+- HPA handles traffic spikes automatically
+- CronJobs run maintenance tasks (backups, cleanup, reports)
+- DaemonSets provide node-level monitoring on every node
+
+## Expected Flow
+
+\`\`\`
+t=0:  Apply all resources
+t=1:  HPA starts collecting metrics (TARGETS: unknown/60%)
+t=60: HPA shows real metrics (TARGETS: 5%/60%)
+t=65: CronJob fires first time (schedule: */5 *)
+t=90: Load generator starts — HPA sees rising CPU
+t=120: HPA scales up (REPLICAS: 2 → 4)
+t=300: Load stops — HPA scales down (stabilization: 5min)
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write all three manifests (HPA Deployment, CronJob, DaemonSet) and a bash script that applies them, generates CPU load, watches HPA scale, waits for a CronJob run, and checks DaemonSet pod logs. Clean up at the end.`,
+              boilerplate: `# scaling-stack.yaml
+
+# 1. Deployment for HPA
+# TODO: nginx Deployment with CPU requests set
+
+# 2. HPA (60% CPU target, 2-8 replicas)
+# TODO: HPA targeting the Deployment
+
+# 3. CronJob (every 5 minutes, print node and timestamp)
+# TODO: CronJob with schedule */5 * * * *
+
+# 4. DaemonSet (busybox writes hostname to /var/log/ds.log)
+# TODO: DaemonSet with hostPath /var/log
+
+---
+#!/bin/bash
+# run.sh
+
+# TODO: enable metrics-server
+# TODO: apply all resources
+# TODO: wait for pods ready
+# TODO: generate CPU load (busybox while loop)
+# TODO: watch HPA for 90s
+# TODO: wait for CronJob to fire
+# TODO: show DaemonSet pod logs
+# TODO: cleanup`,
+              rubric: [
+                'Deployment with CPU requests',
+                'HPA targeting deployment with 60% CPU and 2-8 replicas',
+                'CronJob with */5 * * * * schedule',
+                'DaemonSet with hostPath volume',
+                'minikube addons enable metrics-server',
+                'kubectl apply of all resources',
+                'Load generation command',
+                'kubectl get hpa -w watching scale',
+                'kubectl get jobs shows CronJob runs',
+                'kubectl logs DaemonSet pod',
+              ],
+              hints: [
+                'Apply all from one file: kubectl apply -f scaling-stack.yaml',
+                'Generate load: kubectl run load -- image=busybox -- sh -c "while true; do :; done"',
+                'Watch HPA: kubectl get hpa -w & then sleep 120 then kill',
+                'CronJob fires every 5 min — may need to wait; use kubectl create job for immediate test',
+              ],
+              solutionCode: `# scaling-stack.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hpa-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hpa-app
+  template:
+    metadata:
+      labels:
+        app: hpa-app
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 128Mi
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-app
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: hpa-app
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 60
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 60
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: reporter
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          containers:
+          - name: reporter
+            image: busybox
+            command: [sh, -c, 'echo "Report at $(date) from $(hostname)"']
+          restartPolicy: OnFailure
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-logger
+spec:
+  selector:
+    matchLabels:
+      app: node-logger
+  template:
+    metadata:
+      labels:
+        app: node-logger
+    spec:
+      containers:
+      - name: logger
+        image: busybox
+        command:
+        - sh
+        - -c
+        - while true; do echo "$(date): node=$(hostname)" >> /var/log/ds.log; sleep 60; done
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 20m
+            memory: 32Mi
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+
+---
+#!/bin/bash
+# run.sh
+set -e
+
+echo "=== Enable metrics-server ==="
+minikube addons enable metrics-server
+
+echo "=== Apply all resources ==="
+kubectl apply -f scaling-stack.yaml
+
+echo "=== Wait for Deployment ==="
+kubectl rollout status deployment/hpa-app --timeout=60s
+
+echo "=== Waiting 70s for metrics collection ==="
+sleep 70
+
+echo "=== Initial HPA state ==="
+kubectl get hpa hpa-app
+
+echo "=== Generate CPU load ==="
+kubectl expose deployment hpa-app --name=hpa-app-svc --port=80 2>/dev/null || true
+kubectl run load-gen --image=busybox --restart=Never \
+  -- sh -c 'while true; do wget -qO- http://hpa-app-svc 2>/dev/null; done' 2>/dev/null || true
+
+echo "=== Watch HPA for 2 minutes ==="
+kubectl get hpa hpa-app -w &
+HPA_WATCH=$!
+sleep 120
+kill $HPA_WATCH 2>/dev/null
+
+echo "=== HPA final state ==="
+kubectl get hpa hpa-app
+kubectl get pods -l app=hpa-app
+
+echo "=== Trigger CronJob manually for immediate test ==="
+kubectl create job reporter-manual --from=cronjob/reporter
+kubectl wait --for=condition=complete job/reporter-manual --timeout=30s
+kubectl logs job/reporter-manual
+
+echo "=== DaemonSet pod logs ==="
+DS_POD=$(kubectl get pods -l app=node-logger -o name | head -1)
+kubectl exec $DS_POD -- cat /var/log/ds.log
+
+echo "=== Cleanup ==="
+kubectl delete -f scaling-stack.yaml
+kubectl delete pod load-gen 2>/dev/null || true
+kubectl delete svc hpa-app-svc 2>/dev/null || true
+kubectl delete job reporter-manual 2>/dev/null || true`
+            }
+          },
+        ]
+      },
+      {
+        id: 112,
+        title: 'Production & AWS EKS',
+        description: 'Graduate to real clusters — AWS EKS, GitOps with ArgoCD, and production best practices.',
+        part: 'Part VIII: Production',
+        icon: '☁️',
+        topics: [
+          {
+            id: '112.1',
+            title: 'From minikube to Real Clusters',
+            xp: 75,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# From minikube to Real Clusters
+
+## Managed Kubernetes
+
+Running the K8s control plane yourself is complex — etcd backups, API server upgrades, network configuration. **Managed Kubernetes** services handle the control plane for you:
+
+| Provider | Service | Key Differentiator |
+|----------|---------|-------------------|
+| AWS | EKS | IAM integration, Fargate nodes |
+| Google | GKE | Most mature, Autopilot mode |
+| Azure | AKS | Active Directory integration |
+| DigitalOcean | DOKS | Simple, affordable |
+
+## What "Managed" Means
+
+The cloud provider:
+- Runs and patches the control plane (API server, scheduler, etcd)
+- Handles control plane HA across availability zones
+- Manages etcd backups
+- Provides managed node groups (auto-patching EC2s)
+
+You still manage:
+- Node group sizes and instance types
+- Application deployments
+- Networking (VPC, subnets)
+- IAM permissions
+
+## Multi-AZ for High Availability
+
+Production clusters spread nodes across 3 availability zones. If one AZ goes down:
+- Control plane still has quorum (2/3 AZs)
+- Worker nodes in other AZs continue serving traffic
+- Scheduler places new pods on healthy nodes
+
+\`\`\`yaml
+# EKS managed node group in 3 AZs
+subnets: [subnet-az1, subnet-az2, subnet-az3]
+\`\`\`
+
+## Upgrade Path
+
+1. **Control plane first**: AWS/GKE handles this, one version bump at a time
+2. **Node groups second**: rolling replacement of nodes
+3. **Applications**: should be compatible with both old and new K8s version (skew policy: ±1 minor version)
+
+## Key Differences from minikube
+
+| Feature | minikube | EKS/GKE |
+|---------|---------|---------|
+| LoadBalancer | Needs tunnel | Real cloud LB provisioned |
+| PersistentVolumes | hostPath | Cloud block storage (EBS, PD) |
+| Nodes | 1 VM | Multiple EC2/VMs |
+| IAM | Not applicable | IRSA for AWS permissions |
+| Cost | Free (local) | $72+/month (EKS control plane) |
+`,
+            quiz: [
+              {
+                question: 'What does a managed Kubernetes service (EKS, GKE) handle for you?',
+                options: ['Application deployments and scaling', 'Control plane operation, patching, and etcd backups', 'All networking including VPC setup', 'IAM roles for your applications'],
+                correctIndex: 1,
+                explanation: 'Managed K8s handles the control plane: API server, etcd, scheduler. You still manage worker nodes, applications, networking, and IAM — just not the control plane infrastructure.'
+              },
+              {
+                question: 'Why deploy nodes across multiple availability zones?',
+                options: ['To reduce network latency', 'So the cluster survives an AZ outage with minimal disruption', 'To avoid paying for reserved instances', 'To comply with data residency laws'],
+                correctIndex: 1,
+                explanation: 'Multi-AZ means an AZ failure does not take down your entire cluster. The control plane maintains quorum, and workloads reschedule to healthy AZs.'
+              },
+              {
+                question: 'What is the correct upgrade order for a managed K8s cluster?',
+                options: ['Nodes first, then control plane', 'Control plane first, then nodes', 'Both simultaneously', 'Order does not matter'],
+                correctIndex: 1,
+                explanation: 'Always upgrade the control plane first. Node kubelets must be within ±1 minor version of the API server. Upgrading nodes first could violate this constraint.'
+              },
+              {
+                question: 'What is the main cost difference between minikube and EKS?',
+                options: ['minikube uses more CPU', 'EKS charges $0.10/hr for the control plane plus EC2 node costs', 'EKS is free if you use Fargate', 'minikube costs more because it uses more disk space'],
+                correctIndex: 1,
+                explanation: 'EKS charges $0.10/hr (~$72/month) for the control plane alone, before any EC2 node costs. AWS Free Tier does NOT cover EKS. Always delete dev clusters when done.'
+              },
+            ]
+          },
+          {
+            id: '112.2',
+            title: 'AWS EKS — Setup & COST WARNINGS',
+            xp: 200,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# AWS EKS — Setup & COST WARNINGS
+
+## ⚠️ CRITICAL COST WARNING
+
+**EKS is NOT free.** Before proceeding:
+
+| Resource | Cost |
+|----------|------|
+| EKS Control Plane | $0.10/hr = **~$72/month** |
+| t3.micro node (per node) | $0.0104/hr |
+| 2-node cluster total | ~$0.12/hr = **~$86/month** |
+| EBS volumes (PVCs) | Additional |
+
+**AWS Free Tier does NOT cover EKS.** Even a 2-hour experiment costs ~$0.25. **ALWAYS delete your cluster when done.**
+
+## Prerequisites
+
+\`\`\`bash
+# 1. AWS CLI
+brew install awscli
+aws configure  # enter Access Key ID, Secret, region (e.g. us-east-1), output: json
+
+# 2. eksctl — EKS cluster manager
+brew install eksctl
+
+# 3. kubectl (already installed)
+\`\`\`
+
+## Create a Cluster
+
+\`\`\`bash
+# Minimal 2-node cluster (~$0.12/hr while running)
+eksctl create cluster \\
+  --name my-k8s-demo \\
+  --region us-east-1 \\
+  --nodegroup-name workers \\
+  --node-type t3.micro \\
+  --nodes 2 \\
+  --nodes-min 1 \\
+  --nodes-max 3
+\`\`\`
+
+This takes 15-20 minutes. eksctl creates the VPC, subnets, security groups, node group, and configures kubeconfig automatically.
+
+## Connect kubectl to EKS
+
+\`\`\`bash
+# eksctl does this automatically after create, but if needed:
+aws eks update-kubeconfig --region us-east-1 --name my-k8s-demo
+
+# Verify connection
+kubectl get nodes
+\`\`\`
+
+## ⚠️ MANDATORY CLEANUP
+
+**Do not leave clusters running.** Always delete when done:
+
+\`\`\`bash
+eksctl delete cluster --name my-k8s-demo --region us-east-1
+\`\`\`
+
+Set a calendar reminder for 2 hours after you start. Check AWS Cost Explorer next day to verify no orphaned resources.
+`,
+            codingTask: {
+              instructions: `Write a bash script that: (1) warns about costs and requires confirmation, (2) creates a 2-node EKS cluster with eksctl, (3) verifies connectivity, (4) runs a test workload, and (5) MANDATORY cleanup at the end. The cost warning must be prominent.`,
+              boilerplate: `#!/bin/bash
+# eks-demo.sh
+
+# ========================================
+# COST WARNING: EKS costs ~$0.12/hr
+# This script creates real AWS resources.
+# ALWAYS run cleanup at the end!
+# ========================================
+
+# TODO: Print cost warning
+
+# TODO: Require user to type "I UNDERSTAND THE COST" to proceed
+
+CLUSTER_NAME="k8s-demo-$(date +%s)"
+REGION="us-east-1"
+
+# TODO: Create EKS cluster with eksctl (2 x t3.micro)
+
+# TODO: Verify kubectl works (kubectl get nodes)
+
+# TODO: Deploy a simple workload
+
+# TODO: MANDATORY CLEANUP
+# Always delete cluster: eksctl delete cluster ...`,
+              rubric: [
+                'Cost warning prominently displayed',
+                'User confirmation required before proceeding',
+                'eksctl create cluster with t3.micro nodes',
+                'kubectl get nodes verification',
+                'Test workload deployed',
+                'eksctl delete cluster in cleanup',
+                'Cleanup runs even on script error (trap)',
+              ],
+              hints: [
+                'Use read -p to require confirmation input',
+                'Use trap for cleanup on exit: trap "eksctl delete cluster ..." EXIT',
+                'eksctl create cluster takes 15-20 minutes',
+                'Verify: kubectl get nodes should show 2 Ready nodes',
+              ],
+              solutionCode: `#!/bin/bash
+# eks-demo.sh — ⚠️ CREATES REAL AWS RESOURCES (~$0.12/hr)
+
+echo "=============================================="
+echo "  ⚠️  AWS EKS COST WARNING"
+echo "=============================================="
+echo ""
+echo "  This script creates:"
+echo "  - EKS Control Plane:  ~\$0.10/hr (\$72/month)"
+echo "  - 2x t3.micro nodes:  ~\$0.02/hr"
+echo "  - Total:              ~\$0.12/hr"
+echo ""
+echo "  AWS Free Tier does NOT cover EKS."
+echo "  You WILL be charged. Delete when done."
+echo ""
+echo "=============================================="
+echo ""
+
+read -p "Type 'I UNDERSTAND THE COST' to continue: " CONFIRM
+if [ "$CONFIRM" != "I UNDERSTAND THE COST" ]; then
+  echo "Aborted. No resources created."
+  exit 0
+fi
+
+CLUSTER_NAME="k8s-demo-$(date +%s)"
+REGION="us-east-1"
+
+echo ""
+echo "Cluster name: $CLUSTER_NAME"
+echo ""
+
+# Register cleanup to run on script exit
+cleanup() {
+  echo ""
+  echo "=============================================="
+  echo "  CLEANUP: Deleting EKS cluster..."
+  echo "  This takes 10-15 minutes."
+  echo "=============================================="
+  eksctl delete cluster --name $CLUSTER_NAME --region $REGION
+  echo "Cluster deleted. Check AWS Cost Explorer to verify."
+}
+trap cleanup EXIT
+
+echo "=== Creating EKS cluster (15-20 minutes) ==="
+eksctl create cluster \\
+  --name $CLUSTER_NAME \\
+  --region $REGION \\
+  --nodegroup-name workers \\
+  --node-type t3.micro \\
+  --nodes 2 \\
+  --nodes-min 1 \\
+  --nodes-max 3 \\
+  --managed
+
+echo "=== Verify connectivity ==="
+kubectl get nodes
+kubectl get nodes -o wide
+
+echo "=== Deploy test workload ==="
+kubectl create deployment hello-eks --image=nginx:1.25 --replicas=2
+kubectl expose deployment hello-eks --type=LoadBalancer --port=80
+
+echo "Waiting for deployment..."
+kubectl rollout status deployment/hello-eks --timeout=120s
+
+echo "=== LoadBalancer details (real cloud LB!) ==="
+kubectl get svc hello-eks
+echo "(Wait 2-3 minutes for EXTERNAL-IP to appear from AWS ELB)"
+
+echo "=== Cluster info ==="
+kubectl cluster-info
+kubectl get nodes
+
+echo ""
+echo "Script complete. Cleanup will run automatically on exit."
+echo "Or run: eksctl delete cluster --name $CLUSTER_NAME --region $REGION"`
+            }
+          },
+          {
+            id: '112.3',
+            title: 'EKS — IAM, ALB Ingress & EBS Storage',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# EKS — IAM, ALB Ingress & EBS Storage
+
+## IRSA — IAM Roles for ServiceAccounts
+
+On EKS, pods can access AWS services (S3, SQS, DynamoDB) **without credentials in the pod spec**. This is done via **IRSA** — attaching an IAM role to a K8s ServiceAccount.
+
+\`\`\`yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: s3-reader
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/my-s3-reader
+\`\`\`
+
+The pod uses the SA, EKS injects a web identity token, and AWS STS exchanges it for IAM credentials. No secrets in K8s!
+
+## AWS Load Balancer Controller
+
+The **AWS Load Balancer Controller** integrates K8s Services and Ingress with AWS ALB and NLB:
+
+- **Service type LoadBalancer** → provisions an NLB
+- **Ingress** → provisions an ALB (Application Load Balancer)
+
+Install via Helm:
+\`\`\`bash
+helm repo add eks https://aws.github.io/eks-charts
+helm install aws-load-balancer-controller eks/aws-load-balancer-controller \\
+  -n kube-system \\
+  --set clusterName=my-cluster \\
+  --set serviceAccount.create=false \\
+  --set serviceAccount.name=aws-load-balancer-controller
+\`\`\`
+
+## ALB Ingress
+
+\`\`\`yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-svc
+            port:
+              number: 80
+\`\`\`
+
+## EBS CSI Driver & gp3 Storage
+
+EKS needs the **EBS CSI driver** for PersistentVolumes backed by Amazon EBS:
+
+\`\`\`yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-gp3
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3           # General Purpose SSD (cheaper than gp2)
+  encrypted: "true"
+volumeBindingMode: WaitForFirstConsumer  # provision in same AZ as pod
+\`\`\`
+
+\`\`\`bash
+eksctl create addon --name aws-ebs-csi-driver --cluster my-cluster
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write the YAML for: (1) an EBS gp3 StorageClass for EKS, (2) a PVC using it, (3) a Deployment using the PVC, and (4) an ALB Ingress. These manifests work on EKS after the EBS CSI driver and AWS LB Controller are installed.`,
+              boilerplate: `# ebs-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-gp3
+provisioner: TODO   # ebs.csi.aws.com
+parameters:
+  type: TODO         # gp3
+  encrypted: "true"
+volumeBindingMode: TODO   # WaitForFirstConsumer
+---
+# ebs-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+spec:
+  storageClassName: ebs-gp3
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: TODO   # 10Gi
+---
+# app-deployment.yaml (uses the PVC)
+# TODO: nginx Deployment mounting the PVC at /data
+---
+# alb-ingress.yaml
+# TODO: Ingress with ALB annotations
+# kubernetes.io/ingress.class: alb
+# alb.ingress.kubernetes.io/scheme: internet-facing`,
+              rubric: [
+                'StorageClass provisioner: ebs.csi.aws.com',
+                'type: gp3 parameter',
+                'WaitForFirstConsumer volumeBindingMode',
+                'PVC using ebs-gp3 storageClassName',
+                'Deployment mounts PVC',
+                'Ingress with kubernetes.io/ingress.class: alb annotation',
+                'alb.ingress.kubernetes.io/scheme: internet-facing',
+              ],
+              hints: [
+                'provisioner: ebs.csi.aws.com (not k8s.io/aws-ebs which is the legacy in-tree driver)',
+                'WaitForFirstConsumer ensures EBS is created in same AZ as the scheduled pod',
+                'ALB Ingress requires AWS Load Balancer Controller installed on cluster',
+                'For NLB instead of ALB: use service.beta.kubernetes.io/aws-load-balancer-type: nlb',
+              ],
+              solutionCode: `# ebs-storageclass.yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-gp3
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  encrypted: "true"
+  iops: "3000"
+  throughput: "125"
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete
+allowVolumeExpansion: true
+---
+# ebs-pvc.yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-data
+spec:
+  storageClassName: ebs-gp3
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 10Gi
+---
+# app-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eks-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eks-app
+  template:
+    metadata:
+      labels:
+        app: eks-app
+    spec:
+      containers:
+      - name: app
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: app-data
+---
+# app-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: eks-app-svc
+spec:
+  selector:
+    app: eks-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+# alb-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: eks-app-ingress
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: eks-app-svc
+            port:
+              number: 80
+
+# Apply (requires EKS cluster with EBS CSI driver and AWS LB Controller)
+# kubectl apply -f ebs-storageclass.yaml
+# kubectl apply -f ebs-pvc.yaml
+# kubectl apply -f app-deployment.yaml
+# kubectl apply -f app-service.yaml
+# kubectl apply -f alb-ingress.yaml
+
+# Check ALB creation (takes 2-3 minutes)
+# kubectl get ingress eks-app-ingress
+# EXTERNAL-IP shows the ALB DNS name
+
+# Check EBS volume
+# kubectl get pvc app-data   # STATUS: Bound
+# kubectl get pv             # shows the EBS volume`
+            }
+          },
+          {
+            id: '112.4',
+            title: 'GitOps with ArgoCD',
+            xp: 175,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# GitOps with ArgoCD
+
+## What is GitOps?
+
+**GitOps** = Git as the single source of truth for your cluster's desired state. Changes to the cluster happen by merging a pull request, not by running \`kubectl apply\` directly.
+
+Benefits:
+- Full audit trail (git history)
+- Easy rollback (git revert)
+- Drift detection (cluster vs git divergence)
+- No direct cluster access needed for deployments
+
+## ArgoCD
+
+**ArgoCD** is a declarative GitOps tool for Kubernetes. It watches a git repository and automatically syncs the cluster to match.
+
+\`\`\`
+git push → ArgoCD detects change → applies to cluster
+\`\`\`
+
+## Installing ArgoCD
+
+\`\`\`bash
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+# Wait for pods
+kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=argocd-server -n argocd --timeout=120s
+\`\`\`
+
+## ArgoCD Application CRD
+
+\`\`\`yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: my-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/myorg/k8s-manifests
+    targetRevision: main
+    path: apps/my-app                # directory with YAML files
+  destination:
+    server: https://kubernetes.default.svc  # this cluster
+    namespace: production
+  syncPolicy:
+    automated:
+      prune: true        # delete resources removed from git
+      selfHeal: true     # revert manual kubectl changes
+    syncOptions:
+    - CreateNamespace=true
+\`\`\`
+
+## ArgoCD UI
+
+\`\`\`bash
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+# Open https://localhost:8080
+# Username: admin
+# Password: kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d
+\`\`\`
+
+## ArgoCD CLI
+
+\`\`\`bash
+brew install argocd
+argocd login localhost:8080 --username admin --insecure
+argocd app list
+argocd app sync my-app
+argocd app status my-app
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Install ArgoCD on your minikube cluster, write an Application manifest pointing to a public example repo (use argoproj/argocd-example-apps), and sync it. Show how to access the ArgoCD UI and check sync status.`,
+              boilerplate: `#!/bin/bash
+# argocd-demo.sh
+
+# 1. Install ArgoCD
+# TODO: create argocd namespace
+# TODO: apply ArgoCD manifests
+# TODO: wait for argocd-server to be ready
+
+# 2. Get admin password
+# TODO: kubectl get secret argocd-initial-admin-secret
+
+# 3. Port-forward ArgoCD UI
+# TODO: kubectl port-forward in background
+
+---
+# argocd-application.yaml
+# TODO: ArgoCD Application pointing to argoproj/argocd-example-apps
+# path: guestbook (it's a simple nginx guestbook)
+# destination: namespace guestbook (with CreateNamespace=true)
+
+---
+# Commands:
+# TODO: apply the Application
+# TODO: watch sync status (argocd app get guestbook or kubectl get application -n argocd)
+# TODO: verify pods running in guestbook namespace`,
+              rubric: [
+                'kubectl create namespace argocd',
+                'kubectl apply ArgoCD install manifest',
+                'Wait for argocd-server ready',
+                'Application CRD with source repoURL',
+                'source.path: guestbook',
+                'destination.namespace set',
+                'syncPolicy.automated configured',
+                'kubectl port-forward for UI access',
+                'argocd app get or kubectl get application verification',
+              ],
+              hints: [
+                'ArgoCD example apps repo: https://github.com/argoproj/argocd-example-apps',
+                'Guestbook path: guestbook',
+                'Verify: kubectl get application -n argocd or argocd app list',
+                'Watch: kubectl get pods -n guestbook -w (should appear after sync)',
+              ],
+              solutionCode: `#!/bin/bash
+# argocd-demo.sh
+
+echo "=== 1. Install ArgoCD ==="
+kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+echo "Waiting for ArgoCD pods (2-3 minutes)..."
+kubectl wait --for=condition=Ready pod \
+  -l app.kubernetes.io/name=argocd-server \
+  -n argocd \
+  --timeout=180s
+
+echo "=== 2. Get admin password ==="
+ARGOCD_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath='{.data.password}' | base64 -d)
+echo "ArgoCD password: $ARGOCD_PWD"
+
+echo "=== 3. Port-forward UI (background) ==="
+kubectl port-forward svc/argocd-server -n argocd 8080:443 &
+PF_PID=$!
+sleep 3
+echo "ArgoCD UI: https://localhost:8080 (accept self-signed cert)"
+echo "Username: admin | Password: $ARGOCD_PWD"
+
+echo "=== 4. Create ArgoCD Application ==="
+kubectl apply -f - << 'EOF'
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps
+    targetRevision: master
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+EOF
+
+echo "=== 5. Wait for sync ==="
+sleep 30
+
+echo "=== 6. Check application status ==="
+kubectl get application guestbook -n argocd
+kubectl get application guestbook -n argocd -o jsonpath='{.status.sync.status}'
+
+echo "=== 7. Verify pods deployed ==="
+kubectl get pods -n guestbook
+
+echo "=== 8. Optional: ArgoCD CLI ==="
+if command -v argocd &>/dev/null; then
+  argocd login localhost:8080 \
+    --username admin \
+    --password "$ARGOCD_PWD" \
+    --insecure
+  argocd app list
+  argocd app get guestbook
+fi
+
+echo "=== Cleanup ==="
+kill $PF_PID 2>/dev/null
+kubectl delete application guestbook -n argocd
+kubectl delete namespace guestbook
+kubectl delete namespace argocd`
+            }
+          },
+          {
+            id: '112.5',
+            title: 'Production Checklist & Cost Control',
+            xp: 125,
+            assessmentType: 'quiz' as AssessmentType,
+            content: `# Production Checklist & Cost Control
+
+## The Production Checklist
+
+Before going live, verify these are in place:
+
+### Workload Hardening
+- [ ] **Namespaces** — resources isolated in dedicated namespaces
+- [ ] **RBAC** — least-privilege ServiceAccounts
+- [ ] **ResourceQuotas** — prevent resource exhaustion per namespace
+- [ ] **LimitRange** — defaults for containers without explicit limits
+- [ ] **Liveness & Readiness probes** — zero-downtime deploys
+- [ ] **Non-root containers** — runAsNonRoot: true
+- [ ] **Read-only root filesystem** — readOnlyRootFilesystem: true
+- [ ] **PodDisruptionBudgets** — minimum available during node maintenance
+- [ ] **NetworkPolicies** — restrict pod-to-pod communication
+
+### Cluster Hardening
+- [ ] **etcd encryption** — secrets encrypted at rest
+- [ ] **Pod Security Standards** — namespace-level policies
+- [ ] **Audit logging** — API server audit trail
+- [ ] **Multi-AZ node groups** — survive AZ failure
+- [ ] **Control plane private endpoint** — no public API server
+
+### Observability
+- [ ] **Metrics**: Prometheus + Grafana
+- [ ] **Logs**: Loki or ELK, centralised
+- [ ] **Traces**: Jaeger or Tempo
+- [ ] **Alerts**: PagerDuty/OpsGenie integration
+
+## Cost Control on AWS
+
+### Immediate Actions
+- Enable **AWS Cost Explorer** — daily cost breakdown
+- Set **Billing Alerts** via CloudWatch (e.g. alert if >$100/day)
+- Use **Spot instances** for non-critical workloads (70-90% cheaper)
+- Use **Reserved instances** for stable production workloads (30-60% discount)
+
+### Cluster Rightsizing
+- Use **VPA Off** mode to get recommendations without restarts
+- Use **Karpenter** instead of Cluster Autoscaler for faster scale-down
+- Enable **Spot consolidation** in Karpenter's NodePool
+
+### ALWAYS Delete Dev Clusters
+
+\`\`\`bash
+# Check running clusters (never leave these running overnight)
+eksctl get cluster --region us-east-1
+
+# Delete a cluster
+eksctl delete cluster --name my-demo --region us-east-1
+
+# Verify no orphaned node groups or load balancers
+aws ec2 describe-instances --filters "Name=tag:alpha.eksctl.io/cluster-name,Values=my-demo"
+\`\`\`
+
+### PodDisruptionBudget
+
+\`\`\`yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-pdb
+spec:
+  minAvailable: 2      # keep at least 2 pods running during disruption
+  selector:
+    matchLabels:
+      app: myapp
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'What does a PodDisruptionBudget do?',
+                options: ['Limits pod CPU usage', 'Ensures a minimum number of pods stay running during voluntary disruptions like node drains', 'Prevents pods from being created beyond a quota', 'Restricts which nodes pods can schedule on'],
+                correctIndex: 1,
+                explanation: 'PDBs ensure that during voluntary disruptions (node maintenance, rolling updates) at least minAvailable pods remain running, preventing service outages during planned operations.'
+              },
+              {
+                question: 'Which deployment type typically gets the most discount from Spot instances?',
+                options: ['Postgres databases', 'Non-critical batch processing and stateless web tier replicas', 'Single-replica stateful services', 'The ArgoCD controller'],
+                correctIndex: 1,
+                explanation: 'Spot instances can be interrupted with 2 minutes notice. They are safe for stateless, scalable workloads that can lose instances gracefully — like batch jobs and extra replicas of stateless services.'
+              },
+              {
+                question: 'What is the first thing to check if your AWS bill is unexpectedly high?',
+                options: ['kubectl top pods', 'AWS Cost Explorer for daily resource breakdown', 'EKS control plane logs', 'Kubernetes Events in all namespaces'],
+                correctIndex: 1,
+                explanation: 'AWS Cost Explorer shows daily cost breakdown by service, region, and resource. It is the first place to look for billing surprises — forgotten clusters, oversized instances, or unexpected data transfer.'
+              },
+              {
+                question: 'Why does WaitForFirstConsumer volumeBindingMode matter on EKS?',
+                options: ['It prevents unauthorized PVC creation', 'It delays EBS creation until a pod is scheduled, ensuring the EBS is in the same AZ as the pod', 'It makes PVC provisioning faster', 'It prevents two pods from using the same EBS volume'],
+                correctIndex: 1,
+                explanation: 'EBS volumes are AZ-specific. If the PV is provisioned before the pod is scheduled, it may end up in a different AZ than the pod, causing a scheduling failure. WaitForFirstConsumer solves this by waiting for the pod placement first.'
+              },
+            ]
+          },
+          {
+            id: '112.MP',
+            title: 'Mini-Project: EKS Production Deploy',
+            xp: 350,
+            assessmentType: 'coding' as AssessmentType,
+            content: `# Mini-Project: EKS Production Deploy
+
+Deploy a Helm chart to a real AWS EKS cluster with full production hardening.
+
+## ⚠️ MAJOR COST WARNING
+
+This project creates real AWS resources:
+
+| Resource | Cost |
+|----------|------|
+| EKS Control Plane | $0.10/hr |
+| 2x t3.small nodes | $0.041/hr |
+| ALB (if used) | $0.008/hr + LCU |
+| **TOTAL** | **~$0.15/hr** |
+
+**You MUST delete the cluster when done. Set a timer.**
+
+## What You'll Deploy
+
+1. EKS cluster (2 x t3.small)
+2. EBS CSI driver addon
+3. Helm chart (from chapter 110 or bitnami/nginx)
+4. Verify the deployment is accessible
+5. MANDATORY: delete the cluster
+
+## Key Skills Demonstrated
+
+- eksctl for cluster lifecycle management
+- kubectl for workload deployment
+- Helm for packaging
+- AWS cloud integration
+
+## Learning Outcome
+
+After this project you understand the full journey: from \`minikube start\` in Chapter 101 to a production EKS cluster serving real traffic from AWS.
+`,
+            codingTask: {
+              instructions: `Write a complete bash script that creates an EKS cluster (guarded by cost confirmation), deploys a Helm chart, verifies the deployment, and then MANDATORILY deletes the cluster. Include a trap for cleanup on unexpected exit.`,
+              boilerplate: `#!/bin/bash
+# eks-production-deploy.sh
+
+# ============================================
+# ⚠️  COST WARNING: ~$0.15/hr AWS charges
+# ============================================
+
+# TODO: Print detailed cost warning
+
+# TODO: Require user input "I UNDERSTAND THE COST" to proceed
+
+CLUSTER_NAME="prod-demo-$(date +%s)"
+REGION="us-east-1"
+
+# TODO: Set up trap for cleanup on EXIT
+
+# TODO: Create EKS cluster (eksctl)
+
+# TODO: Install EBS CSI driver addon
+
+# TODO: Deploy bitnami/nginx via Helm
+
+# TODO: Wait and verify deployment
+
+# TODO: Check LoadBalancer external IP
+
+# TODO: Cleanup function (delete cluster)
+# NEVER skip this step!`,
+              rubric: [
+                'Cost warning clearly displayed with dollar amounts',
+                'read -p confirmation requiring specific text',
+                'trap for cleanup on script exit',
+                'eksctl create cluster with appropriate instance type',
+                'eksctl create addon for EBS CSI driver',
+                'helm install for the workload',
+                'kubectl rollout status verification',
+                'kubectl get svc verification for external IP',
+                'eksctl delete cluster in cleanup',
+                'aws ec2 describe-instances verification after cleanup',
+              ],
+              hints: [
+                'trap "eksctl delete cluster --name $CLUSTER_NAME --region $REGION" EXIT',
+                'EBS CSI driver: eksctl create addon --name aws-ebs-csi-driver --cluster $CLUSTER_NAME',
+                'Helm install with --wait blocks until pods are ready',
+                'Get LoadBalancer IP: kubectl get svc -l app.kubernetes.io/instance=my-release -o jsonpath="{.items[0].status.loadBalancer.ingress[0].hostname}"',
+              ],
+              solutionCode: `#!/bin/bash
+# eks-production-deploy.sh
+# ⚠️ Creates real AWS resources — see cost warning below
+
+echo ""
+echo "=========================================================="
+echo "  ⚠️  EKS PRODUCTION DEPLOY — REAL AWS COSTS"
+echo "=========================================================="
+echo ""
+echo "  Resources this script creates:"
+echo "  • EKS Control Plane:  \$0.10/hr  (~\$72/month)"
+echo "  • 2x t3.small nodes:  \$0.041/hr (~\$30/month)"
+echo "  • Network Load Balancer: \$0.008/hr + LCU costs"
+echo "  • Total estimated:    ~\$0.15/hr"
+echo ""
+echo "  ⚠️  AWS Free Tier does NOT cover EKS."
+echo "  ⚠️  Set a timer. DELETE the cluster when done."
+echo "  ⚠️  Cluster name includes timestamp for easy identification."
+echo ""
+echo "=========================================================="
+echo ""
+read -p "Type 'I UNDERSTAND THE COST' to create the cluster: " CONFIRM
+if [ "$CONFIRM" != "I UNDERSTAND THE COST" ]; then
+  echo "Aborted. No AWS resources created."
+  exit 0
+fi
+
+CLUSTER_NAME="prod-demo-$(date +%s)"
+REGION="us-east-1"
+RELEASE_NAME="myapp"
+
+echo ""
+echo "Cluster name: $CLUSTER_NAME (note this for manual cleanup)"
+echo ""
+
+# ALWAYS cleanup on exit (success, error, or Ctrl+C)
+cleanup() {
+  local exit_code=$?
+  echo ""
+  echo "=========================================================="
+  echo "  MANDATORY CLEANUP: Deleting EKS cluster..."
+  echo "  This takes 10-15 minutes."
+  echo "  DO NOT close this terminal until complete."
+  echo "=========================================================="
+  helm uninstall $RELEASE_NAME 2>/dev/null || true
+  eksctl delete cluster --name $CLUSTER_NAME --region $REGION
+
+  echo ""
+  echo "Verifying cleanup..."
+  aws ec2 describe-instances \
+    --filters "Name=tag:alpha.eksctl.io/cluster-name,Values=$CLUSTER_NAME" \
+    --query 'Reservations[].Instances[].InstanceId' \
+    --output text
+
+  echo "Cleanup complete. Check AWS Cost Explorer tomorrow to verify \$0 charges."
+  exit $exit_code
+}
+trap cleanup EXIT
+
+set -e
+
+echo "=== Step 1: Create EKS cluster (15-20 minutes) ==="
+eksctl create cluster \\
+  --name $CLUSTER_NAME \\
+  --region $REGION \\
+  --nodegroup-name workers \\
+  --node-type t3.small \\
+  --nodes 2 \\
+  --nodes-min 1 \\
+  --nodes-max 4 \\
+  --managed \\
+  --asg-access
+
+echo "=== Step 2: Verify connectivity ==="
+kubectl get nodes
+kubectl get nodes -o wide
+
+echo "=== Step 3: Install EBS CSI driver ==="
+eksctl create addon \\
+  --name aws-ebs-csi-driver \\
+  --cluster $CLUSTER_NAME \\
+  --region $REGION
+
+echo "=== Step 4: Add Helm repos ==="
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update
+
+echo "=== Step 5: Deploy nginx via Helm ==="
+helm install $RELEASE_NAME bitnami/nginx \\
+  --set replicaCount=2 \\
+  --set service.type=LoadBalancer \\
+  --wait \\
+  --timeout=300s
+
+echo "=== Step 6: Verify deployment ==="
+kubectl get deployment -l app.kubernetes.io/instance=$RELEASE_NAME
+kubectl get pods -l app.kubernetes.io/instance=$RELEASE_NAME
+helm status $RELEASE_NAME
+
+echo "=== Step 7: Wait for LoadBalancer IP ==="
+echo "Waiting for AWS NLB to provision (2-3 minutes)..."
+for i in $(seq 1 18); do
+  EXTERNAL=$(kubectl get svc -l app.kubernetes.io/instance=$RELEASE_NAME \
+    -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+  if [ -n "$EXTERNAL" ]; then
+    echo "External URL: http://$EXTERNAL"
+    break
+  fi
+  echo "Waiting... ($i/18)"
+  sleep 10
+done
+
+echo "=== Step 8: Test the deployment ==="
+if [ -n "$EXTERNAL" ]; then
+  sleep 30  # DNS propagation
+  curl -s --max-time 10 http://$EXTERNAL | grep -i welcome || echo "HTTP test complete"
+fi
+
+echo ""
+echo "=========================================================="
+echo "  Deployment successful!"
+echo "  Cluster: $CLUSTER_NAME"
+echo "  App URL: http://$EXTERNAL"
+echo ""
+echo "  The cleanup trap will now DELETE the cluster."
+echo "  Do not close this terminal."
+echo "=========================================================="`
+            }
+          },
+        ]
+      },
     ],
     project: {
       id: 'k8s-production-deploy',

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
 import { getLevelForXp, getXpProgress, getNextLevel } from '@/lib/gamification'
-import { Flame, LogOut, Menu, X, Settings } from 'lucide-react'
+import { Flame, LogOut, Menu, X, Settings, Zap, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Header() {
@@ -14,91 +14,108 @@ export default function Header() {
   const progress = profile ? getXpProgress(profile.xp) : { current: 0, needed: 300, percentage: 0 }
   const nextLevel = profile ? getNextLevel(profile.xp) : null
 
-  if (loading) {
-    return (
-      <header className="bg-gray-900 border-b border-gray-800 h-16" />
-    )
-  }
+  if (loading) return (
+    <header className="h-16 border-b border-white/[0.06] bg-[#080b14]/80 backdrop-blur-xl" />
+  )
 
   return (
-    <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#080b14]/80 backdrop-blur-xl">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
+
         {/* Logo */}
-        <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2 shrink-0">
-          <span className="text-2xl">🦜</span>
-          <span className="text-lg font-bold text-white hidden sm:inline">PromptPath</span>
+        <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 shrink-0 group">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-105 transition-transform">
+            <span className="text-base leading-none">🦜</span>
+          </div>
+          <span className="text-base font-bold hidden sm:inline bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">
+            PromptPath
+          </span>
         </Link>
 
         {user && profile ? (
           <>
-            {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">
+            {/* Desktop HUD */}
+            <div className="hidden md:flex items-center gap-2 flex-1 justify-end">
+
+              {/* Nav links */}
+              <Link href="/dashboard" className="text-sm text-white/60 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.06] transition-all">
                 Dashboard
               </Link>
-              <Link href="/courses" className="text-gray-300 hover:text-white text-sm font-medium transition-colors">
+              <Link href="/courses" className="text-sm text-white/60 hover:text-white px-3 py-1.5 rounded-lg hover:bg-white/[0.06] transition-all">
                 Courses
               </Link>
 
-              {/* Streak */}
-              <div className="flex items-center gap-1.5 text-sm">
-                <Flame className={`w-4 h-4 ${(profile.current_streak || 0) > 0 ? 'text-orange-400' : 'text-gray-600'}`} />
-                <span className={`font-medium ${(profile.current_streak || 0) > 0 ? 'text-orange-400' : 'text-gray-500'}`}>
-                  {profile.current_streak || 0}
-                </span>
+              <div className="w-px h-5 bg-white/10 mx-1" />
+
+              {/* Streak badge */}
+              <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-semibold ${
+                (profile.current_streak || 0) > 0
+                  ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                  : 'bg-white/[0.04] border-white/[0.08] text-white/30'
+              }`}>
+                <Flame className="w-4 h-4" />
+                {profile.current_streak || 0}
               </div>
 
-              {/* Level & XP bar */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                    Lv.{level.level}
-                  </span>
-                  <span className="text-xs text-gray-400">{level.title}</span>
+              {/* XP + Level */}
+              <div className="flex items-center gap-2 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-1.5">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                    {level.level}
+                  </div>
+                  <span className="text-xs text-white/50 hidden lg:inline">{level.title}</span>
                 </div>
-                <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
+
+                {/* Mini XP bar */}
+                <div className="w-20 h-1.5 bg-white/10 rounded-full overflow-hidden hidden lg:block">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                    className="xp-bar h-full rounded-full transition-all duration-700"
                     style={{ width: `${progress.percentage}%` }}
                   />
                 </div>
-                <span className="text-xs text-gray-500">
-                  {profile.xp} XP
-                  {nextLevel && ` / ${nextLevel.xpRequired}`}
-                </span>
+
+                <div className="flex items-center gap-1 text-xs text-amber-400 font-semibold">
+                  <Zap className="w-3 h-3" />
+                  {profile.xp.toLocaleString()}
+                </div>
               </div>
 
-              {/* User */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-300">{profile.display_name}</span>
-                <Link
-                  href="/settings"
-                  className="relative text-gray-500 hover:text-gray-300 transition-colors"
-                  title="Settings"
-                >
-                  <Settings className="w-4 h-4" />
-                  {!profile.has_openrouter_key && (
-                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />
-                  )}
-                </Link>
-                <button onClick={signOut} className="text-gray-500 hover:text-gray-300 transition-colors">
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
+              <div className="w-px h-5 bg-white/10 mx-1" />
+
+              {/* Settings */}
+              <Link
+                href="/settings"
+                className="relative p-2 rounded-lg text-white/40 hover:text-white hover:bg-white/[0.06] transition-all"
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+                {!profile.has_openrouter_key && (
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full ring-2 ring-[#080b14]" />
+                )}
+              </Link>
+
+              {/* Sign out */}
+              <button
+                onClick={signOut}
+                className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-500/[0.08] transition-all"
+                title="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Mobile menu button */}
-            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-gray-300">
-              {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {/* Mobile toggle */}
+            <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden p-2 text-white/60 hover:text-white">
+              {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </>
         ) : (
-          <div className="flex items-center gap-3">
-            <Link href="/auth/login" className="text-gray-300 hover:text-white text-sm font-medium">
+          <div className="flex items-center gap-2">
+            <Link href="/auth/login" className="text-sm text-white/60 hover:text-white px-3 py-1.5 transition-colors">
               Sign In
             </Link>
-            <Link href="/auth/signup" className="bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-              Get Started
+            <Link href="/auth/signup" className="flex items-center gap-1 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all shadow-lg shadow-emerald-500/25">
+              Get Started <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         )}
@@ -106,33 +123,63 @@ export default function Header() {
 
       {/* Mobile dropdown */}
       {menuOpen && user && profile && (
-        <div className="md:hidden bg-gray-900 border-t border-gray-800 px-4 py-4 space-y-4">
+        <div className="md:hidden border-t border-white/[0.06] bg-[#080b14]/95 backdrop-blur-xl px-4 py-5 space-y-5">
+          {/* HUD row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full">
-                Lv.{level.level} {level.title}
-              </span>
-              <Flame className={`w-4 h-4 ${(profile.current_streak || 0) > 0 ? 'text-orange-400' : 'text-gray-600'}`} />
-              <span className="text-sm text-orange-400">{profile.current_streak || 0}</span>
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">
+                {level.level}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-white">{level.title}</p>
+                <p className="text-xs text-white/40">{profile.xp.toLocaleString()} XP</p>
+              </div>
             </div>
-            <span className="text-sm text-gray-400">{profile.xp} XP</span>
+            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-sm font-bold ${
+              (profile.current_streak || 0) > 0
+                ? 'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                : 'bg-white/[0.04] border-white/[0.08] text-white/30'
+            }`}>
+              <Flame className="w-4 h-4" /> {profile.current_streak || 0}
+            </div>
           </div>
-          <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full"
-              style={{ width: `${progress.percentage}%` }}
-            />
+
+          {/* XP bar */}
+          <div className="w-full h-2 bg-white/[0.08] rounded-full overflow-hidden">
+            <div className="xp-bar h-full rounded-full" style={{ width: `${progress.percentage}%` }} />
           </div>
-          <nav className="flex flex-col gap-2">
-            <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Dashboard</Link>
-            <Link href="/courses" onClick={() => setMenuOpen(false)} className="text-gray-300 hover:text-white py-2">Courses</Link>
-            <Link href="/settings" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 text-gray-300 hover:text-white py-2">
+
+          {/* Nav */}
+          <nav className="flex flex-col gap-1">
+            {[
+              { href: '/dashboard', label: 'Dashboard' },
+              { href: '/courses', label: 'Courses' },
+            ].map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMenuOpen(false)}
+                className="px-3 py-2.5 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
+              >
+                {label}
+              </Link>
+            ))}
+            <Link
+              href="/settings"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/[0.06] transition-all"
+            >
               Settings
               {!profile.has_openrouter_key && (
-                <span className="text-xs text-amber-400 bg-amber-900/20 border border-amber-700/30 px-2 py-0.5 rounded-full">Key missing</span>
+                <span className="text-xs text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">Key missing</span>
               )}
             </Link>
-            <button onClick={() => { signOut(); setMenuOpen(false) }} className="text-left text-gray-400 hover:text-red-400 py-2">Sign Out</button>
+            <button
+              onClick={() => { signOut(); setMenuOpen(false) }}
+              className="text-left px-3 py-2.5 rounded-xl text-sm text-red-400/70 hover:text-red-400 hover:bg-red-500/[0.08] transition-all"
+            >
+              Sign Out
+            </button>
           </nav>
         </div>
       )}
