@@ -71,8 +71,8 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                             isActive
                               ? 'bg-emerald-500/10 text-emerald-300 font-medium'
                               : isCompleted
-                              ? 'text-white/55 hover:text-white/80'
-                              : 'text-white/45 hover:text-white/75'
+                              ? 'text-white/70 hover:text-white/90'
+                              : 'text-white/60 hover:text-white/90'
                           }`}
                         >
                           <span className="shrink-0 mt-0.5">
@@ -88,10 +88,10 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                           </span>
                         </Link>
                       ) : (
-                        <div className={`${baseRow} text-white/40 cursor-not-allowed`}>
-                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/30" />
+                        <div className={`${baseRow} text-white/60 cursor-not-allowed`}>
+                          <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/50" />
                           <span className="break-words min-w-0">
-                            <span className="text-white/25 mr-1">{topic.id}</span>
+                            <span className="text-white/40 mr-1">{topic.id}</span>
                             {topic.title}
                           </span>
                         </div>
@@ -136,8 +136,8 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                         isActive
                           ? 'bg-amber-500/10 text-amber-300 font-medium'
                           : isCompleted
-                          ? 'text-white/55 hover:text-white/80'
-                          : 'text-white/45 hover:text-white/75'
+                          ? 'text-white/70 hover:text-white/90'
+                          : 'text-white/60 hover:text-white/90'
                       }`}
                     >
                       <span className="shrink-0 mt-0.5">
@@ -149,8 +149,8 @@ export default function Sidebar({ courseId }: { courseId: string }) {
                       <span className="break-words min-w-0">{milestone.title}</span>
                     </Link>
                   ) : (
-                    <div className={`${baseRow} text-white/40 cursor-not-allowed`}>
-                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/30" />
+                    <div className={`${baseRow} text-white/60 cursor-not-allowed`}>
+                      <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-white/50" />
                       <span className="break-words min-w-0">{milestone.title}</span>
                     </div>
                   )}
