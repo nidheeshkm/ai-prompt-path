@@ -26,6 +26,7 @@ type Props = {
   topicId: string
   topicTitle: string
   isCompleted: boolean
+  bestScore?: number
   onComplete: (score: number) => Promise<void>
   language?: 'python' | 'yaml' | 'bash' | 'typescript' | 'javascript'
   hasKey?: boolean
@@ -80,7 +81,7 @@ function CopyButton({ code }: { code: string }) {
   )
 }
 
-export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onComplete, language = 'python', hasKey }: Props) {
+export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bestScore = 0, onComplete, language = 'python', hasKey }: Props) {
   const [code, setCode] = useState(task.boilerplate)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -166,6 +167,22 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, onC
 
   return (
     <div className="space-y-5">
+      {/* Completion banner */}
+      {isCompleted && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-4 flex items-center gap-4">
+          <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-emerald-800 text-sm">Challenge completed</p>
+            {bestScore > 0 && (
+              <p className="text-xs text-emerald-600 mt-0.5">Best score: <span className="font-bold">{bestScore}%</span></p>
+            )}
+          </div>
+          <span className="text-xs text-emerald-600 bg-white border border-emerald-200 px-3 py-1 rounded-full font-medium">
+            Resubmit to improve score
+          </span>
+        </div>
+      )}
+
       {/* Instructions + Rubric checklist */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
         <h3 className="font-semibold text-slate-900 mb-3">Instructions</h3>

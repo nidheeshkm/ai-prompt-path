@@ -197,6 +197,7 @@ export default function TopicPage() {
                   topicId={topic.id}
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
+                  bestScore={topicProgress?.score ?? 0}
                   onComplete={handleComplete}
                   hasKey={profile?.has_openrouter_key}
                 />
@@ -239,6 +240,7 @@ export default function TopicPage() {
                   questions={topic.quiz}
                   topicId={topic.id}
                   isCompleted={isCompleted}
+                  bestScore={topicProgress?.score ?? 0}
                   onComplete={handleComplete}
                   hasKey={profile?.has_openrouter_key}
                 />
@@ -248,6 +250,7 @@ export default function TopicPage() {
                   topicId={topic.id}
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
+                  bestScore={topicProgress?.score ?? 0}
                   onComplete={handleComplete}
                   hasKey={profile?.has_openrouter_key}
                 />
