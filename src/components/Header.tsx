@@ -15,11 +15,11 @@ export default function Header() {
   const nextLevel = profile ? getNextLevel(profile.xp) : null
 
   if (loading) return (
-    <header className="h-16 border-b border-white/[0.06] bg-[#080b14]/80 backdrop-blur-xl" />
+    <header className="h-16 border-b border-white/[0.08] bg-[#0d1117]/85 backdrop-blur-xl" />
   )
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#080b14]/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#0d1117]/85 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
         {/* Logo */}
@@ -123,7 +123,7 @@ export default function Header() {
 
       {/* Mobile dropdown */}
       {menuOpen && user && profile && (
-        <div className="md:hidden border-t border-white/[0.06] bg-[#080b14]/95 backdrop-blur-xl px-4 py-5 space-y-5">
+        <div className="md:hidden border-t border-white/[0.08] bg-[#0d1117]/95 backdrop-blur-xl px-4 py-5 space-y-5">
           {/* HUD row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
