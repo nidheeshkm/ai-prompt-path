@@ -201,7 +201,7 @@ export default function TopicPage() {
                   bestScore={topicProgress?.score ?? 0}
                   storedSubmission={topicProgress?.submission?.type === 'coding' ? topicProgress.submission as CodingSubmission : null}
                   onComplete={handleComplete}
-                  hasKey={profile?.has_openrouter_key}
+                  hasKey={profile?.has_api_key}
                 />
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function TopicPage() {
                   bestScore={topicProgress?.score ?? 0}
                   storedSubmission={topicProgress?.submission?.type === 'quiz' ? topicProgress.submission as QuizSubmission : null}
                   onComplete={handleComplete}
-                  hasKey={profile?.has_openrouter_key}
+                  hasKey={profile?.has_api_key}
                 />
               ) : topic.codingTask ? (
                 <CodeEditor
@@ -256,7 +256,7 @@ export default function TopicPage() {
                   bestScore={topicProgress?.score ?? 0}
                   storedSubmission={topicProgress?.submission?.type === 'coding' ? topicProgress.submission as CodingSubmission : null}
                   onComplete={handleComplete}
-                  hasKey={profile?.has_openrouter_key}
+                  hasKey={profile?.has_api_key}
                 />
               ) : (
                 <div className="glass rounded-2xl p-10 text-center">

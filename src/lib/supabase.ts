@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+import type { Provider } from './providers'
+export type { Provider } from './providers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 // Accept both the new Supabase publishable key name and the legacy anon key name
@@ -20,8 +22,10 @@ export type Profile = {
   longest_streak: number
   last_activity_date: string | null
   created_at: string
-  // Never the actual key — just whether one is configured (derived server-side)
-  has_openrouter_key: boolean
+  // Raw keys never reach the browser — only derived metadata
+  active_provider: Provider | null
+  configured_providers: Provider[]
+  has_api_key: boolean  // true when active_provider has a key stored
 }
 
 export type QuizSubmission = { type: 'quiz'; answers: number[] }

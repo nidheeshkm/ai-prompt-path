@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
-import { supabase, type Profile } from './supabase'
+import { supabase, type Profile, type Provider } from './supabase'
 import type { User } from '@supabase/supabase-js'
 
 type AuthState = {
@@ -25,18 +25,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const KEY_SELECT = 'id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, active_provider, openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key'
+
+  // Strip all raw keys and derive safe metadata for the browser
+  function deriveProfile(raw: Record<string, unknown>): Profile {
+    const {
+      openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key,
+      active_provider,
+      ...rest
+    } = raw
+
+    const configured_providers: Provider[] = []
+    if (openrouter_api_key) configured_providers.push('openrouter')
+    if (openai_api_key) configured_providers.push('openai')
+    if (anthropic_api_key) configured_providers.push('anthropic')
+    if (groq_api_key) configured_providers.push('groq')
+    if (xai_api_key) configured_providers.push('xai')
+
+    // active_provider defaults to first configured provider, then openrouter
+    const resolved = (active_provider as Provider | null) ?? configured_providers[0] ?? null
+
+    const keyMap: Record<string, unknown> = {
+      openrouter: openrouter_api_key,
+      openai: openai_api_key,
+      anthropic: anthropic_api_key,
+      groq: groq_api_key,
+      xai: xai_api_key,
+    }
+    const has_api_key = Boolean(resolved && keyMap[resolved])
+
+    return { ...rest, active_provider: resolved, configured_providers, has_api_key } as Profile
+  }
+
   const fetchProfile = useCallback(async (userId: string) => {
-    // Select every column EXCEPT openrouter_api_key — the raw secret must never
-    // reach the browser. We derive a boolean flag from its presence instead.
     const { data: existing } = await supabase
       .from('profiles')
-      .select('id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, openrouter_api_key')
+      .select(KEY_SELECT)
       .eq('id', userId)
       .single()
 
     if (existing) {
-      const { openrouter_api_key, ...rest } = existing
-      setProfile({ ...rest, has_openrouter_key: Boolean(openrouter_api_key) })
+      setProfile(deriveProfile(existing as Record<string, unknown>))
       return
     }
 
@@ -55,12 +84,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       level: 1,
       current_streak: 0,
       longest_streak: 0,
-    }, { onConflict: 'id' }).select('id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, openrouter_api_key').single()
+    }, { onConflict: 'id' }).select(KEY_SELECT).single()
 
     if (created) {
-      const { openrouter_api_key, ...rest } = created
-      setProfile({ ...rest, has_openrouter_key: Boolean(openrouter_api_key) })
+      setProfile(deriveProfile(created as Record<string, unknown>))
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const refreshProfile = useCallback(async () => {
