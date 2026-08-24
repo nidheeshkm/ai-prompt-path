@@ -6,8 +6,8 @@ import { EnrollmentProvider } from '@/lib/enrollment-context'
 import Header from '@/components/Header'
 
 export const metadata: Metadata = {
-  title: 'PromptPath — Zero to Hero',
-  description: 'Master LangChain, LangGraph, and LangSmith through hands-on lessons, quizzes, and coding challenges.',
+  title: 'PromptPath — Learn by Doing',
+  description: 'Build real IT skills through structured lessons, AI-graded coding challenges, and mastery-gated progression.',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
