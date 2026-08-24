@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { PROVIDER_CONFIG } from '@/lib/providers'
+import type { Provider } from '@/lib/providers'
 
 export async function POST(request: Request) {
   try {
@@ -10,9 +12,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // ── Resolve the API key server-side — never accept it from the client ────
-    // Prefer the user's own stored key (fetched via their session cookie).
-    // Fall back to the app-level env key only for development/admin use.
+    // ── Resolve provider + key server-side — never accept from the client ────
+    let provider: Provider = 'openrouter'
     let apiKey = process.env.OPENROUTER_API_KEY ?? ''
 
     const cookieStore = await cookies()
@@ -30,22 +31,36 @@ export async function POST(request: Request) {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('openrouter_api_key')
+        .select('active_provider, openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key')
         .eq('id', user.id)
         .single()
 
-      if (profile?.openrouter_api_key) {
-        apiKey = profile.openrouter_api_key
+      if (profile) {
+        const activeProvider = (profile.active_provider || 'openrouter') as Provider
+        const keyMap: Record<Provider, string | null> = {
+          openrouter: profile.openrouter_api_key,
+          openai: profile.openai_api_key,
+          anthropic: profile.anthropic_api_key,
+          groq: profile.groq_api_key,
+          xai: profile.xai_api_key,
+        }
+        const userKey = keyMap[activeProvider]
+        if (userKey) {
+          provider = activeProvider
+          apiKey = userKey
+        }
       }
     }
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'no_key', message: 'OpenRouter API key not configured. Please add your key in Settings.' },
+        { error: 'no_key', message: 'No AI provider key configured. Please add your key in Settings.' },
         { status: 401 }
       )
     }
     // ─────────────────────────────────────────────────────────────────────────
+
+    const cfg = PROVIDER_CONFIG[provider]
 
     const systemPrompt = `You are a LangChain expert reviewing a student's Python code.
 You are strict but encouraging. Evaluate the code against the rubric and return ONLY valid JSON.
@@ -67,32 +82,60 @@ Evaluate and return JSON in this exact format (no markdown, no code fences):
   }
 }`
 
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://promptpath.vercel.app',
-        'X-Title': 'PromptPath',
-      },
-      body: JSON.stringify({
-        model: 'openrouter/auto',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `STUDENT CODE:\n\`\`\`python\n${code}\n\`\`\`` },
-        ],
-        temperature: 0.3,
-        max_tokens: 1000,
-      }),
-    })
+    const userMessage = `STUDENT CODE:\n\`\`\`python\n${code}\n\`\`\``
 
-    if (!response.ok) {
-      console.error('OpenRouter error:', response.status)
-      return NextResponse.json(fallbackReview(code, rubric))
+    let content: string
+
+    if (cfg.format === 'anthropic') {
+      const response = await fetch(cfg.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: cfg.model,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userMessage }],
+          temperature: 0.3,
+          max_tokens: 1000,
+        }),
+      })
+      if (!response.ok) {
+        console.error(`${provider} error:`, response.status)
+        return NextResponse.json(fallbackReview(code, rubric))
+      }
+      const data = await response.json()
+      content = data.content?.[0]?.text || ''
+    } else {
+      const response = await fetch(cfg.url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          ...(provider === 'openrouter' ? {
+            'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://promptpath.vercel.app',
+            'X-Title': 'PromptPath',
+          } : {}),
+        },
+        body: JSON.stringify({
+          model: cfg.model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          temperature: 0.3,
+          max_tokens: 1000,
+        }),
+      })
+      if (!response.ok) {
+        console.error(`${provider} error:`, response.status)
+        return NextResponse.json(fallbackReview(code, rubric))
+      }
+      const data = await response.json()
+      content = data.choices?.[0]?.message?.content || ''
     }
-
-    const data = await response.json()
-    const content = data.choices?.[0]?.message?.content || ''
 
     let parsed
     try {
@@ -113,10 +156,7 @@ Evaluate and return JSON in this exact format (no markdown, no code fences):
     })
   } catch (err) {
     console.error('Review API error:', err)
-    return NextResponse.json(
-      { error: 'Failed to review code' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to review code' }, { status: 500 })
   }
 }
 
@@ -142,11 +182,9 @@ function fallbackReview(code: string, rubric: string[]) {
     else { improvements.push(`Ensure: ${item}`) }
   })
 
-  score = Math.min(100, score)
-
   return {
-    score,
-    passed: score >= 70,
+    score: Math.min(100, score),
+    passed: Math.min(100, score) >= 70,
     feedback: {
       correct: correct.length ? correct : ['Code submitted for review'],
       improvements: improvements.length ? improvements : ['Consider adding more detail to your implementation'],

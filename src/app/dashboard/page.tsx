@@ -70,7 +70,7 @@ export default function DashboardPage() {
         </div>
 
         {/* OpenRouter key banner */}
-        {!profile.has_openrouter_key && (
+        {!profile.has_api_key && (
           <div className="flex items-start gap-4 bg-amber-50 border border-amber-200 rounded-2xl p-5">
             <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
               <AlertTriangle className="w-5 h-5 text-amber-600" />

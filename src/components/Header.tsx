@@ -88,7 +88,7 @@ export default function Header() {
                 title="Settings"
               >
                 <Settings className="w-4 h-4" />
-                {!profile.has_openrouter_key && (
+                {!profile.has_api_key && (
                   <span className="absolute top-1 right-1 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white" />
                 )}
               </Link>
@@ -169,7 +169,7 @@ export default function Header() {
               className="flex items-center justify-between px-3 py-2.5 rounded-xl text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all"
             >
               Settings
-              {!profile.has_openrouter_key && (
+              {!profile.has_api_key && (
                 <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Key missing</span>
               )}
             </Link>

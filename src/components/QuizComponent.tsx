@@ -34,9 +34,9 @@ export default function QuizComponent({ questions, topicId, isCompleted, bestSco
           <Key className="w-6 h-6 text-amber-500" />
         </div>
         <div>
-          <h3 className="text-slate-900 font-semibold mb-1">OpenRouter key required</h3>
+          <h3 className="text-slate-900 font-semibold mb-1">AI provider key required</h3>
           <p className="text-sm text-slate-500 max-w-xs">
-            Add your free OpenRouter key in Settings to unlock quizzes and progress through the course.
+            Add a free OpenRouter or Groq key in Settings to unlock quizzes and progress through the course.
           </p>
         </div>
         <Link
