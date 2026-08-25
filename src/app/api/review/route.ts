@@ -4,6 +4,8 @@ import { cookies } from 'next/headers'
 import { PROVIDER_CONFIG } from '@/lib/providers'
 import type { Provider } from '@/lib/providers'
 import { redis } from '@/lib/upstash'
+import { createAdminClient } from '@/server/supabase-admin'
+import { decryptApiKey } from '@/server/crypto'
 
 const IDEM_TTL_SECONDS = 300 // 5 minutes
 
@@ -40,23 +42,23 @@ export async function POST(request: Request) {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('active_provider, openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key')
+        .select('active_provider')
         .eq('id', user.id)
         .single()
 
-      if (profile) {
-        const activeProvider = (profile.active_provider || 'openrouter') as Provider
-        const keyMap: Record<Provider, string | null> = {
-          openrouter: profile.openrouter_api_key,
-          openai: profile.openai_api_key,
-          anthropic: profile.anthropic_api_key,
-          groq: profile.groq_api_key,
-          xai: profile.xai_api_key,
-        }
-        const userKey = keyMap[activeProvider]
-        if (userKey) {
+      if (profile?.active_provider) {
+        const activeProvider = profile.active_provider as Provider
+        const admin = createAdminClient()
+        const { data: row } = await admin
+          .from('provider_keys')
+          .select('encrypted_key')
+          .eq('user_id', user.id)
+          .eq('provider', activeProvider)
+          .single()
+
+        if (row?.encrypted_key) {
           provider = activeProvider
-          apiKey = userKey
+          apiKey = await decryptApiKey(row.encrypted_key)
         }
       }
     }

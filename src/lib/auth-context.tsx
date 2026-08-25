@@ -25,47 +25,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const KEY_SELECT = 'id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, active_provider, openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key'
+  const PROFILE_SELECT = 'id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, active_provider'
 
-  // Strip all raw keys and derive safe metadata for the browser
-  function deriveProfile(raw: Record<string, unknown>): Profile {
-    const {
-      openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key,
-      active_provider,
-      ...rest
-    } = raw
-
-    const configured_providers: Provider[] = []
-    if (openrouter_api_key) configured_providers.push('openrouter')
-    if (openai_api_key) configured_providers.push('openai')
-    if (anthropic_api_key) configured_providers.push('anthropic')
-    if (groq_api_key) configured_providers.push('groq')
-    if (xai_api_key) configured_providers.push('xai')
-
-    // active_provider defaults to first configured provider, then openrouter
-    const resolved = (active_provider as Provider | null) ?? configured_providers[0] ?? null
-
-    const keyMap: Record<string, unknown> = {
-      openrouter: openrouter_api_key,
-      openai: openai_api_key,
-      anthropic: anthropic_api_key,
-      groq: groq_api_key,
-      xai: xai_api_key,
-    }
-    const has_api_key = Boolean(resolved && keyMap[resolved])
-
-    return { ...rest, active_provider: resolved, configured_providers, has_api_key } as Profile
+  function buildProfile(raw: Record<string, unknown>, keyRows: { provider: string }[]): Profile {
+    const configured_providers = keyRows.map(r => r.provider as Provider)
+    const active = (raw.active_provider as Provider | null) ?? configured_providers[0] ?? null
+    const has_api_key = Boolean(active && configured_providers.includes(active))
+    return { ...raw, active_provider: active, configured_providers, has_api_key } as Profile
   }
 
   const fetchProfile = useCallback(async (userId: string) => {
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select(KEY_SELECT)
-      .eq('id', userId)
-      .single()
+    const [{ data: existing }, { data: keyRows }] = await Promise.all([
+      supabase.from('profiles').select(PROFILE_SELECT).eq('id', userId).single(),
+      supabase.from('provider_keys').select('provider').eq('user_id', userId),
+    ])
 
     if (existing) {
-      setProfile(deriveProfile(existing as Record<string, unknown>))
+      setProfile(buildProfile(existing as Record<string, unknown>, keyRows ?? []))
       return
     }
 
@@ -84,10 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       level: 1,
       current_streak: 0,
       longest_streak: 0,
-    }, { onConflict: 'id' }).select(KEY_SELECT).single()
+    }, { onConflict: 'id' }).select(PROFILE_SELECT).single()
 
     if (created) {
-      setProfile(deriveProfile(created as Record<string, unknown>))
+      setProfile(buildProfile(created as Record<string, unknown>, []))
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
-import { supabase } from '@/lib/supabase'
 import { PROVIDER_CONFIG, PROVIDERS, validateKeyFormat } from '@/lib/providers'
 import type { Provider } from '@/lib/providers'
 import {
@@ -254,27 +253,20 @@ export default function SettingsPage() {
     if (!user) return
     const s = states[provider]
     const trimmed = s.input.trim()
-    if (trimmed && s.formatError) return
+    if (!trimmed || s.formatError) return
 
     update(provider, { saving: true, saveMsg: null })
 
-    const col = PROVIDER_CONFIG[provider].dbColumn
-    const isFirstKey = !profile?.configured_providers?.length
-    const shouldSetActive = trimmed && (isFirstKey || !profile?.active_provider)
+    const res = await fetch('/api/keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, key: trimmed }),
+    })
 
-    const patch: Record<string, unknown> = { [col]: trimmed || null }
-    if (shouldSetActive) patch.active_provider = provider
-    if (!trimmed && profile?.active_provider === provider) {
-      // Removing the active provider's key — clear active_provider
-      patch.active_provider = profile.configured_providers.find(p => p !== provider) ?? null
-    }
-
-    const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
-
-    if (error) {
+    if (!res.ok) {
       update(provider, { saving: false, saveMsg: { type: 'err', text: 'Failed to save. Please try again.' } })
     } else {
-      update(provider, { saving: false, input: '', saveMsg: { type: 'ok', text: trimmed ? 'Key saved.' : 'Key removed.' } })
+      update(provider, { saving: false, input: '', saveMsg: { type: 'ok', text: 'Key saved.' } })
       await refreshProfile()
     }
   }
@@ -283,14 +275,13 @@ export default function SettingsPage() {
     if (!user) return
     update(provider, { removing: true, saveMsg: null })
 
-    const col = PROVIDER_CONFIG[provider].dbColumn
-    const patch: Record<string, unknown> = { [col]: null }
-    if (profile?.active_provider === provider) {
-      patch.active_provider = profile.configured_providers.find(p => p !== provider) ?? null
-    }
+    const res = await fetch('/api/keys', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider }),
+    })
 
-    const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
-    if (error) {
+    if (!res.ok) {
       update(provider, { removing: false, saveMsg: { type: 'err', text: 'Failed to remove key.' } })
     } else {
       update(provider, { removing: false, input: '', saveMsg: { type: 'ok', text: 'Key removed.' } })
@@ -301,7 +292,11 @@ export default function SettingsPage() {
   async function handleSetActive(provider: Provider) {
     if (!user) return
     update(provider, { settingActive: true })
-    await supabase.from('profiles').update({ active_provider: provider }).eq('id', user.id)
+    await fetch('/api/keys', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider }),
+    })
     await refreshProfile()
     update(provider, { settingActive: false })
   }
