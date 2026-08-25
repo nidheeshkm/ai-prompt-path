@@ -66,12 +66,18 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   useEffect(() => { fetchProgress() }, [fetchProgress])
 
   // Backfill XP for users whose progress table has completed topics but profile.xp is 0.
-  // This repairs accounts where the profiles UPDATE silently failed (e.g. missing RLS policy).
+  // Runs after BOTH profile AND progressMap are loaded (all three in deps).
   useEffect(() => {
     if (!user || !profile || loading) return
+
     const completedTopics = Object.values(progressMap).filter(p => p.status === 'completed')
     const completedMilestones = Object.values(milestoneMap).filter(m => m.status === 'completed')
-    if ((profile.xp || 0) > 0 || (completedTopics.length + completedMilestones.length) === 0) return
+    const completedCount = completedTopics.length + completedMilestones.length
+
+    // Nothing to backfill
+    if ((profile.xp ?? 0) > 0 || completedCount === 0) return
+
+    const userId = user.id
 
     async function backfillXp() {
       const { getLevelForXp } = await import('./gamification')
@@ -85,20 +91,37 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
         if (milestone) totalXp += milestone.xp
       }
       if (totalXp === 0) return
+
       const newLevel = getLevelForXp(totalXp).level
-      const { error } = await supabase.from('profiles').update({
-        xp: totalXp,
-        level: newLevel,
-      }).eq('id', user!.id)
+      console.info(`[PromptPath] Backfilling XP: ${completedCount} completed items → ${totalXp} XP`)
+
+      const { error, data } = await supabase
+        .from('profiles')
+        .update({ xp: totalXp, level: newLevel })
+        .eq('id', userId)
+        .select('xp, level')
+
       if (error) {
-        console.error('[PromptPath] XP backfill failed — profiles UPDATE is blocked. Run migration 004_profiles_rls.sql in your Supabase dashboard.', error.message)
+        console.error(
+          '[PromptPath] XP backfill FAILED — profiles UPDATE blocked.\n' +
+          'Run migration 008_fix_profiles_rls.sql in Supabase SQL Editor.\n' +
+          `Error: ${error.message} (code: ${error.code})`
+        )
+      } else if (!data || data.length === 0) {
+        console.warn(
+          '[PromptPath] XP backfill: UPDATE ran but no rows were modified.\n' +
+          'The RLS policy is likely missing WITH CHECK. Run migration 008_fix_profiles_rls.sql.'
+        )
       } else {
+        console.info('[PromptPath] XP backfill success →', data[0])
         await refreshProfile()
       }
     }
+
     backfillXp()
+  // progressMap and milestoneMap in deps so effect re-runs once they load
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, profile?.xp, loading])
+  }, [user?.id, profile?.xp, loading, progressMap, milestoneMap])
 
   const isTopicUnlocked = useCallback((courseId: string, topicId: string): boolean => {
     const allTopics = getCourseTopics(courseId)
