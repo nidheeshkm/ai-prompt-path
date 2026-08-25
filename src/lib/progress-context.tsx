@@ -65,6 +65,41 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { fetchProgress() }, [fetchProgress])
 
+  // Backfill XP for users whose progress table has completed topics but profile.xp is 0.
+  // This repairs accounts where the profiles UPDATE silently failed (e.g. missing RLS policy).
+  useEffect(() => {
+    if (!user || !profile || loading) return
+    const completedTopics = Object.values(progressMap).filter(p => p.status === 'completed')
+    const completedMilestones = Object.values(milestoneMap).filter(m => m.status === 'completed')
+    if ((profile.xp || 0) > 0 || (completedTopics.length + completedMilestones.length) === 0) return
+
+    async function backfillXp() {
+      const { getLevelForXp } = await import('./gamification')
+      let totalXp = 0
+      for (const entry of completedTopics) {
+        const topic = getCourseTopics(entry.course_id).find(t => t.id === entry.topic_id)
+        if (topic) totalXp += topic.xp
+      }
+      for (const entry of completedMilestones) {
+        const milestone = getCourse(entry.course_id)?.project.milestones.find(m => m.id === entry.milestone_id)
+        if (milestone) totalXp += milestone.xp
+      }
+      if (totalXp === 0) return
+      const newLevel = getLevelForXp(totalXp).level
+      const { error } = await supabase.from('profiles').update({
+        xp: totalXp,
+        level: newLevel,
+      }).eq('id', user!.id)
+      if (error) {
+        console.error('[PromptPath] XP backfill failed — profiles UPDATE is blocked. Run migration 004_profiles_rls.sql in your Supabase dashboard.', error.message)
+      } else {
+        await refreshProfile()
+      }
+    }
+    backfillXp()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profile?.xp, loading])
+
   const isTopicUnlocked = useCallback((courseId: string, topicId: string): boolean => {
     const allTopics = getCourseTopics(courseId)
     const idx = allTopics.findIndex(t => t.id === topicId)
@@ -111,35 +146,47 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       ...(isNewBest && submission ? { submission } : {}),
     }, { onConflict: 'user_id,course_id,topic_id' })
 
-    if (!existing || existing.status !== 'completed') {
-      const { getStreakMultiplier, getLevelForXp } = await import('./gamification')
-      const multiplier = getStreakMultiplier(profile.current_streak || 0)
+    // Streak updates on every submission (retakes count as activity).
+    // XP and badges only awarded on first-time completion.
+    const { getStreakMultiplier, getLevelForXp } = await import('./gamification')
+
+    const today = new Date().toISOString().split('T')[0]
+    const lastActivity = profile.last_activity_date
+    let newStreak = profile.current_streak || 0
+    let longestStreak = profile.longest_streak || 0
+
+    if (lastActivity !== today) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      newStreak = lastActivity === yesterdayStr ? newStreak + 1 : 1
+      longestStreak = Math.max(longestStreak, newStreak)
+    }
+
+    if (!alreadyCompleted) {
+      const multiplier = getStreakMultiplier(newStreak)
       const xpEarned = Math.round(topic.xp * multiplier)
       const newXp = (profile.xp || 0) + xpEarned
       const newLevel = getLevelForXp(newXp).level
 
-      const today = new Date().toISOString().split('T')[0]
-      const lastActivity = profile.last_activity_date
-      let newStreak = profile.current_streak || 0
-      let longestStreak = profile.longest_streak || 0
-
-      if (lastActivity !== today) {
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
-        newStreak = lastActivity === yesterdayStr ? newStreak + 1 : 1
-        longestStreak = Math.max(longestStreak, newStreak)
-      }
-
-      await supabase.from('profiles').update({
+      const { error: profileErr } = await supabase.from('profiles').update({
         xp: newXp,
         level: newLevel,
         current_streak: newStreak,
         longest_streak: longestStreak,
         last_activity_date: today,
       }).eq('id', user.id)
+      if (profileErr) console.error('[PromptPath] profiles UPDATE failed:', profileErr.message, profileErr.code)
 
       await checkAndAwardBadges(user.id, courseId, topicId, score, attempts, newStreak)
+    } else if (lastActivity !== today) {
+      // Returning learner on a new day — update streak/activity only, no XP.
+      const { error: streakErr } = await supabase.from('profiles').update({
+        current_streak: newStreak,
+        longest_streak: longestStreak,
+        last_activity_date: today,
+      }).eq('id', user.id)
+      if (streakErr) console.error('[PromptPath] streak UPDATE failed:', streakErr.message, streakErr.code)
     }
 
     await fetchProgress()
@@ -167,34 +214,45 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       completed_at: new Date().toISOString(),
     }, { onConflict: 'user_id,course_id,milestone_id' })
 
-    if (!existing || existing.status !== 'completed') {
-      const { getStreakMultiplier, getLevelForXp } = await import('./gamification')
-      const multiplier = getStreakMultiplier(profile.current_streak || 0)
+    const alreadyCompletedMilestone = existing?.status === 'completed'
+
+    // Streak updates on every submission. XP only on first completion.
+    const { getStreakMultiplier, getLevelForXp } = await import('./gamification')
+
+    const today = new Date().toISOString().split('T')[0]
+    const lastActivity = profile.last_activity_date
+    let newStreak = profile.current_streak || 0
+    let longestStreak = profile.longest_streak || 0
+
+    if (lastActivity !== today) {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+      newStreak = lastActivity === yesterdayStr ? newStreak + 1 : 1
+      longestStreak = Math.max(longestStreak, newStreak)
+    }
+
+    if (!alreadyCompletedMilestone) {
+      const multiplier = getStreakMultiplier(newStreak)
       const xpEarned = Math.round(milestone.xp * multiplier)
       const newXp = (profile.xp || 0) + xpEarned
       const newLevel = getLevelForXp(newXp).level
 
-      const today = new Date().toISOString().split('T')[0]
-      const lastActivity = profile.last_activity_date
-      let newStreak = profile.current_streak || 0
-      let longestStreak = profile.longest_streak || 0
-
-      if (lastActivity !== today) {
-        const yesterday = new Date()
-        yesterday.setDate(yesterday.getDate() - 1)
-        const yesterdayStr = yesterday.toISOString().split('T')[0]
-        newStreak = lastActivity === yesterdayStr ? newStreak + 1 : 1
-        longestStreak = Math.max(longestStreak, newStreak)
-      }
-
-      await supabase.from('profiles').update({
+      const { error: profileErr } = await supabase.from('profiles').update({
         xp: newXp, level: newLevel,
         current_streak: newStreak, longest_streak: longestStreak,
         last_activity_date: today,
       }).eq('id', user.id)
+      if (profileErr) console.error('[PromptPath] profiles UPDATE failed:', profileErr.message, profileErr.code)
 
-      // Check if entire course is now complete (all topics + all milestones)
       await checkCourseCompletion(user.id, courseId)
+    } else if (lastActivity !== today) {
+      const { error: streakErr } = await supabase.from('profiles').update({
+        current_streak: newStreak,
+        longest_streak: longestStreak,
+        last_activity_date: today,
+      }).eq('id', user.id)
+      if (streakErr) console.error('[PromptPath] streak UPDATE failed:', streakErr.message, streakErr.code)
     }
 
     await fetchProgress()
