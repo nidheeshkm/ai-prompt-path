@@ -94,6 +94,80 @@ export function getCourseLevel(
   }
 }
 
+// ── Learning pace tracker ────────────────────────────────────────
+// Weights reflect realistic effort: coding tasks take ~1.5× a quiz,
+// mini-projects ~2.5×, and capstone milestones ~3×.
+const TOPIC_WEIGHT: Record<string, number> = {
+  quiz:           1.0,
+  coding:         1.5,
+  'mini-project': 2.5,
+}
+const MILESTONE_WEIGHT = 3.0
+
+export type PaceLabel = 'not-started' | 'paused' | 'slow' | 'steady' | 'fast' | 'blazing'
+
+export type PaceInfo = {
+  label: PaceLabel
+  topicsPerWeek: number
+  estimatedDays: number | null   // null = can't estimate yet
+  estimatedDate: Date | null
+  daysEnrolled: number
+  completedCount: number
+  totalCount: number             // topics + milestones
+}
+
+export function getCoursePace(
+  enrolledAt: string,
+  completedTopics: Array<{ assessmentType: string }>,
+  remainingTopics: Array<{ assessmentType: string }>,
+  completedMilestoneCount: number,
+  remainingMilestoneCount: number,
+): PaceInfo {
+  const now = new Date()
+  const daysElapsed = Math.max(1, (now.getTime() - new Date(enrolledAt).getTime()) / 86_400_000)
+
+  const completedCount = completedTopics.length + completedMilestoneCount
+  const totalCount = completedCount + remainingTopics.length + remainingMilestoneCount
+
+  const doneUnits = completedTopics.reduce((s, t) => s + (TOPIC_WEIGHT[t.assessmentType] ?? 1), 0)
+    + completedMilestoneCount * MILESTONE_WEIGHT
+  const remainingUnits = remainingTopics.reduce((s, t) => s + (TOPIC_WEIGHT[t.assessmentType] ?? 1), 0)
+    + remainingMilestoneCount * MILESTONE_WEIGHT
+
+  const topicsPerDay  = completedTopics.length / daysElapsed
+  const topicsPerWeek = topicsPerDay * 7
+
+  let label: PaceLabel
+  if (completedCount === 0)        label = 'not-started'
+  else if (topicsPerWeek < 0.5)   label = 'paused'
+  else if (topicsPerWeek < 2)     label = 'slow'
+  else if (topicsPerWeek < 4)     label = 'steady'
+  else if (topicsPerWeek < 7)     label = 'fast'
+  else                            label = 'blazing'
+
+  let estimatedDays: number | null = null
+  let estimatedDate: Date | null = null
+
+  if (doneUnits > 0 && remainingUnits > 0) {
+    const unitsPerDay = doneUnits / daysElapsed
+    estimatedDays = Math.ceil(remainingUnits / unitsPerDay)
+    estimatedDate = new Date(now.getTime() + estimatedDays * 86_400_000)
+  } else if (remainingUnits === 0 && completedCount > 0) {
+    estimatedDays = 0
+    estimatedDate = now
+  }
+
+  return {
+    label,
+    topicsPerWeek,
+    estimatedDays,
+    estimatedDate,
+    daysEnrolled: Math.floor(daysElapsed),
+    completedCount,
+    totalCount,
+  }
+}
+
 export function getStreakMultiplier(streak: number): number {
   if (streak >= 14) return 1.5
   if (streak >= 7) return 1.25

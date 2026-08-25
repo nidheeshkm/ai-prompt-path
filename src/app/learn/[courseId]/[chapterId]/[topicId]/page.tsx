@@ -18,7 +18,7 @@ export default function TopicPage() {
   const { courseId, chapterId, topicId } = useParams<{ courseId: string; chapterId: string; topicId: string }>()
   const { user, profile, loading: authLoading } = useAuth()
   const { progressMap, isTopicUnlocked, completeTopic, getTopicProgress } = useProgress()
-  const { isEnrolled } = useEnrollment()
+  const { isEnrolled, loading: enrollLoading } = useEnrollment()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'lesson' | 'assessment'>('lesson')
   const [splitView, setSplitView] = useState(false)
@@ -47,7 +47,7 @@ export default function TopicPage() {
   const nextTopic = nextTopicId ? allTopics.find(t => t.id === nextTopicId) : null
   const prevTopic = prevTopicId ? allTopics.find(t => t.id === prevTopicId) : null
 
-  if (authLoading || !user) return (
+  if (authLoading || enrollLoading || !user) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="animate-pulse text-slate-400 text-sm">Loading…</div>
     </div>

@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/auth-context'
 import { useProgress } from '@/lib/progress-context'
 import { useEnrollment } from '@/lib/enrollment-context'
 import { courses, getCourseTopics } from '@/data/curriculum'
-import { getAllBadgeDefinitions, getCourseLevel } from '@/lib/gamification'
+import { getAllBadgeDefinitions, getCourseLevel, getCoursePace, type PaceLabel } from '@/lib/gamification'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -188,6 +188,22 @@ export default function DashboardPage() {
                 const nextTopic = allTopics.find(t => progressMap[`${course.id}__${t.id}`]?.status !== 'completed')
                 const gradient = COURSE_GRADIENTS[i % COURSE_GRADIENTS.length]
 
+                // Learning pace
+                const enrollment = enrollments.find(e => e.course_id === course.id)
+                const remainingTopics = allTopics.filter(t => progressMap[`${course.id}__${t.id}`]?.status !== 'completed')
+                const remainingMilestones = course.project.milestones.filter(
+                  m => milestoneMap[`${course.id}__${m.id}`]?.status !== 'completed'
+                )
+                const pace = enrollment
+                  ? getCoursePace(
+                      enrollment.enrolled_at,
+                      completedTopicEntries,
+                      remainingTopics,
+                      completedMilestones,
+                      remainingMilestones.length,
+                    )
+                  : null
+
                 // Per-course XP and level
                 const totalCourseXp = allTopics.reduce((s, t) => s + t.xp, 0)
                   + course.project.milestones.reduce((s, m) => s + m.xp, 0)
@@ -271,6 +287,9 @@ export default function DashboardPage() {
                           <p className="text-[10px] text-emerald-600 font-semibold mt-1.5">🏆 Max level reached!</p>
                         )}
                       </div>
+
+                      {/* Learning pace meter */}
+                      {pace && <PaceMeter pace={pace} />}
 
                       {/* Chapter chips */}
                       <div className="grid gap-1.5 grid-cols-2">
@@ -361,6 +380,87 @@ export default function DashboardPage() {
         </section>
       </div>
     </main>
+  )
+}
+
+const PACE_CONFIG: Record<PaceLabel, {
+  emoji: string; label: string; color: string; bg: string; border: string; barPct: number
+}> = {
+  'not-started': { emoji: '🆕', label: 'Not started yet',  color: 'text-slate-500',   bg: 'bg-slate-50',   border: 'border-slate-200', barPct: 0   },
+  'paused':      { emoji: '⏸️', label: 'Paused',           color: 'text-slate-500',   bg: 'bg-slate-50',   border: 'border-slate-200', barPct: 8   },
+  'slow':        { emoji: '🐢', label: 'Slow pace',         color: 'text-amber-600',   bg: 'bg-amber-50',   border: 'border-amber-200', barPct: 28  },
+  'steady':      { emoji: '🚶', label: 'Steady pace',       color: 'text-blue-600',    bg: 'bg-blue-50',    border: 'border-blue-200',  barPct: 55  },
+  'fast':        { emoji: '🚀', label: 'Fast pace',         color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-200', barPct: 80 },
+  'blazing':     { emoji: '⚡', label: 'Blazing',           color: 'text-purple-600',  bg: 'bg-purple-50',  border: 'border-purple-200', barPct: 100 },
+}
+
+function PaceMeter({ pace }: { pace: ReturnType<typeof getCoursePace> }) {
+  const cfg = PACE_CONFIG[pace.label]
+
+  const completionLine = (() => {
+    if (pace.label === 'not-started') return 'Complete your first topic to estimate a finish date.'
+    if (pace.estimatedDate === null)  return 'Keep going — finish date will appear soon.'
+    if (pace.estimatedDays === 0)     return '🎉 Course complete!'
+    const date = pace.estimatedDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+    const days = pace.estimatedDays
+    const qualifier = pace.label === 'slow' || pace.label === 'paused' ? 'At current pace' : 'On track'
+    return `${qualifier} to finish by ${date} (${days} days)`
+  })()
+
+  return (
+    <div className={`rounded-xl border p-3 ${cfg.bg} ${cfg.border}`}>
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm leading-none">{cfg.emoji}</span>
+          <span className={`text-xs font-semibold ${cfg.color}`}>{cfg.label}</span>
+        </div>
+        {pace.label !== 'not-started' && (
+          <span className="text-[10px] text-slate-400">
+            {pace.topicsPerWeek < 0.1 ? '< 0.1' : pace.topicsPerWeek.toFixed(1)} topics/week
+          </span>
+        )}
+      </div>
+
+      {/* Speed track */}
+      <div className="relative w-full h-2 bg-white/70 rounded-full overflow-hidden mb-2">
+        <div
+          className={`h-full rounded-full transition-all duration-700 ${
+            pace.label === 'blazing' ? 'bg-purple-500' :
+            pace.label === 'fast'    ? 'bg-emerald-500' :
+            pace.label === 'steady'  ? 'bg-blue-500' :
+            pace.label === 'slow'    ? 'bg-amber-500' :
+            'bg-slate-300'
+          }`}
+          style={{ width: `${cfg.barPct}%` }}
+        />
+        {/* Tick marks */}
+        {[28, 55, 80].map(p => (
+          <div key={p} className="absolute top-0 bottom-0 w-px bg-white/60" style={{ left: `${p}%` }} />
+        ))}
+      </div>
+
+      {/* Slow → Blazing labels */}
+      <div className="flex justify-between text-[9px] text-slate-400 mb-2">
+        <span>🐢 Slow</span>
+        <span>🚶 Steady</span>
+        <span>🚀 Fast</span>
+        <span>⚡ Blazing</span>
+      </div>
+
+      {/* Completion estimate */}
+      <p className="text-[10px] text-slate-500 leading-relaxed">{completionLine}</p>
+
+      {/* Context line */}
+      {pace.label !== 'not-started' && (
+        <p className="text-[10px] text-slate-400 mt-0.5">
+          {pace.completedCount} of {pace.totalCount} items done · enrolled {pace.daysEnrolled}d ago
+          {(pace.label === 'paused' || pace.label === 'slow') && (
+            <span className="text-amber-500"> · Pick up the pace to finish sooner</span>
+          )}
+        </p>
+      )}
+    </div>
   )
 }
 

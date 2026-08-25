@@ -14,7 +14,7 @@ export default function CourseOverviewPage() {
   const { courseId } = useParams<{ courseId: string }>()
   const { user, loading: authLoading } = useAuth()
   const { progressMap, milestoneMap } = useProgress()
-  const { isEnrolled } = useEnrollment()
+  const { isEnrolled, loading: enrollLoading } = useEnrollment()
   const router = useRouter()
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function CourseOverviewPage() {
     </main>
   )
 
-  if (authLoading || !user) return (
+  if (authLoading || enrollLoading || !user) return (
     <main className="flex-1 flex items-center justify-center">
       <div className="animate-pulse text-slate-400 text-sm">Loading…</div>
     </main>
