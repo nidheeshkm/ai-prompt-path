@@ -82,7 +82,7 @@ export default function MilestonePage() {
     boilerplate: milestone.boilerplate,
     rubric: milestone.rubric,
     hints: milestone.hints,
-    solutionCode: milestone.solutionCode,
+    solutionCode: '',
   }
 
   const handleComplete = async (score: number) => {
@@ -162,9 +162,11 @@ export default function MilestonePage() {
             <div className="mb-8">
               <CodeEditor
                 task={codingTask}
-                topicId={`${courseId}__${milestoneId}`}
+                courseId={courseId}
+                topicId={milestoneId}
                 topicTitle={milestone.title}
                 isCompleted={isCompleted}
+                solutionType="milestone"
                 onComplete={handleComplete}
               />
             </div>

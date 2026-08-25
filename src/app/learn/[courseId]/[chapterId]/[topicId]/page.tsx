@@ -195,6 +195,7 @@ export default function TopicPage() {
               <div>
                 <CodeEditor
                   task={topic.codingTask}
+                  courseId={courseId}
                   topicId={topic.id}
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
@@ -250,6 +251,7 @@ export default function TopicPage() {
               ) : topic.codingTask ? (
                 <CodeEditor
                   task={topic.codingTask}
+                  courseId={courseId}
                   topicId={topic.id}
                   topicTitle={topic.title}
                   isCompleted={isCompleted}
