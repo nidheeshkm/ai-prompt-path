@@ -110,11 +110,9 @@ async function checkCourseCompletion(
 
   if (!allTopicsDone || !allMilestonesDone) return
 
-  const certificateId = crypto.randomUUID()
-
   await Promise.allSettled([
     supabase.from('certificates').upsert(
-      { certificate_id: certificateId, user_id: userId, course_id: courseId },
+      { user_id: userId, course_id: courseId },
       { onConflict: 'user_id,course_id' },
     ),
     supabase.from('badges').upsert(

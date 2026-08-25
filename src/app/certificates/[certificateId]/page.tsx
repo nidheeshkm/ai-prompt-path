@@ -9,7 +9,7 @@ export default async function CertificatePage({ params }: { params: Promise<{ ce
   const { data: cert } = await supabaseAdmin
     .from('certificates')
     .select('*, profiles(display_name)')
-    .eq('certificate_id', certificateId)
+    .eq('id', certificateId)
     .single()
 
   if (!cert) notFound()

@@ -129,7 +129,7 @@ export default function DashboardPage() {
                 return (
                   <Link
                     key={cert.id}
-                    href={`/certificates/${cert.certificate_id}`}
+                    href={`/certificates/${cert.id}`}
                     className="flex items-center gap-4 glass rounded-xl p-4 hover:border-amber-200 transition-all group"
                   >
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
