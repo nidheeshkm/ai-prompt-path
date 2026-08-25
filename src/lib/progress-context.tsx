@@ -123,6 +123,50 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, profile?.xp, loading, progressMap, milestoneMap])
 
+  // Daily login streak — fires once per day when the app loads.
+  // Streak should increment just by showing up, not only on topic submission.
+  useEffect(() => {
+    if (!user || !profile || loading) return
+
+    const today = new Date().toISOString().split('T')[0]
+    if (profile.last_activity_date === today) return  // already recorded today
+
+    const userId = user.id
+
+    async function updateDailyStreak() {
+      const yesterday = new Date()
+      yesterday.setDate(yesterday.getDate() - 1)
+      const yesterdayStr = yesterday.toISOString().split('T')[0]
+
+      const currentStreak = profile!.current_streak || 0
+      const longestStreak = profile!.longest_streak || 0
+      const lastActivity = profile!.last_activity_date
+
+      const newStreak = lastActivity === yesterdayStr ? currentStreak + 1 : 1
+      const newLongest = Math.max(longestStreak, newStreak)
+
+      console.info(`[PromptPath] Daily login streak: ${currentStreak} → ${newStreak} (last active: ${lastActivity ?? 'never'})`)
+
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          current_streak: newStreak,
+          longest_streak: newLongest,
+          last_activity_date: today,
+        })
+        .eq('id', userId)
+
+      if (error) {
+        console.error('[PromptPath] Daily streak update failed:', error.message)
+      } else {
+        await refreshProfile()
+      }
+    }
+
+    updateDailyStreak()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profile?.last_activity_date, loading])
+
   const isTopicUnlocked = useCallback((courseId: string, topicId: string): boolean => {
     const allTopics = getCourseTopics(courseId)
     const idx = allTopics.findIndex(t => t.id === topicId)
