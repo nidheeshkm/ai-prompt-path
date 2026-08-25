@@ -1,16 +1,21 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import type { CodingTask } from '@/data/curriculum'
 import type { CodingSubmission } from '@/lib/supabase'
+import { getReviewMode, type ReviewMode } from '@/lib/review-modes'
 import {
   CheckCircle, XCircle, Lightbulb, Eye, Send, RotateCcw,
   Loader2, Copy, Check, Maximize2, Minimize2, AlignJustify, Key,
+  BookOpen, AlertCircle, Sparkles, ArrowRight,
 } from 'lucide-react'
 import Link from 'next/link'
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false })
+
+type WalkthroughStep = { step: number; title: string; explanation: string }
+type MissingItem = { what: string; why_it_matters: string; how_to_fix: string }
 
 type Feedback = {
   score: number
@@ -19,6 +24,10 @@ type Feedback = {
     correct: string[]
     improvements: string[]
     hint: string
+    walkthrough: WalkthroughStep[] | null
+    concept_note: string | null
+    missing: MissingItem[] | null
+    relearn: string[] | null
   }
 }
 
@@ -87,6 +96,9 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
   const [code, setCode] = useState(storedSubmission?.code ?? task.boilerplate)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [reviewMode, setReviewModeState] = useState<ReviewMode>('deep_dive')
+
+  useEffect(() => { setReviewModeState(getReviewMode()) }, [])
   const [hintsUsed, setHintsUsed] = useState(0)
   const [showSolution, setShowSolution] = useState(false)
   const [attempts, setAttempts] = useState(0)
@@ -132,6 +144,7 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
           topicTitle,
           rubric: task.rubric,
           instructions: task.instructions,
+          reviewMode,
         }),
       })
       const data = await response.json()
@@ -146,6 +159,10 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
           correct: [],
           improvements: ['Failed to connect to review service. Please try again.'],
           hint: 'Check your internet connection and try again.',
+          walkthrough: null,
+          concept_note: null,
+          missing: null,
+          relearn: null,
         },
       })
     }
@@ -264,6 +281,17 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
         />
       </div>
 
+      {/* Active review mode badge */}
+      <div className="flex items-center gap-2 text-xs text-slate-400">
+        <Sparkles className="w-3.5 h-3.5" />
+        <span>
+          Review mode: <span className="font-medium text-slate-600">
+            {reviewMode === 'quick' ? 'Quick Check' : reviewMode === 'standard' ? 'Standard Review' : 'Deep Dive'}
+          </span>
+        </span>
+        <Link href="/settings" className="text-emerald-600 hover:underline">Change in Settings</Link>
+      </div>
+
       {/* Attempt counter + action buttons */}
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -325,35 +353,93 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
 
       {/* Feedback */}
       {feedback && (
-        <div className={`border rounded-xl p-5 space-y-4 ${
-          feedback.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
-        }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {feedback.passed
-                ? <CheckCircle className="w-6 h-6 text-emerald-500" />
-                : <XCircle className="w-6 h-6 text-red-500" />}
-              <div>
-                <p className={`font-semibold ${feedback.passed ? 'text-emerald-700' : 'text-red-600'}`}>
-                  {feedback.passed ? 'Passed!' : 'Not quite yet'}
-                </p>
-                <p className="text-sm text-slate-500">
-                  Score: {feedback.score}%{!feedback.passed && ' — Need 70% to pass'}
-                </p>
-              </div>
+        <div className="space-y-4">
+
+          {/* Score header */}
+          <div className={`border rounded-xl p-4 flex items-center gap-4 ${
+            feedback.passed ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'
+          }`}>
+            {feedback.passed
+              ? <CheckCircle className="w-7 h-7 text-emerald-500 shrink-0" />
+              : <XCircle className="w-7 h-7 text-red-500 shrink-0" />}
+            <div className="flex-1">
+              <p className={`font-bold text-base ${feedback.passed ? 'text-emerald-700' : 'text-red-700'}`}>
+                {feedback.passed ? 'Great work — code passed!' : 'Not quite there yet'}
+              </p>
+              <p className="text-sm text-slate-500 mt-0.5">
+                Score: <span className="font-semibold text-slate-700">{feedback.score}%</span>
+                {!feedback.passed && ' · Need 70% to pass'}
+              </p>
             </div>
-            <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${feedback.passed ? 'bg-emerald-500' : 'bg-red-500'}`}
-                style={{ width: `${feedback.score}%` }}
-              />
+            <div className="text-right shrink-0">
+              <div className="w-20 h-2 bg-white/70 rounded-full overflow-hidden mt-1">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${feedback.passed ? 'bg-emerald-500' : 'bg-red-400'}`}
+                  style={{ width: `${feedback.score}%` }}
+                />
+              </div>
             </div>
           </div>
 
-          {feedback.feedback.correct.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">What you got right</h4>
-              <ul className="space-y-1">
+          {/* PASS PATH: Step-by-step walkthrough */}
+          {feedback.passed && feedback.feedback.walkthrough && feedback.feedback.walkthrough.length > 0 && (
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-emerald-600" />
+                <span className="text-sm font-semibold text-slate-800">How your code works — step by step</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {feedback.feedback.walkthrough.map((step, i) => (
+                  <div key={i} className="flex gap-4 p-4">
+                    <div className="flex flex-col items-center gap-1 shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-xs font-bold text-emerald-700">
+                        {step.step}
+                      </div>
+                      {i < feedback.feedback.walkthrough!.length - 1 && (
+                        <div className="w-px flex-1 bg-slate-200 min-h-[12px]" />
+                      )}
+                    </div>
+                    <div className="flex-1 pb-1">
+                      <p className="text-sm font-semibold text-slate-900 mb-1">{step.title}</p>
+                      <p className="text-sm text-slate-600 leading-relaxed">{step.explanation}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* PASS PATH: Concept note */}
+          {feedback.passed && feedback.feedback.concept_note && (
+            <div className="border border-blue-200 bg-blue-50 rounded-xl p-4 flex gap-3">
+              <Sparkles className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Under the hood</p>
+                <p className="text-sm text-blue-900 leading-relaxed">{feedback.feedback.concept_note}</p>
+              </div>
+            </div>
+          )}
+
+          {/* PASS PATH: Minor improvements */}
+          {feedback.passed && feedback.feedback.improvements.length > 0 && (
+            <div className="border border-slate-200 rounded-xl p-4">
+              <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Polish suggestions</h4>
+              <ul className="space-y-1.5">
+                {feedback.feedback.improvements.map((item, i) => (
+                  <li key={i} className="text-sm text-slate-600 flex items-start gap-2">
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* FAIL PATH: What you got right */}
+          {!feedback.passed && feedback.feedback.correct.length > 0 && (
+            <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-4">
+              <h4 className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-2">What you got right</h4>
+              <ul className="space-y-1.5">
                 {feedback.feedback.correct.map((item, i) => (
                   <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
                     <CheckCircle className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />
@@ -364,26 +450,48 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
             </div>
           )}
 
-          {feedback.feedback.improvements.length > 0 && (
-            <div>
-              <h4 className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">To improve</h4>
-              <ul className="space-y-1">
-                {feedback.feedback.improvements.map((item, i) => (
-                  <li key={i} className="text-sm text-slate-700 flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5 shrink-0">›</span>
-                    {item}
-                  </li>
+          {/* FAIL PATH: What's missing */}
+          {!feedback.passed && feedback.feedback.missing && feedback.feedback.missing.length > 0 && (
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500" />
+                <span className="text-sm font-semibold text-slate-800">What needs fixing</span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {feedback.feedback.missing.map((item, i) => (
+                  <div key={i} className="p-4 space-y-2">
+                    <p className="text-sm font-semibold text-red-700">{item.what}</p>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      <span className="font-medium text-slate-700">Why it matters: </span>
+                      {item.why_it_matters}
+                    </p>
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      <p className="text-xs font-semibold text-amber-700 mb-0.5">How to fix it</p>
+                      <p className="text-sm text-amber-900 leading-relaxed">{item.how_to_fix}</p>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           )}
 
-          {!feedback.passed && feedback.feedback.hint && (
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-600">
-              <span className="text-amber-600 font-medium">Tip: </span>
-              {feedback.feedback.hint}
+          {/* FAIL PATH: Topics to relearn */}
+          {!feedback.passed && feedback.feedback.relearn && feedback.feedback.relearn.length > 0 && (
+            <div className="border border-blue-200 bg-blue-50 rounded-xl p-4 flex gap-3">
+              <BookOpen className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Revisit these concepts</p>
+                <div className="flex flex-wrap gap-2">
+                  {feedback.feedback.relearn.map((topic, i) => (
+                    <span key={i} className="text-xs font-medium text-blue-800 bg-white border border-blue-200 px-2.5 py-1 rounded-full">
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
+
         </div>
       )}
 
