@@ -17,7 +17,7 @@ export default function MilestonePage() {
   const { courseId, milestoneId } = useParams<{ courseId: string; milestoneId: string }>()
   const { user, loading: authLoading } = useAuth()
   const { milestoneMap, isMilestoneUnlocked, completeMilestone, getMilestoneProgress } = useProgress()
-  const { isEnrolled } = useEnrollment()
+  const { isEnrolled, loading: enrollLoading } = useEnrollment()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'overview' | 'task'>('overview')
 
@@ -37,7 +37,7 @@ export default function MilestonePage() {
   const isCompleted = mProgress?.status === 'completed'
   const unlocked = isMilestoneUnlocked(courseId, milestoneId)
 
-  if (authLoading || !user) return (
+  if (authLoading || enrollLoading || !user) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="animate-pulse text-gray-500">Loading…</div>
     </div>

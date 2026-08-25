@@ -14,7 +14,7 @@ export default function ChapterPage() {
   const { courseId, chapterId } = useParams<{ courseId: string; chapterId: string }>()
   const { user, loading: authLoading } = useAuth()
   const { progressMap, isTopicUnlocked } = useProgress()
-  const { isEnrolled } = useEnrollment()
+  const { isEnrolled, loading: enrollLoading } = useEnrollment()
   const router = useRouter()
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function ChapterPage() {
   const course = getCourse(courseId)
   const chapter = course?.chapters.find(c => c.id === Number(chapterId))
 
-  if (authLoading || !user) return (
+  if (authLoading || enrollLoading || !user) return (
     <main className="flex-1 flex items-center justify-center">
       <div className="animate-pulse text-slate-400 text-sm">Loading…</div>
     </main>

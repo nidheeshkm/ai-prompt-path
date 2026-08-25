@@ -14,7 +14,7 @@ export default function ProjectPage() {
   const { courseId } = useParams<{ courseId: string }>()
   const { user, loading: authLoading } = useAuth()
   const { milestoneMap, isMilestoneUnlocked } = useProgress()
-  const { isEnrolled } = useEnrollment()
+  const { isEnrolled, loading: enrollLoading } = useEnrollment()
   const router = useRouter()
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export default function ProjectPage() {
 
   const course = getCourse(courseId)
 
-  if (authLoading || !user) return (
+  if (authLoading || enrollLoading || !user) return (
     <main className="flex-1 flex items-center justify-center">
       <div className="animate-pulse text-gray-500">Loading…</div>
     </main>
