@@ -85,7 +85,10 @@ export async function POST(request: Request) {
         }),
       })
       if (!response.ok) {
-        console.error(`${provider} error:`, response.status)
+        const status = response.status
+        console.error(`${provider} error:`, status)
+        if (status === 429) return NextResponse.json({ error: 'quota_exceeded', provider }, { status: 429 })
+        if (status === 401 || status === 403) return NextResponse.json({ error: 'invalid_key', provider }, { status: 401 })
         return NextResponse.json(fallbackReview(code, rubric))
       }
       const data = await response.json()
@@ -112,7 +115,10 @@ export async function POST(request: Request) {
         }),
       })
       if (!response.ok) {
-        console.error(`${provider} error:`, response.status)
+        const status = response.status
+        console.error(`${provider} error:`, status)
+        if (status === 429) return NextResponse.json({ error: 'quota_exceeded', provider }, { status: 429 })
+        if (status === 401 || status === 403) return NextResponse.json({ error: 'invalid_key', provider }, { status: 401 })
         return NextResponse.json(fallbackReview(code, rubric))
       }
       const data = await response.json()

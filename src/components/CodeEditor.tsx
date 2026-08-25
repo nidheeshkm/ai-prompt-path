@@ -148,6 +148,37 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
         }),
       })
       const data = await response.json()
+
+      if (!response.ok) {
+        const errorFeedback = (msg: string, hint: string) => ({
+          score: 0, passed: false,
+          feedback: { correct: [], improvements: [msg], hint, walkthrough: null, concept_note: null, missing: null, relearn: null },
+        })
+        if (data.error === 'quota_exceeded') {
+          setFeedback(errorFeedback(
+            `Your ${data.provider || 'AI'} quota is exhausted. The review could not be completed.`,
+            'Add a different provider key in Settings, or wait for your quota to reset.',
+          ))
+        } else if (data.error === 'invalid_key') {
+          setFeedback(errorFeedback(
+            'Your API key was rejected. It may be invalid or expired.',
+            'Go to Settings and update your API key.',
+          ))
+        } else if (data.error === 'no_key') {
+          setFeedback(errorFeedback(
+            'No AI provider key is configured.',
+            'Add a free OpenRouter or Groq key in Settings to unlock code reviews.',
+          ))
+        } else {
+          setFeedback(errorFeedback(
+            'The review service returned an unexpected error. Please try again.',
+            '',
+          ))
+        }
+        setSubmitting(false)
+        return
+      }
+
       setFeedback(data)
       setAttempts(prev => prev + 1)
       if (data.passed) await onComplete(data.score, { type: 'coding', code })
