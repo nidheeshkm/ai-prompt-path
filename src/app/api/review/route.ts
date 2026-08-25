@@ -3,6 +3,15 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { PROVIDER_CONFIG } from '@/lib/providers'
 import type { Provider } from '@/lib/providers'
+import { redis } from '@/lib/upstash'
+
+const IDEM_TTL_SECONDS = 300 // 5 minutes
+
+async function codeHash(topicId: string, reviewMode: string, code: string): Promise<string> {
+  const data = new TextEncoder().encode(`${topicId}:${reviewMode}:${code}`)
+  const buf = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 24)
+}
 
 export async function POST(request: Request) {
   try {
@@ -57,6 +66,22 @@ export async function POST(request: Request) {
         { error: 'no_key', message: 'No AI provider key configured. Please add your key in Settings.' },
         { status: 401 }
       )
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Idempotency: return cached result for identical (user, topic, code) ──
+    let idemKey: string | null = null
+    if (user) {
+      const hash = await codeHash(topicId, reviewMode, code)
+      idemKey = `idem:review:${user.id}:${hash}`
+      try {
+        const cached = await redis.get<object>(idemKey)
+        if (cached) {
+          return NextResponse.json(cached, { headers: { 'X-Review-Cache': 'HIT' } })
+        }
+      } catch {
+        // Redis unavailable — proceed without cache rather than blocking the request
+      }
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -133,7 +158,7 @@ export async function POST(request: Request) {
       return NextResponse.json(fallbackReview(code, rubric))
     }
 
-    return NextResponse.json({
+    const result = {
       score: Math.min(100, Math.max(0, Number(parsed.score) || 0)),
       passed: Boolean(parsed.passed),
       feedback: {
@@ -145,7 +170,14 @@ export async function POST(request: Request) {
         missing:      Array.isArray(parsed.feedback?.missing)      ? parsed.feedback.missing      : null,
         relearn:      Array.isArray(parsed.feedback?.relearn)      ? parsed.feedback.relearn      : null,
       },
-    })
+    }
+
+    // Cache the result for idempotency (best-effort — don't fail if Redis is down)
+    if (idemKey) {
+      try { await redis.setex(idemKey, IDEM_TTL_SECONDS, result) } catch { /* ignore */ }
+    }
+
+    return NextResponse.json(result)
   } catch (err) {
     console.error('Review API error:', err)
     return NextResponse.json({ error: 'Failed to review code' }, { status: 500 })

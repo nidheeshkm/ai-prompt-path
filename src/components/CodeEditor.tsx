@@ -159,7 +159,13 @@ export default function CodeEditor({ task, courseId, topicId, topicTitle, isComp
           score: 0, passed: false,
           feedback: { correct: [], improvements: [msg], hint, walkthrough: null, concept_note: null, missing: null, relearn: null },
         })
-        if (data.error === 'quota_exceeded') {
+        if (data.error === 'rate_limited') {
+          const wait = data.retryAfter ? `Try again in ${data.retryAfter < 60 ? `${data.retryAfter}s` : `${Math.ceil(data.retryAfter / 60)} min`}.` : 'Try again later.'
+          setFeedback(errorFeedback(
+            'You\'ve sent too many review requests. Slow down a little!',
+            wait,
+          ))
+        } else if (data.error === 'quota_exceeded') {
           setFeedback(errorFeedback(
             `Your ${data.provider || 'AI'} quota is exhausted. The review could not be completed.`,
             'Add a different provider key in Settings, or wait for your quota to reset.',
