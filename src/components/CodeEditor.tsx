@@ -33,6 +33,7 @@ type Feedback = {
 
 type Props = {
   task: CodingTask
+  courseId: string
   topicId: string
   topicTitle: string
   isCompleted: boolean
@@ -41,6 +42,8 @@ type Props = {
   onComplete: (score: number, submission: CodingSubmission) => Promise<void>
   language?: 'python' | 'yaml' | 'bash' | 'typescript' | 'javascript'
   hasKey?: boolean
+  /** Pass 'milestone' when this editor is for a capstone milestone */
+  solutionType?: 'topic' | 'milestone'
 }
 
 const LANGUAGE_META: Record<string, { label: string; filename: string; monacoLang: string }> = {
@@ -92,7 +95,7 @@ function CopyButton({ code }: { code: string }) {
   )
 }
 
-export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bestScore = 0, storedSubmission, onComplete, language = 'python', hasKey }: Props) {
+export default function CodeEditor({ task, courseId, topicId, topicTitle, isCompleted, bestScore = 0, storedSubmission, onComplete, language = 'python', hasKey, solutionType = 'topic' }: Props) {
   const [code, setCode] = useState(storedSubmission?.code ?? task.boilerplate)
   const [feedback, setFeedback] = useState<Feedback | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -101,6 +104,8 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
   useEffect(() => { setReviewModeState(getReviewMode()) }, [])
   const [hintsUsed, setHintsUsed] = useState(0)
   const [showSolution, setShowSolution] = useState(false)
+  const [solutionCode, setSolutionCode] = useState<string | null>(null)
+  const [solutionLoading, setSolutionLoading] = useState(false)
   const [attempts, setAttempts] = useState(0)
   const [heightIdx, setHeightIdx] = useState<HeightIdx>(1)
 
@@ -148,6 +153,43 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
         }),
       })
       const data = await response.json()
+
+      if (!response.ok) {
+        const errorFeedback = (msg: string, hint: string) => ({
+          score: 0, passed: false,
+          feedback: { correct: [], improvements: [msg], hint, walkthrough: null, concept_note: null, missing: null, relearn: null },
+        })
+        if (data.error === 'rate_limited') {
+          const wait = data.retryAfter ? `Try again in ${data.retryAfter < 60 ? `${data.retryAfter}s` : `${Math.ceil(data.retryAfter / 60)} min`}.` : 'Try again later.'
+          setFeedback(errorFeedback(
+            'You\'ve sent too many review requests. Slow down a little!',
+            wait,
+          ))
+        } else if (data.error === 'quota_exceeded') {
+          setFeedback(errorFeedback(
+            `Your ${data.provider || 'AI'} quota is exhausted. The review could not be completed.`,
+            'Add a different provider key in Settings, or wait for your quota to reset.',
+          ))
+        } else if (data.error === 'invalid_key') {
+          setFeedback(errorFeedback(
+            'Your API key was rejected. It may be invalid or expired.',
+            'Go to Settings and update your API key.',
+          ))
+        } else if (data.error === 'no_key') {
+          setFeedback(errorFeedback(
+            'No AI provider key is configured.',
+            'Add a free OpenRouter or Groq key in Settings to unlock code reviews.',
+          ))
+        } else {
+          setFeedback(errorFeedback(
+            'The review service returned an unexpected error. Please try again.',
+            '',
+          ))
+        }
+        setSubmitting(false)
+        return
+      }
+
       setFeedback(data)
       setAttempts(prev => prev + 1)
       if (data.passed) await onComplete(data.score, { type: 'coding', code })
@@ -318,10 +360,27 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
 
         {attempts >= 3 && !showSolution && (
           <button
-            onClick={() => setShowSolution(true)}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-700 px-4 py-2.5 text-sm transition-colors"
+            onClick={async () => {
+              if (solutionCode !== null) { setShowSolution(true); return }
+              setSolutionLoading(true)
+              const param = solutionType === 'milestone'
+                ? `milestoneId=${topicId}`
+                : `topicId=${topicId}`
+              const res = await fetch(`/api/solution?courseId=${courseId}&${param}`)
+              if (res.ok) {
+                const data = await res.json()
+                setSolutionCode(data.solution ?? '')
+              }
+              setSolutionLoading(false)
+              setShowSolution(true)
+            }}
+            disabled={solutionLoading}
+            className="flex items-center gap-2 text-slate-400 hover:text-slate-700 px-4 py-2.5 text-sm transition-colors disabled:opacity-50"
           >
-            <Eye className="w-4 h-4" /> Show Solution
+            {solutionLoading
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Eye className="w-4 h-4" />}
+            {solutionLoading ? 'Loading…' : 'Show Solution'}
           </button>
         )}
 
@@ -503,10 +562,10 @@ export default function CodeEditor({ task, topicId, topicTitle, isCompleted, bes
               <Eye className="w-4 h-4 text-slate-400" />
               <span className="text-sm text-slate-500">Reference Solution</span>
             </div>
-            <CopyButton code={task.solutionCode} />
+            {solutionCode !== null && <CopyButton code={solutionCode} />}
           </div>
           <pre className="p-4 text-sm overflow-x-auto bg-slate-900 text-slate-200">
-            <code>{task.solutionCode}</code>
+            <code>{solutionCode ?? ''}</code>
           </pre>
         </div>
       )}

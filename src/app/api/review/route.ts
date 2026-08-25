@@ -3,6 +3,17 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { PROVIDER_CONFIG } from '@/lib/providers'
 import type { Provider } from '@/lib/providers'
+import { redis } from '@/lib/upstash'
+import { createAdminClient } from '@/server/supabase-admin'
+import { decryptApiKey } from '@/server/crypto'
+
+const IDEM_TTL_SECONDS = 300 // 5 minutes
+
+async function codeHash(topicId: string, reviewMode: string, code: string): Promise<string> {
+  const data = new TextEncoder().encode(`${topicId}:${reviewMode}:${code}`)
+  const buf = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 24)
+}
 
 export async function POST(request: Request) {
   try {
@@ -31,23 +42,23 @@ export async function POST(request: Request) {
     if (user) {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('active_provider, openrouter_api_key, openai_api_key, anthropic_api_key, groq_api_key, xai_api_key')
+        .select('active_provider')
         .eq('id', user.id)
         .single()
 
-      if (profile) {
-        const activeProvider = (profile.active_provider || 'openrouter') as Provider
-        const keyMap: Record<Provider, string | null> = {
-          openrouter: profile.openrouter_api_key,
-          openai: profile.openai_api_key,
-          anthropic: profile.anthropic_api_key,
-          groq: profile.groq_api_key,
-          xai: profile.xai_api_key,
-        }
-        const userKey = keyMap[activeProvider]
-        if (userKey) {
+      if (profile?.active_provider) {
+        const activeProvider = profile.active_provider as Provider
+        const admin = createAdminClient()
+        const { data: row } = await admin
+          .from('provider_keys')
+          .select('encrypted_key')
+          .eq('user_id', user.id)
+          .eq('provider', activeProvider)
+          .single()
+
+        if (row?.encrypted_key) {
           provider = activeProvider
-          apiKey = userKey
+          apiKey = await decryptApiKey(row.encrypted_key)
         }
       }
     }
@@ -57,6 +68,22 @@ export async function POST(request: Request) {
         { error: 'no_key', message: 'No AI provider key configured. Please add your key in Settings.' },
         { status: 401 }
       )
+    }
+    // ─────────────────────────────────────────────────────────────────────────
+
+    // ── Idempotency: return cached result for identical (user, topic, code) ──
+    let idemKey: string | null = null
+    if (user) {
+      const hash = await codeHash(topicId, reviewMode, code)
+      idemKey = `idem:review:${user.id}:${hash}`
+      try {
+        const cached = await redis.get<object>(idemKey)
+        if (cached) {
+          return NextResponse.json(cached, { headers: { 'X-Review-Cache': 'HIT' } })
+        }
+      } catch {
+        // Redis unavailable — proceed without cache rather than blocking the request
+      }
     }
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -85,7 +112,10 @@ export async function POST(request: Request) {
         }),
       })
       if (!response.ok) {
-        console.error(`${provider} error:`, response.status)
+        const status = response.status
+        console.error(`${provider} error:`, status)
+        if (status === 429) return NextResponse.json({ error: 'quota_exceeded', provider }, { status: 429 })
+        if (status === 401 || status === 403) return NextResponse.json({ error: 'invalid_key', provider }, { status: 401 })
         return NextResponse.json(fallbackReview(code, rubric))
       }
       const data = await response.json()
@@ -112,7 +142,10 @@ export async function POST(request: Request) {
         }),
       })
       if (!response.ok) {
-        console.error(`${provider} error:`, response.status)
+        const status = response.status
+        console.error(`${provider} error:`, status)
+        if (status === 429) return NextResponse.json({ error: 'quota_exceeded', provider }, { status: 429 })
+        if (status === 401 || status === 403) return NextResponse.json({ error: 'invalid_key', provider }, { status: 401 })
         return NextResponse.json(fallbackReview(code, rubric))
       }
       const data = await response.json()
@@ -127,7 +160,7 @@ export async function POST(request: Request) {
       return NextResponse.json(fallbackReview(code, rubric))
     }
 
-    return NextResponse.json({
+    const result = {
       score: Math.min(100, Math.max(0, Number(parsed.score) || 0)),
       passed: Boolean(parsed.passed),
       feedback: {
@@ -139,7 +172,14 @@ export async function POST(request: Request) {
         missing:      Array.isArray(parsed.feedback?.missing)      ? parsed.feedback.missing      : null,
         relearn:      Array.isArray(parsed.feedback?.relearn)      ? parsed.feedback.relearn      : null,
       },
-    })
+    }
+
+    // Cache the result for idempotency (best-effort — don't fail if Redis is down)
+    if (idemKey) {
+      try { await redis.setex(idemKey, IDEM_TTL_SECONDS, result) } catch { /* ignore */ }
+    }
+
+    return NextResponse.json(result)
   } catch (err) {
     console.error('Review API error:', err)
     return NextResponse.json({ error: 'Failed to review code' }, { status: 500 })

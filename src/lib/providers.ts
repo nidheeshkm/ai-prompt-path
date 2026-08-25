@@ -11,7 +11,6 @@ export type ProviderConfig = {
   free: boolean
   format: 'openai' | 'anthropic'
   url: string
-  dbColumn: string
 }
 
 export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
@@ -26,7 +25,6 @@ export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
     free: true,
     format: 'openai',
     url: 'https://openrouter.ai/api/v1/chat/completions',
-    dbColumn: 'openrouter_api_key',
   },
   openai: {
     name: 'OpenAI',
@@ -39,7 +37,6 @@ export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
     free: false,
     format: 'openai',
     url: 'https://api.openai.com/v1/chat/completions',
-    dbColumn: 'openai_api_key',
   },
   anthropic: {
     name: 'Anthropic',
@@ -52,7 +49,6 @@ export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
     free: false,
     format: 'anthropic',
     url: 'https://api.anthropic.com/v1/messages',
-    dbColumn: 'anthropic_api_key',
   },
   groq: {
     name: 'Groq',
@@ -65,7 +61,6 @@ export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
     free: true,
     format: 'openai',
     url: 'https://api.groq.com/openai/v1/chat/completions',
-    dbColumn: 'groq_api_key',
   },
   xai: {
     name: 'xAI',
@@ -78,7 +73,6 @@ export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
     free: false,
     format: 'openai',
     url: 'https://api.x.ai/v1/chat/completions',
-    dbColumn: 'xai_api_key',
   },
 }
 

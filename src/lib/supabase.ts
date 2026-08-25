@@ -54,7 +54,6 @@ export type Enrollment = {
 
 export type Certificate = {
   id: string
-  certificate_id: string
   user_id: string
   course_id: string
   issued_at: string

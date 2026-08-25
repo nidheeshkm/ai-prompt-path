@@ -492,35 +492,7 @@ if __name__ == "__main__":
             "Use `os.getenv(\"OPENROUTER_API_KEY\")` to read the key, and `raise ValueError(...)` if it\'s None",
             'Pass `base_url="https://openrouter.ai/api/v1"` and `api_key=api_key` to ChatOpenAI -- the rest of the interface is identical to plain OpenAI'
           ],
-          solutionCode: `from dotenv import load_dotenv
-import os
-from langchain_openai import ChatOpenAI
-
-load_dotenv()
-
-def ask_llm(question: str) -> str:
-    """Ask the LLM a question via OpenRouter and return the response."""
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "OPENROUTER_API_KEY not found. "
-            "Please set it in your .env file."
-        )
-
-    llm = ChatOpenAI(
-        model="openai/gpt-4o-mini",
-        base_url="https://openrouter.ai/api/v1",
-        api_key=api_key,
-        temperature=0,
-    )
-
-    response = llm.invoke(question)
-    return response.content
-
-
-if __name__ == "__main__":
-    answer = ask_llm("What is LangChain in one sentence?")
-    print(answer)`
+          solutionCode: ''
         }
       },
       {
@@ -692,24 +664,7 @@ if __name__ == "__main__":
             'For translation, use an f-string in the SystemMessage: f"Translate the following text to {target_language}."',
             "Don\'t forget to handle the case where operation is not one of the three valid options -- raise ValueError"
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-def process_text(text: str, operation: str, target_language: str = "Spanish") -> str:
-    if operation == "summarize":
-        system = SystemMessage(content="Summarize the following text in exactly 2 sentences. Be concise and capture the key points.")
-    elif operation == "translate":
-        system = SystemMessage(content=f"Translate the following text to {target_language}. Return only the translation, nothing else.")
-    elif operation == "sentiment":
-        system = SystemMessage(content="Analyze the sentiment of the following text. Return exactly one word: positive, negative, or neutral.")
-    else:
-        raise ValueError(f"Invalid operation: {operation}. Must be 'summarize', 'translate', or 'sentiment'.")
-
-    messages = [system, HumanMessage(content=text)]
-    response = llm.invoke(messages)
-    return response.content`
+          solutionCode: ''
         }
       },
       {
@@ -971,32 +926,7 @@ if __name__ == "__main__":
             'The response from .invoke() is an AIMessage object; its text is in response.content',
             'Use input("You: ") to prompt the user in the terminal',
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-def main():
-    print("CLI Chatbot ready. Type 'quit' to exit.")
-    while True:
-        user_input = input("You: ").strip()
-        if user_input.lower() == "quit":
-            print("Goodbye!")
-            break
-        response = llm.invoke(user_input)
-        print(f"Assistant: {response.content}")
-
-if __name__ == "__main__":
-    main()
-`,
+          solutionCode: '',
         }
       }
     ]
@@ -1336,48 +1266,7 @@ if __name__ == "__main__":
             "For few-shot: Include examples like \"Input: I can\'t reset my password\\nCategory: account\" in the system message, then add \"Now classify this:\" before the HumanMessage",
             'Use .strip().lower() on the response.content to normalize the output'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-
-def classify_zero_shot(text: str) -> str:
-    messages = [
-        SystemMessage(content=(
-            "Classify the following customer support ticket into exactly one category: "
-            "billing, technical, account, or general. "
-            "Return ONLY the category label in lowercase, nothing else."
-        )),
-        HumanMessage(content=text),
-    ]
-    response = llm.invoke(messages)
-    return response.content.strip().lower()
-
-
-def classify_few_shot(text: str) -> str:
-    messages = [
-        SystemMessage(content="""Classify customer support tickets into one of these categories: billing, technical, account, or general.
-
-Here are some examples:
-
-Input: "I was overcharged on my last invoice and need a refund"
-Category: billing
-
-Input: "The search feature returns no results even when I type exact matches"
-Category: technical
-
-Input: "I need to update my shipping address and phone number"
-Category: account
-
-Input: "Do you offer student discounts?"
-Category: general
-
-Now classify the following ticket. Return ONLY the category label in lowercase."""),
-        HumanMessage(content=text),
-    ]
-    response = llm.invoke(messages)
-    return response.content.strip().lower()`
+          solutionCode: ''
         }
       },
       {
@@ -1548,62 +1437,7 @@ if __name__ == "__main__":
             'To parse the response, split on "ANSWER:" -- everything before is reasoning, everything after is the answer',
             'Use response.content.rsplit("ANSWER:", 1) to split from the right in case "ANSWER" appears in the reasoning too'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-COT_PROMPTS = {
-    "math": """You are a math tutor. Solve the problem step by step:
-Step 1: Identify all given values and what is being asked
-Step 2: Determine which operations/formulas are needed
-Step 3: Perform calculations one step at a time
-Step 4: Verify the result makes sense
-
-After your reasoning, provide the final answer on the last line in this exact format:
-ANSWER: [your answer]""",
-
-    "logic": """You are a logic expert. Analyze the argument step by step:
-Step 1: Identify all premises (given statements)
-Step 2: Identify the conclusion (what is being claimed)
-Step 3: Check if the conclusion follows necessarily from the premises
-Step 4: Identify any logical fallacies or invalid inferences
-
-After your analysis, provide the final verdict on the last line in this exact format:
-ANSWER: [your answer]""",
-
-    "code": """You are a senior software engineer. Debug the code step by step:
-Step 1: Read the code and understand its intended purpose
-Step 2: Trace through the logic with a sample input
-Step 3: Identify edge cases and potential failure points
-Step 4: Pinpoint the bug and explain why it occurs
-
-After your analysis, state the bug and fix on the last line in this exact format:
-ANSWER: [your answer]"""
-}
-
-
-def solve_with_reasoning(problem: str, domain: str = "math") -> dict:
-    if domain not in COT_PROMPTS:
-        raise ValueError(f"Invalid domain: {domain}. Must be 'math', 'logic', or 'code'.")
-
-    messages = [
-        SystemMessage(content=COT_PROMPTS[domain]),
-        HumanMessage(content=problem),
-    ]
-
-    response = llm.invoke(messages)
-    full_response = response.content
-
-    if "ANSWER:" in full_response:
-        parts = full_response.rsplit("ANSWER:", 1)
-        reasoning = parts[0].strip()
-        answer = parts[1].strip()
-    else:
-        reasoning = full_response
-        answer = full_response.split("\\n")[-1].strip()
-
-    return {"reasoning": reasoning, "answer": answer}`
+          solutionCode: ''
         }
       },
       {
@@ -1754,50 +1588,7 @@ if __name__ == "__main__":
             'Counter(answers).most_common(1)[0] gives you (answer, count) of the most common answer',
             'For the distribution, initialize with {"positive": 0, "negative": 0, "neutral": 0} and update with Counter results'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from collections import Counter
-
-
-def self_consistent_classify(text: str, n_paths: int = 5) -> dict:
-    llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
-
-    answers = []
-    for _ in range(n_paths):
-        response = llm.invoke([
-            SystemMessage(content=(
-                "Classify the sentiment of the following text as exactly one of: "
-                "positive, negative, or neutral. "
-                "Return ONLY the label in lowercase, nothing else."
-            )),
-            HumanMessage(content=text),
-        ])
-        label = response.content.strip().lower()
-        if label in ("positive", "negative", "neutral"):
-            answers.append(label)
-
-    if not answers:
-        return {"answer": "neutral", "confidence": 0.0, "distribution": {}}
-
-    counts = Counter(answers)
-    best_answer, best_count = counts.most_common(1)[0]
-    confidence = best_count / len(answers)
-
-    distribution = {"positive": 0, "negative": 0, "neutral": 0}
-    distribution.update(dict(counts))
-
-    return {
-        "answer": best_answer,
-        "confidence": confidence,
-        "distribution": distribution,
-    }
-
-
-def reliable_classify(text: str) -> str:
-    result = self_consistent_classify(text)
-    if result["confidence"] >= 0.6:
-        return result["answer"]
-    return "uncertain"`
+          solutionCode: ''
         }
       },
       {
@@ -1934,64 +1725,7 @@ if __name__ == "__main__":
             'For evaluation, list all approaches and ask: "Score each approach 1-10 for quality. Return as: Approach 1: X/10\\nApproach 2: Y/10..."',
             'Parse scores with a regex or string splitting, then find the max'
           ],
-          solutionCode: `import re
-from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-
-def tree_of_thoughts_solve(problem: str, n_branches: int = 3) -> dict:
-    generator = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
-    evaluator = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-    # Step 1: Generate diverse approaches
-    approaches = []
-    for i in range(n_branches):
-        response = generator.invoke([
-            SystemMessage(content=(
-                f"You are generating approach #{i+1} of {n_branches} to solve a problem. "
-                f"Take a DIFFERENT and CREATIVE angle than the most obvious solution. "
-                f"Think unconventionally. Outline your approach in clear steps, then provide your solution."
-            )),
-            HumanMessage(content=problem),
-        ])
-        approaches.append(response.content)
-
-    # Step 2: Evaluate all approaches
-    approaches_text = "\\n\\n".join(
-        f"--- Approach {i+1} ---\\n{a}" for i, a in enumerate(approaches)
-    )
-
-    eval_response = evaluator.invoke([
-        SystemMessage(content=(
-            "You are an expert evaluator. Score each approach on a scale of 1-10 "
-            "for correctness, practicality, and thoroughness. "
-            "Return your scores in this exact format:\\n"
-            "Approach 1: X/10\\nApproach 2: Y/10\\n...\\n"
-            "Then state: BEST: [number]"
-        )),
-        HumanMessage(content=f"Problem: {problem}\\n\\n{approaches_text}"),
-    ])
-
-    eval_text = eval_response.content
-
-    # Parse scores
-    scores = re.findall(r"Approach (\d+): (\d+)/10", eval_text)
-
-    if scores:
-        best_idx = max(scores, key=lambda x: int(x[1]))
-        best_num = int(best_idx[0]) - 1
-        best_score = int(best_idx[1])
-    else:
-        best_num = 0
-        best_score = 5
-
-    best_num = min(best_num, len(approaches) - 1)
-
-    return {
-        "best_approach": approaches[best_num],
-        "score": best_score,
-        "all_approaches": approaches,
-    }`
+          solutionCode: ''
         }
       },
       {
@@ -2183,57 +1917,7 @@ def get_user(user_id):
             'Build the prompt string with sections: "# Role\\n{role}\\n\\n# Rules\\n" + numbered rules + "\\n\\n# Output Format\\n{output_format}"',
             'For safety_rules, check `if safety_rules:` before adding that section to the prompt'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-
-def create_assistant(role: str, rules: list[str], output_format: str, safety_rules: list[str] = None):
-    # Build structured system prompt
-    rules_text = "\\n".join(f"{i+1}. {r}" for i, r in enumerate(rules))
-
-    system_prompt = f"""# Role
-{role}
-
-# Rules
-{rules_text}
-
-# Output Format
-{output_format}"""
-
-    if safety_rules:
-        safety_text = "\\n".join(f"- NEVER: {s}" for s in safety_rules)
-        system_prompt += f"""
-
-# Safety -- Things You Must NEVER Do
-{safety_text}"""
-
-    def assistant(message: str) -> str:
-        response = llm.invoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=message),
-        ])
-        return response.content
-
-    return assistant
-
-
-code_reviewer = create_assistant(
-    role="You are a senior Python code reviewer with 10+ years of experience. You review code for correctness, style, and security.",
-    rules=[
-        "Check for bugs: logic errors, edge cases, null/None handling",
-        "Check style: PEP 8 compliance, naming conventions, code clarity",
-        "Check security: SQL injection, input validation, credential exposure",
-        "Suggest concrete improvements with corrected code snippets",
-    ],
-    output_format="Structure your review with these sections: ## Bugs, ## Style Issues, ## Security Concerns, ## Suggestions. Rate overall code quality 1-10.",
-    safety_rules=[
-        "Suggest removing or deleting tests",
-        "Suggest disabling security features or validation",
-        "Suggest hardcoding credentials or API keys",
-    ],
-)`
+          solutionCode: ''
         }
       },
       {
@@ -2430,66 +2114,7 @@ if __name__ == "__main__":
             'Build the schema into the prompt like: "Extract the following fields:\\n- name: Full name including title\\n- age: Age as integer\\n..."',
             'Include an example JSON template in the prompt showing the expected structure with the actual key names'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-import json
-import re
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-
-def safe_parse_json(text: str) -> dict:
-    # Try direct parse
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        pass
-
-    # Try markdown code block
-    match = re.search(r'\`\`\`(?:json)?\\s*(\\{.*?\\})\\s*\`\`\`', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # Try finding raw JSON object
-    match = re.search(r'\\{.*\\}', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(0))
-        except json.JSONDecodeError:
-            pass
-
-    raise ValueError(f"Could not parse JSON from: {text[:200]}")
-
-
-def structured_extract(text: str, schema: dict) -> dict:
-    # Build field descriptions
-    fields_desc = "\\n".join(f'- "{k}": {v}' for k, v in schema.items())
-
-    # Build example JSON template
-    template = {k: f"<{v}>" for k, v in schema.items()}
-    template_str = json.dumps(template, indent=2)
-
-    messages = [
-        SystemMessage(content=f"""Extract information from the provided text.
-
-Fields to extract:
-{fields_desc}
-
-Return ONLY valid JSON matching this structure:
-{template_str}
-
-Rules:
-- Use null for fields that cannot be determined from the text
-- Use exact values from the text, do not infer or guess
-- Return ONLY the JSON, no other text"""),
-        HumanMessage(content=text),
-    ]
-
-    response = llm.invoke(messages)
-    return safe_parse_json(response.content)`
+          solutionCode: ''
         }
       },
       {
@@ -2638,59 +2263,7 @@ if __name__ == "__main__":
             'In test_prompt, check keywords with: all(kw.lower() in output.lower() for kw in case["expected_keywords"])',
             'generate_and_test is simple: call generate_prompt, then test_prompt, return {"prompt": ..., "test_results": ...}'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-
-meta_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.3)
-test_llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-
-def generate_prompt(task_description: str) -> str:
-    response = meta_llm.invoke([
-        SystemMessage(content="""You are a world-class prompt engineer. Given a task description, generate a production-ready system prompt.
-
-Your generated prompt MUST include:
-1. A specific role for the AI
-2. Clear behavioral rules (numbered)
-3. Exact output format specification
-4. Edge case handling instructions
-
-Return ONLY the system prompt text. Do not include explanations or commentary."""),
-        HumanMessage(content=f"Task: {task_description}"),
-    ])
-    return response.content
-
-
-def test_prompt(system_prompt: str, test_cases: list[dict]) -> dict:
-    results = []
-
-    for case in test_cases:
-        response = test_llm.invoke([
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=case["input"]),
-        ])
-        output = response.content
-
-        passed = all(
-            kw.lower() in output.lower()
-            for kw in case["expected_keywords"]
-        )
-
-        results.append({
-            "input": case["input"],
-            "passed": passed,
-            "output": output,
-        })
-
-    pass_rate = sum(1 for r in results if r["passed"]) / len(results) if results else 0.0
-
-    return {"results": results, "pass_rate": pass_rate}
-
-
-def generate_and_test(task_description: str, test_cases: list[dict]) -> dict:
-    prompt = generate_prompt(task_description)
-    test_results = test_prompt(prompt, test_cases)
-    return {"prompt": prompt, "test_results": test_results}`
+          solutionCode: ''
         }
       },
       {
@@ -3016,86 +2589,7 @@ if __name__ == "__main__":
             'In run_evaluation, for each test check: missing = [kw for kw in expected if kw.lower() not in output.lower()]',
             'In get_report, call run_evaluation first, then aggregate using defaultdict for category tracking'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from collections import defaultdict
-
-
-class PromptEvaluator:
-    def __init__(self, system_prompt: str):
-        self.system_prompt = system_prompt
-        self.tests = []
-        self._results = None
-
-    def add_test(self, input_text: str, expected_keywords: list[str], category: str = "general"):
-        self.tests.append({
-            "input": input_text,
-            "expected_keywords": expected_keywords,
-            "category": category,
-        })
-        self._results = None  # Invalidate cached results
-
-    def run_evaluation(self) -> list[dict]:
-        llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-        results = []
-
-        for test in self.tests:
-            response = llm.invoke([
-                SystemMessage(content=self.system_prompt),
-                HumanMessage(content=test["input"] if test["input"] else "(empty input)"),
-            ])
-            output = response.content
-
-            missing = [
-                kw for kw in test["expected_keywords"]
-                if kw.lower() not in output.lower()
-            ]
-
-            results.append({
-                "input": test["input"],
-                "output": output,
-                "expected_keywords": test["expected_keywords"],
-                "category": test["category"],
-                "passed": len(missing) == 0,
-                "missing_keywords": missing,
-            })
-
-        self._results = results
-        return results
-
-    def get_report(self) -> dict:
-        if self._results is None:
-            self.run_evaluation()
-
-        results = self._results
-        total = len(results)
-        passed = sum(1 for r in results if r["passed"])
-
-        # By category
-        by_category = defaultdict(lambda: {"passed": 0, "total": 0})
-        for r in results:
-            cat = r["category"]
-            by_category[cat]["total"] += 1
-            if r["passed"]:
-                by_category[cat]["passed"] += 1
-
-        for cat in by_category:
-            stats = by_category[cat]
-            stats["pass_rate"] = stats["passed"] / stats["total"] if stats["total"] > 0 else 0.0
-
-        failures = [
-            {"input": r["input"], "missing_keywords": r["missing_keywords"]}
-            for r in results if not r["passed"]
-        ]
-
-        return {
-            "total_tests": total,
-            "passed": passed,
-            "failed": total - passed,
-            "pass_rate": passed / total if total > 0 else 0.0,
-            "by_category": dict(by_category),
-            "failures": failures,
-        }`
+          solutionCode: ''
         }
       },
       {
@@ -3189,61 +2683,7 @@ if __name__ == "__main__":
             'For few-shot, embed the examples directly in the template string',
             "The phrase \"Let's think step by step\" triggers chain-of-thought behavior",
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-QUESTION = "What is 17 × 24?"
-
-def zero_shot(llm) -> str:
-    prompt = PromptTemplate.from_template("{question}")
-    chain = prompt | llm | StrOutputParser()
-    return chain.invoke({"question": QUESTION})
-
-def few_shot(llm) -> str:
-    template = """Q: 12 × 15 = ?
-A: 12 × 15 = 180
-
-Q: 9 × 8 = ?
-A: 9 × 8 = 72
-
-Q: {question}
-A:"""
-    prompt = PromptTemplate.from_template(template)
-    chain = prompt | llm | StrOutputParser()
-    return chain.invoke({"question": QUESTION})
-
-def chain_of_thought(llm) -> str:
-    template = """Solve step by step:
-
-{question}
-
-Let's think step by step:"""
-    prompt = PromptTemplate.from_template(template)
-    chain = prompt | llm | StrOutputParser()
-    return chain.invoke({"question": QUESTION})
-
-if __name__ == "__main__":
-    print("=== Zero-Shot ===")
-    print(zero_shot(llm))
-    print()
-    print("=== Few-Shot ===")
-    print(few_shot(llm))
-    print()
-    print("=== Chain-of-Thought ===")
-    print(chain_of_thought(llm))
-`,
+          solutionCode: '',
         }
       }
     ]
@@ -3529,38 +2969,7 @@ if __name__ == "__main__":
             'For partial: formal_email_template = email_template.partial(tone="formal and professional")',
             'To chain: chain = template | llm, then chain.invoke({...}).content'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.4)
-
-email_template = ChatPromptTemplate.from_messages([
-    ("system", "You are a professional email writer. Write clear, well-structured emails."),
-    ("human", "Write an email with the following details:\\nTone: {tone}\\nTo: {recipient}\\nSubject: {subject}\\nKey points to include: {key_points}\\n\\nWrite only the email (with subject line), no commentary.")
-])
-
-formal_email_template = email_template.partial(tone="formal and professional")
-
-
-def generate_email(tone: str, recipient: str, subject: str, key_points: str) -> str:
-    chain = email_template | llm
-    response = chain.invoke({
-        "tone": tone,
-        "recipient": recipient,
-        "subject": subject,
-        "key_points": key_points,
-    })
-    return response.content
-
-
-def generate_formal_email(recipient: str, subject: str, key_points: str) -> str:
-    chain = formal_email_template | llm
-    response = chain.invoke({
-        "recipient": recipient,
-        "subject": subject,
-        "key_points": key_points,
-    })
-    return response.content`
+          solutionCode: ''
         }
       },
       {
@@ -3709,39 +3118,7 @@ if __name__ == "__main__":
             'Use MessagesPlaceholder("chat_history", optional=True) so the first call works without history',
             'After getting the response, do: history = history + [HumanMessage(content=user_input), AIMessage(content=response.content)]'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.messages import HumanMessage, AIMessage
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0.7)
-
-
-def create_chatbot_template(persona: str, rules: list[str]) -> ChatPromptTemplate:
-    rules_text = "\\n".join(f"- {r}" for r in rules)
-
-    template = ChatPromptTemplate.from_messages([
-        ("system", f"You are a {persona}.\\n\\nRules:\\n{rules_text}"),
-        MessagesPlaceholder("chat_history", optional=True),
-        ("human", "{user_input}")
-    ])
-    return template
-
-
-def chat(template: ChatPromptTemplate, history: list, user_input: str,
-         persona: str, rules: list[str]) -> tuple[str, list]:
-    chain = template | llm
-
-    response = chain.invoke({
-        "chat_history": history,
-        "user_input": user_input,
-    })
-
-    updated_history = history + [
-        HumanMessage(content=user_input),
-        AIMessage(content=response.content),
-    ]
-
-    return response.content, updated_history`
+          solutionCode: ''
         }
       },
       {
@@ -3871,43 +3248,7 @@ if __name__ == "__main__":
             'example_prompt = ChatPromptTemplate.from_messages([("human", "{input}"), ("ai", "{output}")])',
             'Final prompt: ChatPromptTemplate.from_messages([("system", "Classify..."), few_shot_prompt, ("human", "{input}")])'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-examples = [
-    {"input": "I was charged twice for my subscription", "output": "billing"},
-    {"input": "Can I get a refund for last month?", "output": "billing"},
-    {"input": "The app crashes when I try to upload files", "output": "technical"},
-    {"input": "Page loading is extremely slow today", "output": "technical"},
-    {"input": "I need to update my email address", "output": "account"},
-    {"input": "How do I reset my password?", "output": "account"},
-    {"input": "What are your business hours?", "output": "general"},
-    {"input": "Do you offer a student discount?", "output": "general"},
-]
-
-example_prompt = ChatPromptTemplate.from_messages([
-    ("human", "{input}"),
-    ("ai", "{output}")
-])
-
-few_shot_prompt = FewShotChatMessagePromptTemplate(
-    example_prompt=example_prompt,
-    examples=examples,
-)
-
-final_prompt = ChatPromptTemplate.from_messages([
-    ("system", "Classify the customer message into exactly one category: billing, technical, account, or general. Return ONLY the category label in lowercase."),
-    few_shot_prompt,
-    ("human", "{input}")
-])
-
-
-def classify(text: str) -> str:
-    chain = final_prompt | llm
-    response = chain.invoke({"input": text})
-    return response.content.strip().lower()`
+          solutionCode: ''
         }
       },
       {
@@ -4060,41 +3401,7 @@ if __name__ == "__main__":
             'For parser approach: parser.get_format_instructions() gives the LLM the schema',
             'For modern approach: structured_llm = llm.with_structured_output(ReviewAnalysis), then structured_llm.invoke(messages)'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-
-class ReviewAnalysis(BaseModel):
-    sentiment: str = Field(description="Overall sentiment: positive, negative, or mixed")
-    score: float = Field(description="Rating from 1.0 to 10.0")
-    key_points: list[str] = Field(description="Main points mentioned in the review")
-    improvement_suggestions: list[str] = Field(description="Suggestions for improvement based on criticism")
-
-
-def analyze_review(review_text: str) -> ReviewAnalysis:
-    parser = PydanticOutputParser(pydantic_object=ReviewAnalysis)
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "Analyze the following product review. {format_instructions}"),
-        ("human", "{review}")
-    ])
-
-    chain = prompt | llm | parser
-    return chain.invoke({
-        "review": review_text,
-        "format_instructions": parser.get_format_instructions()
-    })
-
-
-def analyze_review_modern(review_text: str) -> ReviewAnalysis:
-    structured_llm = llm.with_structured_output(ReviewAnalysis)
-    return structured_llm.invoke(
-        f"Analyze this product review: {review_text}"
-    )`
+          solutionCode: ''
         }
       },
       {
@@ -4284,60 +3591,7 @@ if __name__ == "__main__":
             'proficiency_level can use Field(ge=1, le=5) for validation',
             'format_summary can use f-strings to build a paragraph from parsed.name, len(parsed.experience), top skills, etc.'
           ],
-          solutionCode: `from langchain_openai import ChatOpenAI
-from pydantic import BaseModel, Field
-from typing import Optional
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-
-class Skill(BaseModel):
-    name: str = Field(description="Skill name")
-    proficiency_level: int = Field(description="Proficiency 1-5 (1=beginner, 5=expert)", ge=1, le=5)
-
-
-class Experience(BaseModel):
-    company: str = Field(description="Company name")
-    role: str = Field(description="Job title")
-    years: str = Field(description="Time period, e.g. '2020-2024'")
-    key_achievements: list[str] = Field(description="Notable accomplishments")
-
-
-class Education(BaseModel):
-    institution: str = Field(description="School or university name")
-    degree: str = Field(description="Degree type, e.g. MS, BS, PhD")
-    field: str = Field(description="Field of study")
-    year: Optional[int] = Field(description="Graduation year", default=None)
-
-
-class ParsedResume(BaseModel):
-    name: str = Field(description="Candidate's full name")
-    email: Optional[str] = Field(description="Email address", default=None)
-    phone: Optional[str] = Field(description="Phone number", default=None)
-    summary: str = Field(description="Professional summary")
-    skills: list[Skill] = Field(description="Technical and professional skills")
-    experience: list[Experience] = Field(description="Work experience, most recent first")
-    education: list[Education] = Field(description="Educational background")
-
-
-def parse_resume(text: str) -> ParsedResume:
-    structured_llm = llm.with_structured_output(ParsedResume)
-    return structured_llm.invoke(f"Parse this resume into structured data:\\n\\n{text}")
-
-
-def format_summary(parsed: ParsedResume) -> str:
-    top_skills = [s.name for s in sorted(parsed.skills, key=lambda s: s.proficiency_level, reverse=True)[:3]]
-    total_roles = len(parsed.experience)
-    latest = parsed.experience[0] if parsed.experience else None
-
-    summary = f"{parsed.name} is a professional with {total_roles} roles on record"
-    if latest:
-        summary += f", most recently as {latest.role} at {latest.company}"
-    summary += f". Top skills include {', '.join(top_skills)}."
-    if parsed.education:
-        edu = parsed.education[0]
-        summary += f" Holds a {edu.degree} in {edu.field} from {edu.institution}."
-    return summary`
+          solutionCode: ''
         }
       },
       {
@@ -4437,41 +3691,7 @@ if __name__ == "__main__":
             'elapsed = time.time() - start_time gives you the duration in seconds',
             'Format latency with f"{elapsed:.2f}s" for clean output',
           ],
-          solutionCode: `import os
-import time
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-
-load_dotenv()
-
-MODELS = [
-    "openai/gpt-4o-mini",
-    "anthropic/claude-3-haiku",
-    "meta-llama/llama-3.1-8b-instruct",
-]
-
-QUESTION = "Explain quantum entanglement in one sentence."
-
-def query_model(model_name: str, question: str) -> tuple[str, float]:
-    llm = ChatOpenAI(
-        model=model_name,
-        base_url="https://openrouter.ai/api/v1",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
-        temperature=0,
-    )
-    start = time.time()
-    response = llm.invoke(question)
-    elapsed = time.time() - start
-    return response.content, elapsed
-
-if __name__ == "__main__":
-    print(f"Question: {QUESTION}\n")
-    for model in MODELS:
-        content, latency = query_model(model, QUESTION)
-        print(f"--- {model} ({latency:.2f}s) ---")
-        print(content)
-        print()
-`,
+          solutionCode: '',
         }
       }
     ]
@@ -4768,47 +3988,7 @@ if __name__ == "__main__":
             'The condition function receives the input -- use lambda x: "summarize" in x.lower()',
             'Chain: branch | parser OR put parser inside each branch',
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableBranch
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-summarize_prompt = PromptTemplate.from_template(
-    "Provide a concise 3-sentence summary about: {question}"
-)
-qa_prompt = PromptTemplate.from_template(
-    "Answer this question clearly and directly: {question}"
-)
-
-parser = StrOutputParser()
-
-pipeline = RunnableBranch(
-    (lambda x: "summarize" in x["question"].lower(), summarize_prompt | llm | parser),
-    qa_prompt | llm | parser,
-)
-
-if __name__ == "__main__":
-    questions = [
-        "Summarize the key benefits of renewable energy.",
-        "What is the capital of Germany?",
-    ]
-    for q in questions:
-        print(f"Q: {q}")
-        result = pipeline.invoke({"question": q})
-        print(result)
-        print()
-`,
+          solutionCode: '',
         }
       },
     },
@@ -4888,50 +4068,7 @@ if __name__ == "__main__":
             'len(chunks) gives the chunk count; [len(c) for c in chunks] gives sizes',
             'sum(sizes) / len(sizes) for average',
           ],
-          solutionCode: `from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-SAMPLE_TEXT = """
-LangChain is a framework for building applications powered by large language models.
-It provides a set of tools and abstractions that make it easier to build complex AI workflows.
-
-The framework includes components for loading data from various sources, splitting documents,
-creating embeddings, and storing vectors in databases. These building blocks can be combined
-into chains and agents that perform multi-step reasoning and retrieval.
-
-Vector stores allow efficient semantic search over large document collections. When a user
-asks a question, the system retrieves the most relevant chunks and includes them in the
-prompt context for the language model. This technique is called Retrieval-Augmented Generation.
-
-Agents extend this further by giving the LLM access to tools. Tools are Python functions
-that the agent can call to look up information, run calculations, or take actions in the world.
-The ReAct pattern interleaves reasoning steps with tool calls, allowing the agent to break
-down complex tasks into manageable steps.
-
-LangGraph adds stateful orchestration on top of LangChain, enabling the creation of
-multi-actor workflows where multiple agents collaborate, with support for human-in-the-loop
-interactions and persistent state across sessions.
-""" * 5
-
-def analyse_chunks(text: str, chunk_size: int, chunk_overlap: int) -> None:
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-    )
-    chunks = splitter.split_text(text)
-    sizes = [len(c) for c in chunks]
-    print(f"  Total chars: {len(text)}")
-    print(f"  Num chunks:  {len(chunks)}")
-    print(f"  Avg size:    {sum(sizes) / len(sizes):.0f} chars")
-    print(f"  Min size:    {min(sizes)} chars")
-    print(f"  Max size:    {max(sizes)} chars")
-
-if __name__ == "__main__":
-    print("=== Chunk Size 500, Overlap 50 ===")
-    analyse_chunks(SAMPLE_TEXT, 500, 50)
-    print()
-    print("=== Chunk Size 200, Overlap 20 ===")
-    analyse_chunks(SAMPLE_TEXT, 200, 20)
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5019,42 +4156,7 @@ if __name__ == "__main__":
             'db.similarity_search_with_score(query, k=3) returns list of (Document, float)',
             "The first call downloads the embedding model (~90MB) -- it's cached after that",
           ],
-          solutionCode: `from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-
-SNIPPETS = [
-    "Neural networks are computational models inspired by the brain.",
-    "Gradient descent minimises loss by updating weights in the direction of steepest descent.",
-    "Transformers use self-attention to capture long-range dependencies in sequences.",
-    "FAISS enables fast approximate nearest-neighbour search over large embedding spaces.",
-    "RAG combines retrieval with generation to ground LLM answers in real documents.",
-    "LangChain provides composable primitives for building LLM-powered applications.",
-    "Backpropagation computes gradients via the chain rule through the network layers.",
-    "Vector embeddings represent text as dense numerical vectors preserving semantic meaning.",
-    "Prompt engineering shapes model behaviour without changing underlying model weights.",
-    "LangGraph adds stateful, graph-based orchestration to multi-agent AI workflows.",
-]
-
-def build_index(snippets: list[str]):
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return FAISS.from_texts(snippets, embeddings)
-
-def search(db, query: str, k: int = 3):
-    return db.similarity_search_with_score(query, k=k)
-
-if __name__ == "__main__":
-    print("Building index (downloading model on first run)...")
-    db = build_index(SNIPPETS)
-    print("Ready. Type your query (or \'quit\' to exit):\n")
-    while True:
-        query = input("Query: ").strip()
-        if query.lower() == "quit":
-            break
-        results = search(db, query)
-        for i, (doc, score) in enumerate(results, 1):
-            print(f"Result {i} (score: {score:.3f}): {doc.page_content}")
-        print()
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5168,83 +4270,7 @@ if __name__ == "__main__":
             'format_docs: lambda docs: "\\n\\n".join(d.page_content for d in docs)',
             'Use TextLoader or just create Document objects from the string with Document(page_content=DOCUMENT)',
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.documents import Document
-
-load_dotenv()
-
-DOCUMENT = """
-The Python programming language was created by Guido van Rossum and first released in 1991.
-Python emphasizes code readability and uses significant indentation. It supports multiple
-programming paradigms including procedural, object-oriented, and functional programming.
-
-Python has a comprehensive standard library and a vast ecosystem of third-party packages.
-The package manager pip allows developers to easily install packages from PyPI, the Python
-Package Index, which hosts over 400,000 packages.
-
-Python is widely used in scientific computing, data analysis, machine learning, web development,
-and automation. NumPy and pandas are fundamental for data manipulation. TensorFlow and PyTorch
-are the dominant deep learning frameworks. Django and FastAPI are popular web frameworks.
-
-The Python Software Foundation governs the language development. New versions are released
-periodically, with Python 3.12 being a recent major release featuring improved performance
-through faster CPython internals and better error messages for debugging.
-""" * 3
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-def build_rag_chain():
-    splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    chunks = splitter.split_text(DOCUMENT)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.from_texts(chunks, embeddings)
-    retriever = db.as_retriever(search_kwargs={"k": 3})
-
-    def format_docs(docs):
-        return "\n\n".join(d.page_content for d in docs)
-
-    prompt = PromptTemplate.from_template(
-        """Answer the question based only on the following context:
-
-{context}
-
-Question: {question}
-Answer:"""
-    )
-
-    chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
-    return chain
-
-if __name__ == "__main__":
-    chain = build_rag_chain()
-    questions = [
-        "Who created Python and when?",
-        "What is PyPI?",
-        "Name two deep learning frameworks used with Python.",
-    ]
-    for q in questions:
-        print(f"Q: {q}")
-        print(f"A: {chain.invoke(q)}")
-        print()
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5349,71 +4375,7 @@ if __name__ == "__main__":
             'Parse the response: "yes" in grounding_response.content.lower()',
             'On retry, include the context directly in a more constrained prompt',
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-DOCUMENT = """
-Python was created by Guido van Rossum in 1991. It is an interpreted, high-level language.
-Python 3.12 introduced faster startup times and improved error messages.
-The language uses indentation for code blocks instead of braces.
-Django is a high-level Python web framework released in 2005.
-FastAPI is a modern Python web framework for building APIs with type hints.
-""" * 4
-
-def build_retriever():
-    splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
-    chunks = splitter.split_text(DOCUMENT)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.from_texts(chunks, embeddings)
-    return db.as_retriever(search_kwargs={"k": 3})
-
-def answer_question(retriever, question: str) -> tuple[str, str]:
-    docs = retriever.invoke(question)
-    context = "\n".join(d.page_content for d in docs)
-    prompt = PromptTemplate.from_template("Context:\n{context}\n\nQuestion: {question}\nAnswer:")
-    chain = prompt | llm | StrOutputParser()
-    answer = chain.invoke({"context": context, "question": question})
-    return answer, context
-
-def grounding_check(answer: str, context: str) -> bool:
-    prompt = f"Context:\n{context}\n\nAnswer: {answer}\n\nIs this answer supported by the context above? Reply Yes or No only."
-    response = llm.invoke(prompt)
-    return "yes" in response.content.lower()
-
-def safe_answer(retriever, question: str) -> str:
-    answer, context = answer_question(retriever, question)
-    if grounding_check(answer, context):
-        return answer
-    print("  [grounding check failed, retrying with stricter prompt]")
-    prompt = PromptTemplate.from_template(
-        "Answer ONLY using information explicitly stated in the context below. If the context does not contain the answer, say \'I don\'t know\'\n\nContext:\n{context}\n\nQuestion: {question}\nAnswer:"
-    )
-    chain = prompt | llm | StrOutputParser()
-    return chain.invoke({"context": context, "question": question})
-
-if __name__ == "__main__":
-    retriever = build_retriever()
-    questions = ["When was Python created?", "What is Django?", "Who invented Java?"]
-    for q in questions:
-        print(f"Q: {q}")
-        print(f"A: {safe_answer(retriever, q)}")
-        print()
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5516,77 +4478,7 @@ if __name__ == "__main__":
             "Format: \"\\n\".join(f'{h[\"role\"].title()}: {h[\"content\"]}' for h in recent)",
             'Include both retrieved context AND history in the prompt',
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-DOCUMENT = """
-Python was created by Guido van Rossum in 1991.
-Django is a web framework for Python, released in 2005 by Adrian Holovaty and Simon Willison.
-FastAPI was created by Sebastián Ramírez in 2018.
-NumPy provides efficient array operations for scientific computing.
-Pandas is built on NumPy and provides DataFrame abstractions for data analysis.
-""" * 4
-
-def build_retriever():
-    splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
-    chunks = splitter.split_text(DOCUMENT)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.from_texts(chunks, embeddings)
-    return db.as_retriever(search_kwargs={"k": 3})
-
-def format_history(history: list[dict], max_turns: int = 5) -> str:
-    recent = history[-(max_turns * 2):]
-    if not recent:
-        return "No previous conversation."
-    return "\n".join(f'{h["role"].title()}: {h["content"]}' for h in recent)
-
-def chat(retriever, question: str, history: list[dict]) -> str:
-    docs = retriever.invoke(question)
-    context = "\n".join(d.page_content for d in docs)
-    hist_str = format_history(history)
-    prompt = PromptTemplate.from_template(
-        """You are a helpful research assistant. Use the context and conversation history to answer.
-
-Context:
-{context}
-
-Previous conversation:
-{history}
-
-Current question: {question}
-Answer:"""
-    )
-    chain = prompt | llm | StrOutputParser()
-    return chain.invoke({"context": context, "history": hist_str, "question": question})
-
-if __name__ == "__main__":
-    retriever = build_retriever()
-    history = []
-    print("Research Assistant ready. Type \'quit\' to exit.\n")
-    while True:
-        user_input = input("You: ").strip()
-        if user_input.lower() == "quit":
-            break
-        answer = chat(retriever, user_input, history)
-        history.append({"role": "human", "content": user_input})
-        history.append({"role": "assistant", "content": answer})
-        print(f"Assistant: {answer}\n")
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5690,65 +4582,7 @@ if __name__ == "__main__":
             'hub.pull("hwchase17/react") fetches the standard ReAct prompt from LangSmith Hub',
             'AgentExecutor(agent=agent, tools=tools, verbose=True) shows the reasoning chain',
           ],
-          solutionCode: `import os
-from datetime import date
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_react_agent, AgentExecutor
-from langchain.tools import tool
-from langchain import hub
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-@tool
-def calculator(expression: str) -> str:
-    """Evaluate a mathematical expression. Input: a math expression like '2 + 2' or '10 * 3'."""
-    try:
-        result = eval(expression, {"__builtins__": {}})
-        return str(result)
-    except Exception as e:
-        return f"Error: {e}"
-
-@tool
-def word_count(text: str) -> str:
-    """Count the number of words in a text."""
-    count = len(text.split())
-    return f"{count} words"
-
-@tool
-def current_date() -> str:
-    """Return today's date in YYYY-MM-DD format."""
-    return str(date.today())
-
-@tool
-def to_uppercase(text: str) -> str:
-    """Convert text to uppercase."""
-    return text.upper()
-
-if __name__ == "__main__":
-    tools = [calculator, word_count, current_date, to_uppercase]
-    prompt = hub.pull("hwchase17/react")
-    agent = create_react_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
-
-    queries = [
-        "What is 17 multiplied by 24?",
-        "How many words are in: The quick brown fox jumps over the lazy dog?",
-        "What is today's date?",
-        "Convert \'hello world\' to uppercase.",
-    ]
-    for q in queries:
-        print(f"\nQuery: {q}")
-        result = executor.invoke({"input": q})
-        print(f"Answer: {result[\'output\']}")
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5838,55 +4672,7 @@ if __name__ == "__main__":
             'Use requests.get(url, timeout=5) to avoid hanging on slow URLs',
             'Set max_iterations=5 on AgentExecutor to prevent runaway loops',
           ],
-          solutionCode: `import os
-import requests
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain.agents import create_react_agent, AgentExecutor
-from langchain.tools import tool
-from langchain import hub
-
-load_dotenv()
-
-import wikipedia
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-@tool
-def wikipedia_search(query: str) -> str:
-    """Search Wikipedia for a topic and return a 2-sentence summary."""
-    try:
-        return wikipedia.summary(query, sentences=2)
-    except wikipedia.DisambiguationError as e:
-        return wikipedia.summary(e.options[0], sentences=2)
-    except Exception as e:
-        return f"Error: {e}"
-
-@tool
-def fetch_url(url: str) -> str:
-    """Fetch the content of a URL and return first 500 characters of plain text."""
-    try:
-        response = requests.get(url, timeout=5)
-        return response.text[:500]
-    except Exception as e:
-        return f"Error fetching URL: {e}"
-
-if __name__ == "__main__":
-    tools = [wikipedia_search, fetch_url]
-    prompt = hub.pull("hwchase17/react")
-    agent = create_react_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, verbose=True, max_iterations=5)
-
-    result = executor.invoke({
-        "input": "What year was Python created and who was the creator? Tell me one fact about the creator."
-    })
-    print(f"\nFinal Answer: {result[\'output\']}")
-`,
+          solutionCode: '',
         }
       },
     },
@@ -5990,68 +4776,7 @@ if __name__ == "__main__":
             'route_intent should return "answer_node", "greet_node", or "fallback_node"',
             'graph.add_conditional_edges("classify_intent", route_intent)',
           ],
-          solutionCode: `import os
-from typing import TypedDict
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
-from langgraph.graph import StateGraph, END
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-class ConvState(TypedDict):
-    user_input: str
-    intent: str
-    response: str
-
-def classify_intent(state: ConvState) -> ConvState:
-    prompt = f"Classify the following input as exactly one of: question, greeting, unknown.\nReply with one word only.\nInput: {state[\'user_input\']}"
-    intent = llm.invoke(prompt).content.strip().lower()
-    if intent not in ("question", "greeting", "unknown"):
-        intent = "unknown"
-    return {**state, "intent": intent}
-
-def answer_node(state: ConvState) -> ConvState:
-    answer = llm.invoke(f"Answer this question helpfully: {state[\'user_input\']}").content
-    return {**state, "response": answer}
-
-def greet_node(state: ConvState) -> ConvState:
-    return {**state, "response": "Hello! Great to meet you. How can I help you today?"}
-
-def fallback_node(state: ConvState) -> ConvState:
-    return {**state, "response": "I\'m not sure I understood that. Could you rephrase or ask a question?"}
-
-def route_intent(state: ConvState) -> str:
-    mapping = {"question": "answer_node", "greeting": "greet_node", "unknown": "fallback_node"}
-    return mapping.get(state["intent"], "fallback_node")
-
-if __name__ == "__main__":
-    builder = StateGraph(ConvState)
-    builder.add_node("classify_intent", classify_intent)
-    builder.add_node("answer_node", answer_node)
-    builder.add_node("greet_node", greet_node)
-    builder.add_node("fallback_node", fallback_node)
-    builder.set_entry_point("classify_intent")
-    builder.add_conditional_edges("classify_intent", route_intent)
-    builder.add_edge("answer_node", END)
-    builder.add_edge("greet_node", END)
-    builder.add_edge("fallback_node", END)
-    graph = builder.compile()
-
-    tests = ["What is the speed of light?", "Hello there!", "asdf xyzzy blorp"]
-    for t in tests:
-        result = graph.invoke({"user_input": t, "intent": "", "response": ""})
-        print(f"Input: {t}")
-        print(f"Intent: {result[\'intent\']}")
-        print(f"Response: {result[\'response\']}\n")
-`,
+          solutionCode: '',
         }
       },
     },
@@ -6138,68 +4863,7 @@ if __name__ == "__main__":
             'state["approved"] = user_input.strip().lower() == "y"',
             'add_conditional_edges("review_node", route_approval, {"write_summary_node": ..., "rejected_node": ...})',
           ],
-          solutionCode: `import os
-from typing import TypedDict
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, END
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-class ResearchState(TypedDict):
-    topic: str
-    research: str
-    approved: bool
-    summary: str
-
-def research_node(state: ResearchState) -> ResearchState:
-    prompt = f"Research the following topic thoroughly in 3-4 paragraphs: {state[\'topic\']}"
-    research = llm.invoke(prompt).content
-    return {**state, "research": research}
-
-def review_node(state: ResearchState) -> ResearchState:
-    print("\n=== RESEARCH OUTPUT ===")
-    print(state["research"])
-    print("=== END OF RESEARCH ===\n")
-    approval = input("Approve this research for summary? (y/n): ").strip().lower()
-    return {**state, "approved": approval == "y"}
-
-def write_summary_node(state: ResearchState) -> ResearchState:
-    prompt = f"Write a concise, polished 2-paragraph summary of: {state[\'research\']}"
-    summary = llm.invoke(prompt).content
-    return {**state, "summary": summary}
-
-def rejected_node(state: ResearchState) -> ResearchState:
-    return {**state, "summary": "Research rejected by human reviewer. No summary produced."}
-
-def route_approval(state: ResearchState) -> str:
-    return "write_summary_node" if state["approved"] else "rejected_node"
-
-if __name__ == "__main__":
-    builder = StateGraph(ResearchState)
-    builder.add_node("research_node", research_node)
-    builder.add_node("review_node", review_node)
-    builder.add_node("write_summary_node", write_summary_node)
-    builder.add_node("rejected_node", rejected_node)
-    builder.set_entry_point("research_node")
-    builder.add_edge("research_node", "review_node")
-    builder.add_conditional_edges("review_node", route_approval)
-    builder.add_edge("write_summary_node", END)
-    builder.add_edge("rejected_node", END)
-    graph = builder.compile()
-
-    topic = input("Enter research topic: ")
-    result = graph.invoke({"topic": topic, "research": "", "approved": False, "summary": ""})
-    print("\n=== FINAL SUMMARY ===")
-    print(result["summary"])
-`,
+          solutionCode: '',
         }
       },
     },
@@ -6293,69 +4957,7 @@ if __name__ == "__main__":
             'Writer prompt: "You are an expert writer. Write a 200-word article based on: {research}"',
             'Graph: START → supervisor → researcher → writer → END',
           ],
-          solutionCode: `import os
-from typing import TypedDict
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, END
-
-load_dotenv()
-
-researcher_llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0.3,
-)
-
-writer_llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0.7,
-)
-
-class ContentState(TypedDict):
-    topic: str
-    research: str
-    draft: str
-    final_content: str
-
-def supervisor_node(state: ContentState) -> ContentState:
-    print(f"[Supervisor] Coordinating content creation for: {state[\'topic\']}")
-    return state
-
-def researcher_node(state: ContentState) -> ContentState:
-    print("[Researcher] Gathering information...")
-    prompt = f"You are a research specialist. Compile 5 key facts and insights about: {state[\'topic\']}"
-    research = researcher_llm.invoke(prompt).content
-    return {**state, "research": research}
-
-def writer_node(state: ContentState) -> ContentState:
-    print("[Writer] Drafting article...")
-    prompt = f"""You are an expert content writer. Write a compelling 200-word article based on this research.
-Research: {state[\'research\']}
-Topic: {state[\'topic\']}
-Write a clear, engaging article:"""
-    content = writer_llm.invoke(prompt).content
-    return {**state, "final_content": content}
-
-if __name__ == "__main__":
-    builder = StateGraph(ContentState)
-    builder.add_node("supervisor", supervisor_node)
-    builder.add_node("researcher", researcher_node)
-    builder.add_node("writer", writer_node)
-    builder.set_entry_point("supervisor")
-    builder.add_edge("supervisor", "researcher")
-    builder.add_edge("researcher", "writer")
-    builder.add_edge("writer", END)
-    graph = builder.compile()
-
-    topic = input("Enter topic for content creation: ")
-    result = graph.invoke({"topic": topic, "research": "", "draft": "", "final_content": ""})
-    print("\n=== FINAL ARTICLE ===")
-    print(result["final_content"])
-`,
+          solutionCode: '',
         }
       },
     },
@@ -6459,67 +5061,7 @@ if __name__ == "__main__":
             '@traceable adds a named span around the decorated function',
             'Get a free LangSmith API key at smith.langchain.com',
           ],
-          solutionCode: `import os
-from dotenv import load_dotenv
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langsmith import traceable
-
-load_dotenv()
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-DOCUMENT = """
-LangSmith is a platform for LLM observability developed by LangChain.
-It provides tracing, evaluation, and monitoring for AI applications.
-Traces capture every LLM call, tool use, and retrieval in a session.
-You can compare prompt versions, run automated evaluations, and monitor production systems.
-""" * 4
-
-def build_rag_chain():
-    splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
-    chunks = splitter.split_text(DOCUMENT)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.from_texts(chunks, embeddings)
-    retriever = db.as_retriever(search_kwargs={"k": 3})
-
-    def format_docs(docs):
-        return "\n".join(d.page_content for d in docs)
-
-    prompt = PromptTemplate.from_template(
-        "Answer from context only:\n{context}\n\nQuestion: {question}\nAnswer:"
-    )
-    return (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt | llm | StrOutputParser()
-    )
-
-@traceable(name="rag-query")
-def ask(chain, question: str) -> str:
-    return chain.invoke(question)
-
-if __name__ == "__main__":
-    chain = build_rag_chain()
-    questions = [
-        "What is LangSmith?",
-        "What does LangSmith trace?",
-        "How is LangSmith useful for production?",
-    ]
-    for q in questions:
-        print(f"Q: {q}")
-        print(f"A: {ask(chain, q)}\n")
-    print("Check your traces at https://smith.langchain.com")
-`,
+          solutionCode: '',
         }
       },
     },
@@ -6626,72 +5168,7 @@ if __name__ == "__main__":
             'StreamingResponse(generator(), media_type="text/plain")',
             'For retry: functools.wraps + a loop with try/except and asyncio.sleep()',
           ],
-          solutionCode: `import os
-import asyncio
-from dotenv import load_dotenv
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-import functools
-
-load_dotenv()
-
-app = FastAPI(title="RAG Service")
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-    streaming=True,
-)
-
-DOCUMENT = """
-Python was created by Guido van Rossum in 1991.
-It is widely used for web development, data science, and AI.
-The Python Package Index (PyPI) hosts over 400,000 packages.
-FastAPI is a modern Python web framework for building APIs.
-""" * 4
-
-def build_chain():
-    splitter = RecursiveCharacterTextSplitter(chunk_size=300, chunk_overlap=30)
-    chunks = splitter.split_text(DOCUMENT)
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    db = FAISS.from_texts(chunks, embeddings)
-    retriever = db.as_retriever(search_kwargs={"k": 3})
-    prompt = PromptTemplate.from_template(
-        "Context:\n{context}\n\nQuestion: {question}\nAnswer:"
-    )
-    def fmt(docs): return "\n".join(d.page_content for d in docs)
-    return {"context": retriever | fmt, "question": RunnablePassthrough()} | prompt | llm | StrOutputParser()
-
-chain = build_chain()
-
-class QuestionRequest(BaseModel):
-    question: str
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-@app.post("/ask")
-async def ask(req: QuestionRequest):
-    async def generate():
-        async for chunk in chain.astream(req.question):
-            yield chunk
-    return StreamingResponse(generate(), media_type="text/plain")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
-`,
+          solutionCode: '',
         }
       },
     },
@@ -6792,85 +5269,7 @@ def chat(req: ChatRequest) -> dict:
             'Pass history to AgentExecutor via {"input": msg, "chat_history": history}',
             'Client: import requests; requests.post("http://localhost:8000/chat", json={...})',
           ],
-          solutionCode: `# server.py
-import os
-from datetime import date
-from dotenv import load_dotenv
-from fastapi import FastAPI
-from pydantic import BaseModel
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain.agents import create_react_agent, AgentExecutor
-from langchain.tools import tool
-from langchain import hub
-
-load_dotenv()
-
-app = FastAPI()
-sessions: dict[str, list] = {}
-
-llm = ChatOpenAI(
-    model="openai/gpt-4o-mini",
-    base_url="https://openrouter.ai/api/v1",
-    api_key=os.getenv("OPENROUTER_API_KEY"),
-    temperature=0,
-)
-
-DOCUMENT = "Python is a high-level programming language created in 1991. " * 20
-splitter = RecursiveCharacterTextSplitter(chunk_size=200, chunk_overlap=20)
-chunks = splitter.split_text(DOCUMENT)
-db = FAISS.from_texts(chunks, HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2"))
-retriever = db.as_retriever(search_kwargs={"k": 2})
-
-@tool
-def knowledge_search(query: str) -> str:
-    """Search the knowledge base for information."""
-    docs = retriever.invoke(query)
-    return "\n".join(d.page_content for d in docs)
-
-@tool
-def calculator(expression: str) -> str:
-    """Evaluate a math expression."""
-    try: return str(eval(expression, {"__builtins__": {}}))
-    except: return "Error"
-
-@tool
-def current_date() -> str:
-    """Return today\'s date."""
-    return str(date.today())
-
-tools = [knowledge_search, calculator, current_date]
-prompt = hub.pull("hwchase17/react")
-
-class ChatRequest(BaseModel):
-    session_id: str
-    message: str
-
-@app.post("/chat")
-def chat(req: ChatRequest) -> dict:
-    if req.session_id not in sessions:
-        sessions[req.session_id] = []
-    agent = create_react_agent(llm, tools, prompt)
-    executor = AgentExecutor(agent=agent, tools=tools, verbose=False, max_iterations=4)
-    result = executor.invoke({"input": req.message})
-    sessions[req.session_id].append({"user": req.message, "bot": result["output"]})
-    return {"response": result["output"], "session_id": req.session_id}
-
-# Run: uvicorn server:app --reload
-
-# === client.py ===
-# import requests
-# SERVER = "http://localhost:8000"
-# session_id = "user-1"
-# print("Connected to RAG server. Type quit to exit.")
-# while True:
-#     msg = input("You: ").strip()
-#     if msg.lower() == "quit": break
-#     resp = requests.post(f"{SERVER}/chat", json={"session_id": session_id, "message": msg})
-#     print(f"Bot: {resp.json()[\'response\']}\n")
-`,
+          solutionCode: '',
         }
       },
     },
@@ -7749,39 +6148,7 @@ if __name__ == "__main__":
         'Parallel: RunnableParallel(sentiment=sentiment_chain, entities=entities_chain)',
         'The parallel step outputs a dict -- your combine function receives {"sentiment": "...", "entities": "..."}'
       ],
-      solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableParallel, RunnableLambda
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-def clean_text(text: str) -> str:
-    return text.strip()[:2000]
-
-sentiment_chain = ChatPromptTemplate.from_template(
-    "Analyze the sentiment of this text in one word (positive/negative/neutral): {text}"
-) | llm | StrOutputParser()
-
-entities_chain = ChatPromptTemplate.from_template(
-    "Extract key entities (people, companies, products) as a comma-separated list: {text}"
-) | llm | StrOutputParser()
-
-def make_analysis_input(text: str) -> dict:
-    return {"text": text}
-
-def combine_results(results: dict) -> str:
-    return f"Sentiment: {results['sentiment']}\\nEntities: {results['entities']}"
-
-pipeline = (
-    RunnableLambda(clean_text)
-    | RunnableLambda(make_analysis_input)
-    | RunnableParallel(sentiment=sentiment_chain, entities=entities_chain)
-    | RunnableLambda(combine_results)
-)
-
-def analyze_text(text: str) -> str:
-    return pipeline.invoke(text)`
+      solutionCode: ''
     },
   }
 
@@ -7828,19 +6195,7 @@ if __name__ == "__main__":
       'Use ChatPromptTemplate.from_messages() for chat model prompts',
       'Chain components with the pipe operator: prompt | llm | parser'
     ],
-    solutionCode: `from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-
-llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-def main_function(input_text: str) -> str:
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are a helpful assistant specializing in LangChain development."),
-        ("human", "{input}")
-    ])
-    chain = prompt | llm | StrOutputParser()
-    return chain.invoke({"input": input_text})`
+    solutionCode: ''
   }
 }
 
@@ -8008,32 +6363,7 @@ if __name__ == "__main__":
             'RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200).split_documents(docs)',
             'Chroma.from_documents(chunks, embedding, persist_directory="./chroma_db") creates and persists in one step',
           ],
-          solutionCode: `from langchain_community.document_loaders import PyPDFLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_chroma import Chroma
-from dotenv import load_dotenv
-
-load_dotenv()
-
-SPLITTER = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
-
-
-def _load_and_split(pdf_paths: list[str]):
-    docs = []
-    for path in pdf_paths:
-        docs.extend(PyPDFLoader(path).load())
-    return SPLITTER.split_documents(docs)
-
-
-def build_vector_store(pdf_paths: list[str]) -> Chroma:
-    chunks = _load_and_split(pdf_paths)
-    embedding = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    return Chroma.from_documents(chunks, embedding, persist_directory="./chroma_db")
-
-
-def count_chunks(pdf_paths: list[str]) -> int:
-    return len(_load_and_split(pdf_paths))`,
+          solutionCode: '',
         },
         {
           id: 'milestone-2',
@@ -8107,45 +6437,7 @@ if __name__ == "__main__":
             'Use RunnablePassthrough.assign(context=...) or {"context": retriever | format_docs, "question": RunnablePassthrough()}',
             'ChatPromptTemplate.from_messages([("system", "Use the following context...\\n\\n{context}"), ("human", "{question}")])',
           ],
-          solutionCode: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough, Runnable
-from dotenv import load_dotenv
-
-load_dotenv()
-
-SYSTEM_PROMPT = """You are a helpful research assistant. Answer the user's question using ONLY the information provided in the context below. If the answer is not in the context, say "I don't have enough information in the documents to answer that."
-
-Context:
-{context}"""
-
-
-def format_docs(docs) -> str:
-    return "\\n\\n".join(doc.page_content for doc in docs)
-
-
-def create_rag_chain(vector_store: Chroma) -> Runnable:
-    retriever = vector_store.as_retriever(search_kwargs={"k": 4})
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
-        ("human", "{question}"),
-    ])
-    llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-
-    chain = (
-        {"context": retriever | format_docs, "question": RunnablePassthrough()}
-        | prompt
-        | llm
-        | StrOutputParser()
-    )
-    return chain
-
-
-def ask(chain: Runnable, question: str) -> str:
-    return chain.invoke(question)`,
+          solutionCode: '',
         },
         {
           id: 'milestone-3',
@@ -8227,55 +6519,7 @@ if __name__ == "__main__":
             'In chat(), retrieve docs first: docs = self._retriever.invoke(question), then format them',
             'Pass {"context": formatted_context, "history": self._history, "question": question} to the chain',
           ],
-          solutionCode: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.messages import HumanMessage, AIMessage, BaseMessage
-from dotenv import load_dotenv
-
-load_dotenv()
-
-SYSTEM = """You are a helpful research assistant. Answer questions using ONLY the context below. If unsure, say so.
-
-Context:
-{context}"""
-
-
-def _format_docs(docs) -> str:
-    return "\\n\\n".join(d.page_content for d in docs)
-
-
-class ConversationalRAGAssistant:
-    def __init__(self, vector_store: Chroma):
-        self._retriever = vector_store.as_retriever(search_kwargs={"k": 4})
-        self._llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-        self._prompt = ChatPromptTemplate.from_messages([
-            ("system", SYSTEM),
-            MessagesPlaceholder(variable_name="history"),
-            ("human", "{question}"),
-        ])
-        self._chain = self._prompt | self._llm | StrOutputParser()
-        self._history: list[BaseMessage] = []
-
-    def chat(self, question: str) -> str:
-        docs = self._retriever.invoke(question)
-        context = _format_docs(docs)
-        self._history.append(HumanMessage(content=question))
-        response = self._chain.invoke({
-            "context": context,
-            "history": self._history[:-1],
-            "question": question,
-        })
-        self._history.append(AIMessage(content=response))
-        return response
-
-    def get_history(self) -> list[BaseMessage]:
-        return self._history
-
-    def reset(self) -> None:
-        self._history = []`,
+          solutionCode: '',
         },
         {
           id: 'milestone-4',
@@ -8373,56 +6617,7 @@ if __name__ == "__main__":
             'create_react_agent(llm, tools) returns a compiled graph -- invoke it with .invoke({"messages": [("human", query)]})',
             'The response["messages"][-1].content gives the final agent answer',
           ],
-          solutionCode: `from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.tools import tool
-from langgraph.prebuilt import create_react_agent
-from dotenv import load_dotenv
-import numexpr
-
-load_dotenv()
-
-
-def build_tools(vector_store: Chroma):
-    @tool
-    def search_documents(query: str) -> str:
-        """Search the document knowledge base for information relevant to the query.
-        Use this when the question is about the content of the loaded documents."""
-        docs = vector_store.similarity_search(query, k=4)
-        return "\\n\\n".join(f"[{i+1}] {doc.page_content}" for i, doc in enumerate(docs))
-
-    @tool
-    def calculate(expression: str) -> str:
-        """Evaluate a mathematical expression and return the result.
-        Use this for any arithmetic, algebra, or numerical calculations."""
-        try:
-            result = numexpr.evaluate(expression)
-            return str(result)
-        except Exception as e:
-            return f"Calculation error: {e}"
-
-    @tool
-    def web_search(query: str) -> str:
-        """Search the web for current information not found in the documents.
-        Use for recent events, real-time data, or topics outside the knowledge base."""
-        return f"[Web search placeholder] For '{query}', please check a search engine."
-
-    return [search_documents, calculate, web_search]
-
-
-class ResearchAgent:
-    def __init__(self, vector_store: Chroma):
-        self._tools = build_tools(vector_store)
-        llm = ChatOpenAI(model="openai/gpt-4o-mini", base_url="https://openrouter.ai/api/v1", api_key=os.getenv("OPENROUTER_API_KEY"), temperature=0)
-        self._agent = create_react_agent(llm, self._tools)
-
-    def run(self, query: str) -> str:
-        response = self._agent.invoke({"messages": [("human", query)]})
-        return response["messages"][-1].content
-
-    def get_tool_names(self) -> list[str]:
-        return [t.name for t in self._tools]`,
+          solutionCode: '',
         },
       ],
     },
@@ -8541,15 +6736,7 @@ BASE_DIR="$HOME/k8s-practice"
 # TODO: print structure`,
               rubric: ['set -euo pipefail', 'All 3 dirs created', 'deploy.sh=755', 'app.conf=644', 'db.key=600', 'ls -la shown'],
               hints: ['mkdir -p "$BASE_DIR"/{scripts,configs,secrets}', 'chmod 600 "$BASE_DIR/secrets/db.key"'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-BASE_DIR="$HOME/k8s-practice"
-mkdir -p "$BASE_DIR"/{scripts,configs,secrets}
-touch "$BASE_DIR/scripts/deploy.sh" && chmod 755 "$BASE_DIR/scripts/deploy.sh"
-touch "$BASE_DIR/configs/app.conf" && chmod 644 "$BASE_DIR/configs/app.conf"
-touch "$BASE_DIR/secrets/db.key" && chmod 600 "$BASE_DIR/secrets/db.key"
-for d in scripts configs secrets; do echo "=== $d ==="; ls -la "$BASE_DIR/$d/"; done
-echo "Done"`
+              solutionCode: ''
             }
           },
           {
@@ -8582,16 +6769,7 @@ PROCESS_NAME="$1"
 # TODO: find PIDs, print results`,
               rubric: ['Usage check', 'Uses ps aux | grep | grep -v grep', 'Prints PIDs', 'NOT FOUND message', 'Shows count'],
               hints: ['PIDS=$(ps aux | grep "$PROCESS_NAME" | grep -v grep | awk \'{print $2}\' || true)', '[ -z "$PIDS" ] to check empty'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-[ $# -eq 0 ] && { echo "Usage: $0 <name>"; exit 1; }
-PIDS=$(ps aux | grep "$1" | grep -v grep | awk '{print $2}' || true)
-if [ -z "$PIDS" ]; then
-    echo "NOT FOUND: $1"; echo "Count: 0"
-else
-    COUNT=$(echo "$PIDS" | wc -l | tr -d ' ')
-    echo "Count: $COUNT"; while IFS= read -r pid; do echo "RUNNING: $pid"; done <<< "$PIDS"
-fi`
+              solutionCode: ''
             }
           },
           {
@@ -8628,16 +6806,7 @@ done
 echo "Summary: $HEALTHY/$TOTAL healthy"`,
               rubric: ['Loops all URLs', 'curl with -w "%{http_code}"', 'OK for 200', 'FAIL for others', 'Summary line'],
               hints: ['CODE=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-[ $# -eq 0 ] && { echo "Usage: $0 <url...>"; exit 1; }
-TOTAL=$#; HEALTHY=0
-for url in "$@"; do
-    CODE=$(curl -s -o /dev/null -w "%{http_code}" "$url" 2>/dev/null || echo "000")
-    if [ "$CODE" = "200" ]; then echo "OK (200): $url"; HEALTHY=$((HEALTHY+1))
-    else echo "FAIL ($CODE): $url"; fi
-done
-echo "Summary: $HEALTHY/$TOTAL URLs are healthy"`
+              solutionCode: ''
             }
           },
           {
@@ -8680,15 +6849,7 @@ check_dependency() { local t="$1"; command -v "$t" &>/dev/null && echo "  OK: $t
 # TODO: check deps, create dirs, write .env.example, print summary`,
               rubric: ['set -euo pipefail', 'check_dependency function', '3 deps checked', 'All 4 dirs created', '.env.example written', 'Summary printed'],
               hints: ['mkdir -p "$BASE_DIR"/{src,tests,k8s,docs}'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-PROJECT_NAME="my-k8s-app"
-BASE_DIR="$HOME/projects/$PROJECT_NAME"
-check_dependency() { local t="$1"; command -v "$t" &>/dev/null && echo "  OK: $t" || echo "  MISSING: $t"; }
-echo "Checking deps:"; for d in git docker kubectl; do check_dependency "$d"; done
-mkdir -p "$BASE_DIR"/{src,tests,k8s,docs}
-printf "DB_URL=postgresql://localhost/mydb\nAPI_KEY=your_key_here\n" > "$BASE_DIR/.env.example"
-echo "Created: $BASE_DIR"; ls "$BASE_DIR/"`
+              solutionCode: ''
             }
           },
           {
@@ -8754,22 +6915,7 @@ log() { echo "$1" | tee -a "$LAB_DIR/logs/setup.log"; }
 # TODO: mkdir structure, init log, check OS, check Docker, check kubectl+minikube, summary+exit`,
               rubric: ['Directory structure created', 'Correct permissions', 'macOS version logged', 'Docker running check', 'kubectl+minikube checked', 'setup.log written', 'Exit code based on errors'],
               hints: ['sw_vers -productVersion', 'docker info &>/dev/null && echo running || echo not running'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-LAB_DIR="/tmp/k8s-lab"; ERRORS=0
-mkdir -p "$LAB_DIR/logs" "$LAB_DIR/config" "$LAB_DIR/data"
-chmod 755 "$LAB_DIR/logs"; chmod 700 "$LAB_DIR/config"; chmod 755 "$LAB_DIR/data"
-LOG="$LAB_DIR/logs/setup.log"
-log() { echo "$1" | tee -a "$LOG"; }
-echo "=== K8s Lab Setup ===" > "$LOG"
-log "Time: $(date '+%Y-%m-%d %H:%M:%S')"
-log "macOS: $(sw_vers -productVersion)"
-for tool in docker kubectl minikube; do
-    if command -v "$tool" &>/dev/null; then log "  OK: $tool"
-    else log "  MISSING: $tool"; ERRORS=$((ERRORS+1)); fi
-done
-if docker info &>/dev/null 2>&1; then log "  Docker: running"; else log "  Docker: not running (start Docker Desktop)"; fi
-[ "$ERRORS" -eq 0 ] && { log "All checks passed!"; exit 0; } || { log "FAILED: $ERRORS tools missing"; exit 1; }`
+              solutionCode: ''
             }
           },
         ],
@@ -8847,16 +6993,7 @@ trap cleanup EXIT
 # TODO: docker run, sleep, curl, check, print`,
               rubric: ['docker run -d -p 8080:80', 'sleep 2', 'curl checks status', 'Pass/fail printed', 'trap cleanup EXIT'],
               hints: ['HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$PORT)'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-CONTAINER="test-nginx"; PORT=8080; RESULT=0
-cleanup() { docker stop "$CONTAINER" 2>/dev/null||true; docker rm "$CONTAINER" 2>/dev/null||true; }
-trap cleanup EXIT
-docker run -d -p "\${PORT}:80" --name "$CONTAINER" nginx
-sleep 2
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:\${PORT}" || echo "000")
-[ "$CODE" = "200" ] && { echo "PASS: HTTP $CODE"; RESULT=0; } || { echo "FAIL: HTTP $CODE"; RESULT=1; }
-exit $RESULT`
+              solutionCode: ''
             }
           },
           {
@@ -8899,15 +7036,7 @@ Use specific versions (python:3.11-slim not python:latest). Use -slim variants f
 # build_and_test.sh - build, run, sleep 3, curl, cleanup`,
               rubric: ['python:3.11-slim base', 'WORKDIR /app', 'requirements.txt before COPY . .', 'CMD starts Flask', 'Script builds runs tests', '.dockerignore present'],
               hints: ['CMD ["python", "app.py"]', 'EXPOSE 5000'],
-              solutionCode: `# app.py
-from flask import Flask, jsonify
-app = Flask(__name__)
-@app.route("/")
-def home(): return jsonify({"status":"ok","message":"Hello from Docker!"})
-if __name__ == "__main__": app.run(host="0.0.0.0", port=5000)
-# requirements.txt: flask
-# Dockerfile: FROM python:3.11-slim / WORKDIR /app / COPY requirements.txt . / RUN pip install -r requirements.txt / COPY . . / EXPOSE 5000 / CMD ["python","app.py"]
-# build_and_test.sh: docker build -t flask-demo:1.0 . && docker run -d -p 5000:5000 --name flask-demo flask-demo:1.0 && sleep 3 && curl http://localhost:5000 && docker stop flask-demo && docker rm flask-demo`
+              solutionCode: ''
             }
           },
           {
@@ -8938,21 +7067,7 @@ trap cleanup EXIT
 # TODO: volume create, run postgres, wait, create table, insert, stop/rm, run again, verify`,
               rubric: ['Named volume created', 'Both containers use same volume', 'POSTGRES_PASSWORD set', 'Table+row created', 'Second container verifies row', 'Cleanup in trap'],
               hints: ['docker exec pg1 psql -U postgres -c "CREATE TABLE items (id SERIAL, name TEXT);"', 'sleep 12 for Postgres startup'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-VOLUME="pg-test-data"; PASS="testpassword"
-cleanup() { docker stop pg1 pg2 2>/dev/null||true; docker rm pg1 pg2 2>/dev/null||true; docker volume rm "$VOLUME" 2>/dev/null||true; }
-trap cleanup EXIT
-docker volume create "$VOLUME"
-docker run -d --name pg1 -e POSTGRES_PASSWORD="$PASS" -v "\${VOLUME}:/var/lib/postgresql/data" postgres:15
-sleep 12
-docker exec pg1 psql -U postgres -c "CREATE TABLE items (id SERIAL, name TEXT);"
-docker exec pg1 psql -U postgres -c "INSERT INTO items(name) VALUES('persistent');"
-docker stop pg1 && docker rm pg1
-docker run -d --name pg2 -e POSTGRES_PASSWORD="$PASS" -v "\${VOLUME}:/var/lib/postgresql/data" postgres:15
-sleep 12
-echo "=== Data persists? ==="
-docker exec pg2 psql -U postgres -c "SELECT * FROM items;"`
+              solutionCode: ''
             }
           },
           {
@@ -8986,16 +7101,7 @@ trap cleanup EXIT
 # TODO: network create, run nginx, sleep 2, curl by container name, pass/fail`,
               rubric: ['Custom network created', 'nginx on custom network', 'curl uses container name not IP', 'HTTP 200 check', 'Cleanup in trap'],
               hints: ['docker run --rm --network "$NETWORK" curlimages/curl curl -s -o /dev/null -w "%{http_code}" http://web-server'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-NETWORK="test-network"
-cleanup() { docker rm -f web-server 2>/dev/null||true; docker network rm "$NETWORK" 2>/dev/null||true; }
-trap cleanup EXIT
-docker network create "$NETWORK"
-docker run -d --name web-server --network "$NETWORK" nginx
-sleep 2
-CODE=$(docker run --rm --network "$NETWORK" curlimages/curl curl -s -o /dev/null -w "%{http_code}" http://web-server)
-[ "$CODE" = "200" ] && echo "PASS: DNS works, HTTP $CODE" || { echo "FAIL: HTTP $CODE"; exit 1; }`
+              solutionCode: ''
             }
           },
           {
@@ -9034,16 +7140,7 @@ docker compose exec web bash  # shell into service
 # docker-compose.yaml: app (build:., ports:5000:5000, depends_on:redis) + redis (redis:7-alpine)`,
               rubric: ['r.incr("hits") used', 'REDIS_HOST from env', 'depends_on: redis', 'Port 5000 mapped', 'Counter increments across requests'],
               hints: ['redis.Redis(host=os.getenv("REDIS_HOST","redis"))', 'depends_on: [redis]'],
-              solutionCode: `# app.py
-import os, redis
-from flask import Flask, jsonify
-app = Flask(__name__)
-r = redis.Redis(host=os.getenv("REDIS_HOST","redis"),port=6379)
-@app.route("/")
-def index(): return jsonify({"count": int(r.incr("hits"))})
-if __name__ == "__main__": app.run(host="0.0.0.0",port=5000)
-# requirements.txt: flask\\nredis
-# docker-compose.yaml: services: app: build:. ports:[5000:5000] depends_on:[redis] environment:[REDIS_HOST=redis] / redis: image:redis:7-alpine`
+              solutionCode: ''
             }
           },
           {
@@ -9073,17 +7170,7 @@ Build a FastAPI service with Dockerfile, Docker Compose (named volume + custom n
 # test.sh: compose up --build -d, sleep 5, curl /health, curl /echo, compose down`,
               rubric: ['/health returns {"status":"ok"}', '/echo returns body', 'Named volume in compose', 'Custom network defined', 'test.sh tests both endpoints', 'Cleanup runs'],
               hints: ['uvicorn api:app --host 0.0.0.0 --port 8000', 'networks: api-net: (blank = bridge)'],
-              solutionCode: `# api.py
-from fastapi import FastAPI
-from pydantic import BaseModel
-app = FastAPI()
-class EchoReq(BaseModel): message: str
-@app.get("/health")
-def health(): return {"status":"ok"}
-@app.post("/echo")
-def echo(req: EchoReq): return {"echo": req.message}
-# Dockerfile: FROM python:3.11-slim / WORKDIR /app / COPY requirements.txt . / RUN pip install -r requirements.txt / COPY . . / CMD ["uvicorn","api:app","--host","0.0.0.0","--port","8000"]
-# docker-compose.yaml: version:"3.9" / services: api: build:. ports:[8000:8000] volumes:[api-logs:/app/logs] networks:[api-net] / volumes: api-logs: / networks: api-net:`
+              solutionCode: ''
             }
           },
         ],
@@ -9181,15 +7268,7 @@ docker info &>/dev/null || { echo "ERROR: Docker not running"; exit 1; }; echo "
 # TODO: start minikube if needed, show cluster info and nodes`,
               rubric: ['Checks kubectl minikube docker', 'Handles already-running case', 'minikube start --driver=docker', 'cluster-info shown', 'get nodes shown'],
               hints: ['minikube status --format="{{.Host}}" 2>/dev/null | grep -q Running'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-check_tool() { command -v "$1" &>/dev/null || { echo "ERROR: $1 not installed"; exit 1; }; echo "  OK: $1"; }
-echo "=== Prerequisites ==="; check_tool kubectl; check_tool minikube
-docker info &>/dev/null 2>&1 || { echo "ERROR: Docker not running"; exit 1; }; echo "  OK: Docker"
-echo "=== Cluster ==="
-if minikube status --format='{{.Host}}' 2>/dev/null | grep -q "Running"; then echo "Already running"
-else minikube start --driver=docker; fi
-kubectl cluster-info; echo "=== Nodes ==="; kubectl get nodes -o wide`
+              solutionCode: ''
             }
           },
           {
@@ -9221,16 +7300,7 @@ kubectl run "$POD" --image=nginx --restart=Never
 # TODO: kubectl wait, describe, exec nginx -v, delete, verify`,
               rubric: ['kubectl run --restart=Never', 'kubectl wait --for=condition=Ready', 'kubectl exec runs nginx -v', 'kubectl delete pod', 'Verifies pod gone'],
               hints: ['kubectl wait --for=condition=Ready pod/$POD --timeout=60s', 'kubectl exec "$POD" -- nginx -v'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-POD="practice-pod"
-kubectl run "$POD" --image=nginx --restart=Never
-kubectl wait --for=condition=Ready "pod/$POD" --timeout=60s
-kubectl describe "pod/$POD"
-kubectl exec "$POD" -- nginx -v
-kubectl delete "pod/$POD"
-sleep 2
-kubectl get "pod/$POD" &>/dev/null 2>&1 && echo "WARNING: still exists" || echo "Confirmed deleted"`
+              solutionCode: ''
             }
           },
           {
@@ -9267,14 +7337,7 @@ for ns in dev staging production; do
 done`,
               rubric: ['3 namespaces created', 'nginx pod in each', '-A shows all namespaces', 'Pods deleted', 'Namespaces remain'],
               hints: ['kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -', 'kubectl run "nginx-$ns" --image=nginx -n "$ns" --restart=Never'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-for ns in dev staging production; do
-    kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f -
-    kubectl run "nginx-$ns" --image=nginx -n "$ns" --restart=Never
-done
-sleep 10; kubectl get pods -A | grep nginx
-for ns in dev staging production; do kubectl delete pod "nginx-$ns" -n "$ns" --ignore-not-found; done`
+              solutionCode: ''
             }
           },
           {
@@ -9325,34 +7388,7 @@ kubectl apply -f nginx-pod.yaml
 # TODO: kubectl wait, describe, delete -f`,
               rubric: ['apiVersion: v1 kind: Pod', '2+ labels', 'nginx:1.26 image', 'Resource requests+limits', 'kubectl wait for Ready', 'Delete with -f flag'],
               hints: ['kubectl wait --for=condition=Ready pod/nginx-pod --timeout=60s'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-cat > nginx-pod.yaml << 'EOF'
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx-pod
-  labels:
-    app: nginx
-    tier: frontend
-spec:
-  containers:
-  - name: nginx
-    image: nginx:1.26
-    ports:
-    - containerPort: 80
-    resources:
-      requests:
-        cpu: 50m
-        memory: 64Mi
-      limits:
-        cpu: 200m
-        memory: 128Mi
-EOF
-kubectl apply -f nginx-pod.yaml
-kubectl wait --for=condition=Ready pod/nginx-pod --timeout=60s
-kubectl describe pod nginx-pod
-kubectl delete -f nginx-pod.yaml`
+              solutionCode: ''
             }
           },
           {
@@ -9376,48 +7412,7 @@ trap cleanup EXIT
 # TODO: check tools, start minikube, create namespace, apply deployment, rollout status, port-forward, curl`,
               rubric: ['Prerequisites checked', 'minikube started if needed', 'Namespace created', '2-replica Deployment applied', 'rollout status waited', 'port-forward backgrounded, PID captured', 'curl verifies HTTP 200', 'EXIT trap cleans up'],
               hints: ['kubectl port-forward deployment/nginx "\${PORT}:80" -n "$NAMESPACE" &; PF_PID=$!', 'kubectl rollout status deployment/nginx -n "$NAMESPACE" --timeout=120s'],
-              solutionCode: `#!/bin/bash
-set -euo pipefail
-NAMESPACE="workshop"; PORT=8888; PF_PID=""
-cleanup() { [ -n "$PF_PID" ] && kill "$PF_PID" 2>/dev/null||true; kubectl delete namespace "$NAMESPACE" --ignore-not-found &>/dev/null||true; }
-trap cleanup EXIT
-for t in kubectl minikube; do command -v "$t" &>/dev/null || { echo "ERROR: $t missing"; exit 1; }; done
-docker info &>/dev/null || { echo "ERROR: Docker not running"; exit 1; }
-minikube status --format='{{.Host}}' 2>/dev/null | grep -q "Running" || minikube start --driver=docker
-kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply -n "$NAMESPACE" -f - << 'EOF'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.26
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-EOF
-kubectl rollout status deployment/nginx -n "$NAMESPACE" --timeout=120s
-kubectl port-forward deployment/nginx "\${PORT}:80" -n "$NAMESPACE" &
-PF_PID=$!; sleep 3
-CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:\${PORT}")
-[ "$CODE" = "200" ] && echo "SUCCESS: HTTP $CODE on :$PORT" || { echo "FAIL: $CODE"; exit 1; }`
+              solutionCode: ''
             }
           },
         ],
@@ -9618,47 +7613,7 @@ spec:
                 'Watch pods in real time: kubectl get pods -w',
                 'selector.matchLabels and template.metadata.labels must be identical',
               ],
-              solutionCode: `# replicaset.yaml
-apiVersion: apps/v1
-kind: ReplicaSet
-metadata:
-  name: nginx-rs
-  labels:
-    app: nginx
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-
-# --- Commands ---
-# Apply
-kubectl apply -f replicaset.yaml
-
-# Verify 3 pods
-kubectl get pods -l app=nginx
-
-# Scale to 5
-kubectl scale rs nginx-rs --replicas=5
-kubectl get pods -l app=nginx   # now 5
-
-# Delete one pod — ReplicaSet recreates it
-POD=$(kubectl get pods -l app=nginx -o name | head -1)
-kubectl delete $POD
-kubectl get pods -l app=nginx -w   # watch new pod appear
-
-# Clean up
-kubectl delete rs nginx-rs`
+              solutionCode: ''
             }
           },
           {
@@ -9758,58 +7713,7 @@ spec:
                 'Track progress: kubectl rollout status deployment/nginx-deploy',
                 'Use --record flag (deprecated but still works) or annotate with change-cause',
               ],
-              solutionCode: `# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deploy
-  annotations:
-    kubernetes.io/change-cause: "initial deploy nginx:1.25"
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nginx
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-
-# --- Commands ---
-# Apply
-kubectl apply -f deployment.yaml
-
-# Verify
-kubectl get deployment nginx-deploy
-kubectl get pods -l app=nginx
-
-# Rolling update to 1.26
-kubectl set image deployment/nginx-deploy nginx=nginx:1.26
-kubectl annotate deployment nginx-deploy kubernetes.io/change-cause="update to nginx:1.26"
-
-# Watch rollout
-kubectl rollout status deployment/nginx-deploy
-
-# Check history (2 revisions)
-kubectl rollout history deployment/nginx-deploy
-
-# Rollback to previous version (1.25)
-kubectl rollout undo deployment/nginx-deploy
-kubectl rollout status deployment/nginx-deploy
-
-# Clean up
-kubectl delete deployment nginx-deploy`
+              solutionCode: ''
             }
           },
           {
@@ -9918,42 +7822,7 @@ spec:
                 'Mi = mebibytes (2^20 bytes), not megabytes (10^6)',
                 'Verify: kubectl describe pod <name> | grep -A 4 Limits',
               ],
-              solutionCode: `# deployment-resources.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-resources
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-
-# Apply
-kubectl apply -f deployment-resources.yaml
-
-# Verify resources
-kubectl describe pod -l app=nginx | grep -A 6 "Limits:"
-
-# View usage (needs metrics-server: minikube addons enable metrics-server)
-kubectl top pods -l app=nginx`
+              solutionCode: ''
             }
           },
           {
@@ -10045,37 +7914,7 @@ kubectl annotate TODO`,
                 'Label existing: kubectl label deployment webserver tier=frontend',
                 'Annotate: kubectl annotate deployment webserver ci.company.com/build-id="42"',
               ],
-              solutionCode: `#!/bin/bash
-
-# 1. Create a pod with labels
-kubectl run nginx-labeled --image=nginx:1.25 --labels="app=web,env=prod"
-
-# Wait for it to start
-kubectl wait --for=condition=Ready pod/nginx-labeled --timeout=60s
-
-# 2. List pods with env=prod label
-kubectl get pods -l env=prod
-kubectl get pods -l 'app=web,env=prod'
-
-# 3. Create a deployment to label
-kubectl create deployment webserver --image=nginx:1.25 --replicas=2
-
-# Apply tier label to deployment
-kubectl label deployment webserver tier=frontend
-kubectl label deployment webserver env=prod
-
-# Verify labels
-kubectl get deployment webserver --show-labels
-
-# 4. Annotate deployment
-kubectl annotate deployment webserver ci.company.com/build-id="42" docs.company.com/url="https://wiki.internal/webserver"
-
-# Verify annotation
-kubectl describe deployment webserver | grep Annotations -A 5
-
-# Clean up
-kubectl delete pod nginx-labeled
-kubectl delete deployment webserver`
+              solutionCode: ''
             }
           },
           {
@@ -10170,86 +8009,7 @@ spec:
                 'Watch rollout: kubectl rollout status deployment/nginx-zero-downtime --timeout=120s',
                 'Kill port-forward: kill $PF_PID after verification',
               ],
-              solutionCode: `# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-zero-downtime
-  annotations:
-    kubernetes.io/change-cause: "nginx:1.25 initial deploy"
-spec:
-  replicas: 3
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-  selector:
-    matchLabels:
-      app: nginx-zd
-  template:
-    metadata:
-      labels:
-        app: nginx-zd
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-
----
-#!/bin/bash
-# deploy.sh
-set -e
-
-echo "=== Applying Deployment ==="
-kubectl apply -f deployment.yaml
-
-echo "=== Waiting for v1 rollout ==="
-kubectl rollout status deployment/nginx-zero-downtime --timeout=120s
-
-echo "=== Verifying v1 HTTP 200 ==="
-kubectl port-forward deployment/nginx-zero-downtime 8080:80 &
-PF_PID=$!
-sleep 3
-CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080)
-echo "HTTP status: $CODE"
-[ "$CODE" = "200" ] && echo "v1 healthy!" || echo "WARNING: unexpected status"
-kill $PF_PID 2>/dev/null
-
-echo "=== Rolling update nginx:1.25 -> nginx:1.26 ==="
-kubectl set image deployment/nginx-zero-downtime nginx=nginx:1.26
-kubectl annotate deployment nginx-zero-downtime kubernetes.io/change-cause="nginx:1.26 update" --overwrite
-
-echo "=== Monitoring rollout ==="
-kubectl rollout status deployment/nginx-zero-downtime --timeout=120s
-kubectl get pods -l app=nginx-zd
-
-echo "=== Verifying v2 ==="
-kubectl port-forward deployment/nginx-zero-downtime 8081:80 &
-PF_PID=$!
-sleep 3
-CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8081)
-echo "HTTP status: $CODE"
-kill $PF_PID 2>/dev/null
-
-echo "=== Rollback to v1 ==="
-kubectl rollout undo deployment/nginx-zero-downtime
-kubectl rollout status deployment/nginx-zero-downtime --timeout=120s
-
-echo "=== Rollout history ==="
-kubectl rollout history deployment/nginx-zero-downtime
-
-echo "=== Cleanup ==="
-kubectl delete deployment nginx-zero-downtime`
+              solutionCode: ''
             }
           },
         ]
@@ -10454,74 +8214,7 @@ spec:
                 'minikube service <name> opens the NodePort in your browser',
                 'Get Service ClusterIP: kubectl get svc nginx-clusterip',
               ],
-              solutionCode: `# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-web
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx-web
-  template:
-    metadata:
-      labels:
-        app: nginx-web
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
----
-# clusterip-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-clusterip
-spec:
-  type: ClusterIP
-  selector:
-    app: nginx-web
-  ports:
-  - port: 80
-    targetPort: 80
----
-# nodeport-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-nodeport
-spec:
-  type: NodePort
-  selector:
-    app: nginx-web
-  ports:
-  - port: 80
-    targetPort: 80
-    nodePort: 30080
-
-# Apply everything
-kubectl apply -f deployment.yaml
-kubectl apply -f clusterip-svc.yaml
-kubectl apply -f nodeport-svc.yaml
-
-# Wait for pods
-kubectl rollout status deployment/nginx-web --timeout=60s
-
-# Test ClusterIP from inside cluster
-kubectl run curl-test --image=curlimages/curl --rm -it --restart=Never -- curl -s http://nginx-clusterip | grep title
-
-# View services
-kubectl get svc nginx-clusterip nginx-nodeport
-
-# Access NodePort (minikube)
-minikube service nginx-nodeport --url
-
-# Clean up
-kubectl delete deployment nginx-web
-kubectl delete svc nginx-clusterip nginx-nodeport`
+              solutionCode: ''
             }
           },
           {
@@ -10628,70 +8321,7 @@ spec:
                 'After tunnel: kubectl get svc nginx-lb (EXTERNAL-IP will be 127.0.0.1)',
                 'ExternalName has no selector — it is purely a DNS record',
               ],
-              solutionCode: `# nginx-deploy.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-lb-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx-lb-app
-  template:
-    metadata:
-      labels:
-        app: nginx-lb-app
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
----
-# loadbalancer-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: nginx-lb
-spec:
-  type: LoadBalancer
-  selector:
-    app: nginx-lb-app
-  ports:
-  - port: 80
-    targetPort: 80
----
-# externalname-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: external-db
-spec:
-  type: ExternalName
-  externalName: example.com
-
-# Apply
-kubectl apply -f nginx-deploy.yaml
-kubectl apply -f loadbalancer-svc.yaml
-kubectl apply -f externalname-svc.yaml
-
-# On minikube — run in a separate terminal:
-# sudo minikube tunnel
-
-# Check services
-kubectl get svc nginx-lb             # EXTERNAL-IP: 127.0.0.1 after tunnel
-kubectl get svc external-db          # shows ExternalName: example.com
-
-# Test LoadBalancer (after tunnel)
-curl -s http://127.0.0.1 | grep title
-
-# Test ExternalName DNS resolution from inside cluster
-kubectl run dns-test --image=busybox --rm -it --restart=Never -- nslookup external-db
-
-# Clean up
-kubectl delete deployment nginx-lb-app
-kubectl delete svc nginx-lb external-db`
+              solutionCode: ''
             }
           },
           {
@@ -10841,111 +8471,7 @@ spec:
                 'Get minikube IP: minikube ip',
                 'Add to /etc/hosts: echo "$(minikube ip) myapp.local" | sudo tee -a /etc/hosts',
               ],
-              solutionCode: `# all-resources.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: frontend
-  template:
-    metadata:
-      labels:
-        app: frontend
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-svc
-spec:
-  selector:
-    app: frontend
-  ports:
-  - port: 80
-    targetPort: 80
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backend
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: backend
-  template:
-    metadata:
-      labels:
-        app: backend
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend-svc
-spec:
-  selector:
-    app: backend
-  ports:
-  - port: 80
-    targetPort: 80
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: my-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  ingressClassName: nginx
-  rules:
-  - host: myapp.local
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend-svc
-            port:
-              number: 80
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: backend-svc
-            port:
-              number: 80
-
-# Setup commands
-minikube addons enable ingress
-kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
-
-kubectl apply -f all-resources.yaml
-
-# Add local DNS
-echo "$(minikube ip) myapp.local" | sudo tee -a /etc/hosts
-
-# Test routing
-curl http://myapp.local/          # frontend
-curl http://myapp.local/api       # backend (via rewrite)
-
-# Clean up
-kubectl delete -f all-resources.yaml`
+              solutionCode: ''
             }
           },
           {
@@ -11109,93 +8635,7 @@ spec:
                 'Get frontend pod name: kubectl get pods -l app=frontend -o name | head -1',
                 'Access frontend: minikube service frontend-svc',
               ],
-              solutionCode: `# all-services.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: backend
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: backend
-  template:
-    metadata:
-      labels:
-        app: backend
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: backend-svc
-spec:
-  type: ClusterIP
-  selector:
-    app: backend
-  ports:
-  - port: 80
-    targetPort: 80
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: frontend
-  template:
-    metadata:
-      labels:
-        app: frontend
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-svc
-spec:
-  type: NodePort
-  selector:
-    app: frontend
-  ports:
-  - port: 80
-    targetPort: 80
-    nodePort: 30090
-
-# Apply all
-kubectl apply -f all-services.yaml
-
-# Wait for pods
-kubectl rollout status deployment/backend --timeout=60s
-kubectl rollout status deployment/frontend --timeout=60s
-
-# DNS test: exec into frontend pod, curl backend via K8s DNS
-FRONTEND_POD=$(kubectl get pods -l app=frontend -o name | head -1)
-kubectl exec $FRONTEND_POD -- curl -s http://backend-svc | grep title
-kubectl exec $FRONTEND_POD -- curl -s http://backend-svc.default.svc.cluster.local | grep title
-
-# Access frontend from host
-minikube service frontend-svc --url
-
-# Verify Service endpoints
-kubectl get endpoints backend-svc
-kubectl get endpoints frontend-svc
-
-# Clean up
-kubectl delete -f all-services.yaml`
+              solutionCode: ''
             }
           },
         ]
@@ -11324,65 +8764,7 @@ spec:
                 'Or: kubectl exec -it <pod> -- printenv APP_ENV',
                 'List ConfigMaps: kubectl get configmaps',
               ],
-              solutionCode: `# configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-data:
-  APP_ENV: production
-  LOG_LEVEL: info
-  DATABASE_HOST: postgres-svc
----
-# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: app-deploy
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: myapp
-  template:
-    metadata:
-      labels:
-        app: myapp
-    spec:
-      containers:
-      - name: app
-        image: nginx:1.25
-        envFrom:
-        - configMapRef:
-            name: app-config
-        ports:
-        - containerPort: 80
-
-# Apply
-kubectl apply -f configmap.yaml
-kubectl apply -f deployment.yaml
-
-kubectl rollout status deployment/app-deploy --timeout=60s
-
-# Verify env vars are injected
-POD=$(kubectl get pods -l app=myapp -o name | head -1)
-kubectl exec $POD -- env | grep -E 'APP_ENV|LOG_LEVEL|DATABASE_HOST'
-
-# Expected output:
-# APP_ENV=production
-# LOG_LEVEL=info
-# DATABASE_HOST=postgres-svc
-
-# View ConfigMap
-kubectl describe configmap app-config
-
-# Update config (note: requires pod restart for envFrom)
-kubectl patch configmap app-config --type=merge -p '{"data":{"LOG_LEVEL":"debug"}}'
-kubectl rollout restart deployment/app-deploy
-
-# Clean up
-kubectl delete deployment app-deploy
-kubectl delete configmap app-config`
+              solutionCode: ''
             }
           },
           {
@@ -11508,64 +8890,7 @@ spec:
                 'Verify in pod: kubectl exec <pod> -- printenv DB_USER',
                 'NEVER put real passwords in tutorial files — use placeholder values',
               ],
-              solutionCode: `# secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: db-creds
-type: Opaque
-stringData:
-  DB_USER: admin
-  DB_PASSWORD: supersecret
----
-# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: app-with-secrets
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: app-secrets
-  template:
-    metadata:
-      labels:
-        app: app-secrets
-    spec:
-      containers:
-      - name: app
-        image: nginx:1.25
-        env:
-        - name: DB_USER
-          valueFrom:
-            secretKeyRef:
-              name: db-creds
-              key: DB_USER
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-creds
-              key: DB_PASSWORD
-        ports:
-        - containerPort: 80
-
-# Apply (Secret first!)
-kubectl apply -f secret.yaml
-kubectl apply -f deployment.yaml
-kubectl rollout status deployment/app-with-secrets --timeout=60s
-
-# Verify secret values in container
-POD=$(kubectl get pods -l app=app-secrets -o name | head -1)
-kubectl exec $POD -- printenv DB_USER        # admin
-kubectl exec $POD -- printenv DB_PASSWORD    # supersecret
-
-# View encoded secret value
-kubectl get secret db-creds -o jsonpath='{.data.DB_PASSWORD}' | base64 -d
-
-# Clean up
-kubectl delete deployment app-with-secrets
-kubectl delete secret db-creds`
+              solutionCode: ''
             }
           },
           {
@@ -11678,49 +9003,7 @@ spec:
                 'The busybox command prints env vars on startup — check with kubectl logs',
                 'Wait for pod: kubectl wait --for=condition=Ready pod/downward-api-demo',
               ],
-              solutionCode: `# downward-api-pod.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: downward-api-demo
-  namespace: default
-spec:
-  containers:
-  - name: app
-    image: busybox
-    command: ['sh', '-c', 'echo "POD_NAME=$POD_NAME NAMESPACE=$POD_NAMESPACE NODE=$NODE_NAME" && sleep 3600']
-    env:
-    - name: POD_NAME
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.name
-    - name: POD_NAMESPACE
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.namespace
-    - name: NODE_NAME
-      valueFrom:
-        fieldRef:
-          fieldPath: spec.nodeName
-    - name: POD_IP
-      valueFrom:
-        fieldRef:
-          fieldPath: status.podIP
-
-# Apply
-kubectl apply -f downward-api-pod.yaml
-kubectl wait --for=condition=Ready pod/downward-api-demo --timeout=60s
-
-# View the startup log (env vars printed on start)
-kubectl logs downward-api-demo
-
-# Inspect individual values
-kubectl exec downward-api-demo -- printenv POD_NAME
-kubectl exec downward-api-demo -- printenv POD_NAMESPACE
-kubectl exec downward-api-demo -- printenv NODE_NAME
-
-# Clean up
-kubectl delete pod downward-api-demo`
+              solutionCode: ''
             }
           },
           {
@@ -11930,113 +9213,7 @@ spec:
                 'kubectl logs <pod> -c config-check shows init container logs',
                 'kubectl get pod shows Init:0/1 while init is running, then Running when done',
               ],
-              solutionCode: `# configmap.yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-data:
-  APP_ENV: production
-  LOG_LEVEL: info
----
-# secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: app-secrets
-type: Opaque
-stringData:
-  DB_PASSWORD: securepassword123
----
-# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: app-deploy
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: config-demo
-  template:
-    metadata:
-      labels:
-        app: config-demo
-    spec:
-      initContainers:
-      - name: config-check
-        image: busybox
-        command:
-        - sh
-        - -c
-        - |
-          echo "Config verification starting..."
-          fail=0
-          [ -z "$APP_ENV" ] && echo "MISSING: APP_ENV" && fail=1 || echo "APP_ENV=$APP_ENV OK"
-          [ -z "$LOG_LEVEL" ] && echo "MISSING: LOG_LEVEL" && fail=1 || echo "LOG_LEVEL=$LOG_LEVEL OK"
-          [ -z "$DB_PASSWORD" ] && echo "MISSING: DB_PASSWORD" && fail=1 || echo "DB_PASSWORD=[MASKED] OK"
-          [ -z "$POD_NAME" ] && echo "MISSING: POD_NAME" && fail=1 || echo "POD_NAME=$POD_NAME OK"
-          [ $fail -eq 1 ] && echo "Config verification FAILED" && exit 1
-          echo "All config verified. Starting main container."
-        envFrom:
-        - configMapRef:
-            name: app-config
-        env:
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: DB_PASSWORD
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-      containers:
-      - name: app
-        image: nginx:1.25
-        envFrom:
-        - configMapRef:
-            name: app-config
-        env:
-        - name: DB_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: app-secrets
-              key: DB_PASSWORD
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-
-# Apply in order
-kubectl apply -f configmap.yaml
-kubectl apply -f secret.yaml
-kubectl apply -f deployment.yaml
-
-# Watch pod lifecycle (Init -> Running)
-kubectl get pods -w -l app=config-demo
-
-# View init container logs
-POD=$(kubectl get pods -l app=config-demo -o name | head -1)
-kubectl logs $POD -c config-check
-
-# Verify main container env vars
-kubectl exec $POD -- printenv APP_ENV
-kubectl exec $POD -- printenv LOG_LEVEL
-
-# Clean up
-kubectl delete deployment app-deploy
-kubectl delete configmap app-config
-kubectl delete secret app-secrets`
+              solutionCode: ''
             }
           },
         ]
@@ -12263,79 +9440,7 @@ spec:
                 'Delete pod: kubectl delete pod writer-pod',
                 'Create reader pod with same PVC and verify file',
               ],
-              solutionCode: `# pv.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: demo-pv
-spec:
-  capacity:
-    storage: 1Gi
-  accessModes:
-  - ReadWriteOnce
-  reclaimPolicy: Retain
-  hostPath:
-    path: /data/demo-pv
----
-# pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: demo-pvc
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 500Mi
----
-# writer-pod.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: writer-pod
-spec:
-  containers:
-  - name: writer
-    image: busybox
-    command: ['sh', '-c', 'echo "Hello PV! Written at $(date)" > /data/hello.txt && cat /data/hello.txt && sleep 3600']
-    volumeMounts:
-    - name: storage
-      mountPath: /data
-  volumes:
-  - name: storage
-    persistentVolumeClaim:
-      claimName: demo-pvc
-
-# Apply and verify
-kubectl apply -f pv.yaml
-kubectl apply -f pvc.yaml
-kubectl get pv,pvc   # both should show Bound
-
-kubectl apply -f writer-pod.yaml
-kubectl wait --for=condition=Ready pod/writer-pod --timeout=60s
-
-# Read the file
-kubectl exec writer-pod -- cat /data/hello.txt
-
-# Delete pod — data survives!
-kubectl delete pod writer-pod
-
-# Create a new pod using same PVC
-kubectl run reader-pod --image=busybox --restart=Never --overrides='
-{
-  "spec": {
-    "containers": [{"name":"reader","image":"busybox","command":["sh","-c","cat /data/hello.txt && sleep 60"],"volumeMounts":[{"name":"storage","mountPath":"/data"}]}],
-    "volumes": [{"name":"storage","persistentVolumeClaim":{"claimName":"demo-pvc"}}]
-  }
-}'
-kubectl wait --for=condition=Ready pod/reader-pod --timeout=60s
-kubectl exec reader-pod -- cat /data/hello.txt  # file still there!
-
-# Clean up
-kubectl delete pod reader-pod
-kubectl delete pvc demo-pvc
-kubectl delete pv demo-pv`
+              solutionCode: ''
             }
           },
           {
@@ -12454,58 +9559,7 @@ spec:
                 'kubectl get pvc dynamic-pvc shows STATUS: Bound',
                 'On minikube, provisioner is k8s.io/minikube-hostpath',
               ],
-              solutionCode: `# dynamic-pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dynamic-pvc
-spec:
-  storageClassName: standard
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-# dynamic-pod.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: dynamic-pod
-spec:
-  containers:
-  - name: app
-    image: busybox
-    command: ['sh', '-c', 'echo "Dynamic PV works!" > /data/test.txt && sleep 3600']
-    volumeMounts:
-    - name: data
-      mountPath: /data
-  volumes:
-  - name: data
-    persistentVolumeClaim:
-      claimName: dynamic-pvc
-
-# Apply PVC first
-kubectl apply -f dynamic-pvc.yaml
-
-# Watch PV get created automatically
-kubectl get pvc dynamic-pvc      # STATUS: Bound (may take a few seconds)
-kubectl get pv                   # shows auto-created pvc-xxx PV
-
-# Apply pod
-kubectl apply -f dynamic-pod.yaml
-kubectl wait --for=condition=Ready pod/dynamic-pod --timeout=60s
-
-# Verify
-kubectl exec dynamic-pod -- cat /data/test.txt   # "Dynamic PV works!"
-
-# Inspect the auto-created PV
-kubectl describe pv $(kubectl get pv -o name | head -1)
-
-# Clean up (PV is auto-deleted because reclaimPolicy: Delete)
-kubectl delete pod dynamic-pod
-kubectl delete pvc dynamic-pvc
-# kubectl get pv   # PV is also deleted!`
+              solutionCode: ''
             }
           },
           {
@@ -12640,89 +9694,7 @@ spec:
                 'PVCs created: data-web-0 and data-web-1',
                 'DNS test: kubectl exec web-0 -- nslookup web-1.web-svc',
               ],
-              solutionCode: `# headless-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: web-svc
-spec:
-  clusterIP: None
-  selector:
-    app: web-sts
-  ports:
-  - port: 80
-    targetPort: 80
----
-# statefulset.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: web
-spec:
-  serviceName: web-svc
-  replicas: 2
-  selector:
-    matchLabels:
-      app: web-sts
-  template:
-    metadata:
-      labels:
-        app: web-sts
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: data
-          mountPath: /usr/share/nginx/html
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 100m
-            memory: 128Mi
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests:
-          storage: 100Mi
-
-# Apply
-kubectl apply -f headless-svc.yaml
-kubectl apply -f statefulset.yaml
-
-# Watch sequential startup (web-0 first, then web-1)
-kubectl get pods -w -l app=web-sts
-
-# Verify stable names
-kubectl get pods -l app=web-sts
-# web-0   Running
-# web-1   Running
-
-# Verify individual PVCs
-kubectl get pvc
-# data-web-0   Bound
-# data-web-1   Bound
-
-# Write unique content to each pod
-kubectl exec web-0 -- sh -c 'echo "I am web-0" > /usr/share/nginx/html/index.html'
-kubectl exec web-1 -- sh -c 'echo "I am web-1" > /usr/share/nginx/html/index.html'
-
-# Test DNS resolution (web-0 can reach web-1 by stable DNS)
-kubectl exec web-0 -- nslookup web-1.web-svc
-kubectl exec web-0 -- wget -qO- http://web-1.web-svc:80
-
-# Clean up (PVCs remain after StatefulSet deletion!)
-kubectl delete statefulset web
-kubectl delete service web-svc
-kubectl get pvc   # still exists!
-kubectl delete pvc data-web-0 data-web-1`
+              solutionCode: ''
             }
           },
           {
@@ -12852,98 +9824,7 @@ spec:
                 'Connect: kubectl exec -it postgres-0 -- psql -U postgres',
                 'If permission error, add securityContext.fsGroup: 999',
               ],
-              solutionCode: `# postgres-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-type: Opaque
-stringData:
-  POSTGRES_PASSWORD: mysecretpassword
----
-# postgres-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres-svc
-spec:
-  clusterIP: None
-  selector:
-    app: postgres
-  ports:
-  - port: 5432
-    targetPort: 5432
----
-# postgres-sts.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: postgres
-spec:
-  serviceName: postgres-svc
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      securityContext:
-        fsGroup: 999
-      containers:
-      - name: postgres
-        image: postgres:15
-        env:
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: postgres-secret
-              key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
-          value: appdb
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: data
-          mountPath: /var/lib/postgresql/data
-        resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests:
-          storage: 1Gi
-
-# Apply
-kubectl apply -f postgres-secret.yaml
-kubectl apply -f postgres-svc.yaml
-kubectl apply -f postgres-sts.yaml
-
-# Wait for postgres to be ready (takes 20-30s)
-kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s
-
-# Connect and test
-kubectl exec -it postgres-0 -- psql -U postgres -d appdb -c "
-  CREATE TABLE todos (id serial PRIMARY KEY, task TEXT, done BOOLEAN DEFAULT false);
-  INSERT INTO todos (task) VALUES ('Learn Kubernetes');
-  SELECT * FROM todos;
-"
-
-# Clean up
-kubectl delete statefulset postgres
-kubectl delete service postgres-svc
-kubectl delete secret postgres-secret
-kubectl delete pvc data-postgres-0`
+              solutionCode: ''
             }
           },
           {
@@ -13029,108 +9910,7 @@ stringData:
                 'kubectl rollout restart deployment/api triggers new pods',
                 'kubectl delete pod postgres-0 causes StatefulSet to recreate it from PVC',
               ],
-              solutionCode: `# db-secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: db-secret
-type: Opaque
-stringData:
-  POSTGRES_PASSWORD: todopassword
----
-# postgres-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: postgres-svc
-spec:
-  clusterIP: None
-  selector:
-    app: postgres
-  ports:
-  - port: 5432
----
-# postgres-sts.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: postgres
-spec:
-  serviceName: postgres-svc
-  replicas: 1
-  selector:
-    matchLabels:
-      app: postgres
-  template:
-    metadata:
-      labels:
-        app: postgres
-    spec:
-      securityContext:
-        fsGroup: 999
-      containers:
-      - name: postgres
-        image: postgres:15
-        env:
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: POSTGRES_PASSWORD
-        - name: POSTGRES_DB
-          value: tododb
-        volumeMounts:
-        - name: data
-          mountPath: /var/lib/postgresql/data
-        resources:
-          requests:
-            cpu: 100m
-            memory: 256Mi
-          limits:
-            cpu: 500m
-            memory: 512Mi
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests:
-          storage: 1Gi
-
-# Apply and verify persistence
-kubectl apply -f db-secret.yaml
-kubectl apply -f postgres-svc.yaml
-kubectl apply -f postgres-sts.yaml
-
-echo "Waiting for Postgres..."
-kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s
-
-# Create table and insert first todo
-kubectl exec -it postgres-0 -- psql -U postgres -d tododb -c "
-  CREATE TABLE IF NOT EXISTS todos (id serial PRIMARY KEY, task TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
-  INSERT INTO todos (task) VALUES ('Learn Kubernetes Storage');
-  SELECT * FROM todos;
-"
-
-echo "=== Deleting postgres pod (StatefulSet will recreate it) ==="
-kubectl delete pod postgres-0
-kubectl wait --for=condition=Ready pod/postgres-0 --timeout=120s
-
-# Data still there!
-kubectl exec -it postgres-0 -- psql -U postgres -d tododb -c "SELECT * FROM todos;"
-
-# Insert more data
-kubectl exec -it postgres-0 -- psql -U postgres -d tododb -c "
-  INSERT INTO todos (task) VALUES ('Data survived pod restart!');
-  SELECT * FROM todos;
-"
-
-echo "=== Cleanup ==="
-kubectl delete statefulset postgres
-kubectl delete service postgres-svc
-kubectl delete secret db-secret
-kubectl delete pvc data-postgres-0`
+              solutionCode: ''
             }
           },
         ]
@@ -13258,75 +10038,7 @@ spec:
                 'kubectl describe pod shows probe status under Containers section',
                 'To test failed probe: change path to /nonexistent and watch events',
               ],
-              solutionCode: `# probed-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-probed
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: nginx-probed
-  template:
-    metadata:
-      labels:
-        app: nginx-probed
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-        startupProbe:
-          exec:
-            command: [ls, /var/run/nginx.pid]
-          failureThreshold: 30
-          periodSeconds: 3
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          failureThreshold: 3
-          successThreshold: 1
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          failureThreshold: 3
-          successThreshold: 1
-
-# Apply
-kubectl apply -f probed-deployment.yaml
-kubectl rollout status deployment/nginx-probed --timeout=90s
-
-# Verify probes in describe output
-kubectl describe pod -l app=nginx-probed | grep -A 15 "Liveness:"
-
-# Watch probe failures by trying a bad path
-kubectl patch deployment nginx-probed --type=json \
-  -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/bad"}]'
-
-# Watch pod restart count increase
-kubectl get pods -l app=nginx-probed -w
-
-# Restore correct path
-kubectl patch deployment nginx-probed --type=json \
-  -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/httpGet/path","value":"/"}]'
-
-# Clean up
-kubectl delete deployment nginx-probed`
+              solutionCode: ''
             }
           },
           {
@@ -13450,65 +10162,7 @@ spec:
                 'Check quota usage: kubectl describe resourcequota namespace-quota',
                 'Pods without resources now get defaults from LimitRange automatically',
               ],
-              solutionCode: `# limitrange.yaml
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: default-limits
-spec:
-  limits:
-  - type: Container
-    default:
-      cpu: 200m
-      memory: 128Mi
-    defaultRequest:
-      cpu: 50m
-      memory: 64Mi
-    max:
-      cpu: 2000m
-      memory: 1Gi
-    min:
-      cpu: 10m
-      memory: 16Mi
----
-# resourcequota.yaml
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: namespace-quota
-spec:
-  hard:
-    requests.cpu: "4"
-    requests.memory: 8Gi
-    limits.cpu: "8"
-    limits.memory: 16Gi
-    pods: "20"
-    persistentvolumeclaims: "5"
-
-# Apply
-kubectl apply -f limitrange.yaml
-kubectl apply -f resourcequota.yaml
-
-# Verify LimitRange
-kubectl describe limitrange default-limits
-
-# Verify ResourceQuota (shows used vs hard)
-kubectl describe resourcequota namespace-quota
-
-# Create a pod without explicit resources — it gets LimitRange defaults
-kubectl run no-resources-pod --image=nginx:1.25 --restart=Never
-kubectl get pod no-resources-pod -o jsonpath='{.spec.containers[0].resources}' | python3 -m json.tool
-
-# Check the pod's QoS class (Burstable, since defaultRequest != default limit)
-kubectl get pod no-resources-pod -o jsonpath='{.status.qosClass}'
-
-# Verify quota consumption changed
-kubectl describe resourcequota namespace-quota
-
-# Clean up
-kubectl delete pod no-resources-pod
-kubectl delete limitrange default-limits
-kubectl delete resourcequota namespace-quota`
+              solutionCode: ''
             }
           },
           {
@@ -13610,45 +10264,7 @@ kubectl create deployment nginx-log --image=nginx:1.25 --replicas=3
                 'After crash-pod is in CrashLoopBackOff: kubectl logs crash-pod --previous',
                 'Follow all pods: kubectl logs -l app=nginx-log -f --max-log-requests=5',
               ],
-              solutionCode: `#!/bin/bash
-# logging-demo.sh
-
-echo "=== 1. Deploy nginx replicas ==="
-kubectl create deployment nginx-log --image=nginx:1.25 --replicas=3
-kubectl rollout status deployment/nginx-log --timeout=60s
-
-echo "=== 2. Generate log entries ==="
-kubectl port-forward deployment/nginx-log 8090:80 &
-PF_PID=$!
-sleep 3
-for i in 1 2 3 4 5; do
-  curl -s http://localhost:8090 > /dev/null
-done
-kill $PF_PID 2>/dev/null
-
-echo "=== 3. View logs from all pods with label ==="
-kubectl logs -l app=nginx-log --max-log-requests=5
-
-echo "=== 4. Last 10 lines from all pods ==="
-kubectl logs -l app=nginx-log --tail=10 --max-log-requests=5
-
-echo "=== 5. Logs from last 2 minutes ==="
-kubectl logs -l app=nginx-log --since=2m --max-log-requests=5
-
-echo "=== 6. Demo --previous with a crashing container ==="
-kubectl run crash-pod --image=busybox --restart=Always -- sh -c "echo 'I am about to crash!'; exit 1"
-
-echo "Waiting for crash-pod to crash and restart..."
-sleep 15
-
-kubectl get pod crash-pod    # should show CrashLoopBackOff or Error
-
-echo "Logs from previous crashed container:"
-kubectl logs crash-pod --previous
-
-echo "=== Cleanup ==="
-kubectl delete deployment nginx-log
-kubectl delete pod crash-pod`
+              solutionCode: ''
             }
           },
           {
@@ -13757,47 +10373,7 @@ kubectl run broken-pod --image=nginx:nonexistent-tag-999
                 'Fix image: kubectl set image pod/broken-pod broken-pod=nginx:1.25',
                 'Note: you cannot patch a standalone pod image easily — delete and recreate, or use kubectl set image',
               ],
-              solutionCode: `#!/bin/bash
-# debug-demo.sh
-set -e
-
-echo "=== 1. Deploy pod with bad image ==="
-kubectl run broken-pod --image=nginx:nonexistent-tag-999 --restart=Never
-
-echo "Waiting 20s for error to appear..."
-sleep 20
-
-echo "=== 2. Check status ==="
-kubectl get pod broken-pod
-# Shows: ErrImagePull or ImagePullBackOff
-
-echo "=== 3. Describe to diagnose ==="
-kubectl describe pod broken-pod
-# Events section shows:
-#   Warning  Failed  Failed to pull image "nginx:nonexistent-tag-999"
-#   Warning  Failed  Error: ErrImagePull
-
-echo "=== 4. Fix: delete and recreate with correct image ==="
-kubectl delete pod broken-pod
-
-kubectl run fixed-pod --image=nginx:1.25 --restart=Never
-kubectl wait --for=condition=Ready pod/fixed-pod --timeout=60s
-
-echo "=== 5. Verify ==="
-kubectl get pod fixed-pod
-# Shows: Running
-
-echo "=== Demonstrating other errors ==="
-
-# OOMKilled example (small memory limit)
-kubectl run oom-demo --image=nginx:1.25 --restart=Never \
-  --overrides='{"spec":{"containers":[{"name":"oom-demo","image":"nginx:1.25","resources":{"limits":{"memory":"1Mi"}}}]}}'
-
-sleep 15
-kubectl describe pod oom-demo | grep -E 'OOMKilled|Last State|Reason' | head -5
-
-echo "=== Cleanup ==="
-kubectl delete pod fixed-pod oom-demo 2>/dev/null || true`
+              solutionCode: ''
             }
           },
           {
@@ -13902,51 +10478,7 @@ metrics-server provides only **current** usage — no history. For historical me
                 'Limit the CPU loop: --overrides with cpu limits to avoid starving the node',
                 'Metrics update every ~15s from kubelet scrapes',
               ],
-              solutionCode: `#!/bin/bash
-# metrics-demo.sh
-
-echo "=== 1. Enable metrics-server ==="
-minikube addons enable metrics-server
-
-echo "=== 2. Wait for metrics-server pod ==="
-kubectl wait --for=condition=Ready pod \
-  --selector=k8s-app=metrics-server \
-  -n kube-system \
-  --timeout=120s
-
-echo "=== 3. Wait for initial metrics collection (up to 90s) ==="
-READY=false
-for i in $(seq 1 18); do
-  if kubectl top nodes 2>/dev/null; then
-    READY=true
-    break
-  fi
-  echo "Waiting for metrics... ($i/18)"
-  sleep 5
-done
-[ "$READY" = "false" ] && echo "Metrics not ready yet — try again in 30s"
-
-echo "=== 4. Top nodes ==="
-kubectl top nodes
-
-echo "=== 5. Top pods (all namespaces) ==="
-kubectl top pods --all-namespaces
-
-echo "=== 6. Deploy CPU-consuming workload ==="
-kubectl create deployment cpu-burner --image=busybox --replicas=1 \
-  -- sh -c 'while true; do x=1; done'
-
-kubectl rollout status deployment/cpu-burner --timeout=60s
-
-echo "Waiting 30s for CPU metrics..."
-sleep 30
-
-echo "=== Top pods (showing CPU usage) ==="
-kubectl top pods --sort-by=cpu
-kubectl top pod -l app=cpu-burner
-
-echo "=== Cleanup ==="
-kubectl delete deployment cpu-burner`
+              solutionCode: ''
             }
           },
           {
@@ -14051,111 +10583,7 @@ spec:
                 'Watch events during restart: kubectl get events -w &',
                 'Health check via port-forward: kubectl port-forward deployment/obs-nginx 8095:80',
               ],
-              solutionCode: `# limitrange.yaml
-apiVersion: v1
-kind: LimitRange
-metadata:
-  name: obs-defaults
-spec:
-  limits:
-  - type: Container
-    default:
-      cpu: 200m
-      memory: 128Mi
-    defaultRequest:
-      cpu: 50m
-      memory: 64Mi
----
-# obs-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: obs-nginx
-spec:
-  replicas: 3
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-  selector:
-    matchLabels:
-      app: obs-nginx
-  template:
-    metadata:
-      labels:
-        app: obs-nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-        startupProbe:
-          exec:
-            command: [ls, /var/run/nginx.pid]
-          failureThreshold: 10
-          periodSeconds: 3
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          failureThreshold: 2
----
-#!/bin/bash
-# observe.sh
-set -e
-
-echo "=== Apply resources ==="
-kubectl apply -f limitrange.yaml
-kubectl apply -f obs-deployment.yaml
-
-echo "=== Wait for all 3 pods ==="
-kubectl rollout status deployment/obs-nginx --timeout=90s
-
-echo "=== Verify probes and resources ==="
-kubectl describe pod -l app=obs-nginx | grep -E 'Liveness:|Readiness:|Requests:|Limits:' | head -12
-
-echo "=== Health check ==="
-kubectl port-forward deployment/obs-nginx 8095:80 &
-PF_PID=$!
-sleep 3
-CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8095)
-echo "HTTP status: $CODE"
-kill $PF_PID 2>/dev/null
-
-echo "=== kubectl top (if metrics-server enabled) ==="
-kubectl top pods -l app=obs-nginx 2>/dev/null || echo "metrics-server not ready — run: minikube addons enable metrics-server"
-
-echo "=== Trigger rolling restart ==="
-kubectl get events -w &
-EVENTS_PID=$!
-kubectl rollout restart deployment/obs-nginx
-kubectl rollout status deployment/obs-nginx --timeout=90s
-kill $EVENTS_PID 2>/dev/null
-
-echo "=== All pods healthy after restart ==="
-kubectl get pods -l app=obs-nginx
-
-echo "=== Cleanup ==="
-kubectl delete deployment obs-nginx
-kubectl delete limitrange obs-defaults`
+              solutionCode: ''
             }
           },
         ]
@@ -14366,65 +10794,7 @@ roleRef:
                 'The --as flag impersonates the SA',
                 'Core API resources (pods, services, configmaps) use apiGroups: [""]',
               ],
-              solutionCode: `# serviceaccount.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: pod-reader-sa
-  namespace: default
----
-# role.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: pod-reader
-  namespace: default
-rules:
-- apiGroups: [""]
-  resources: ["pods", "pods/log", "pods/status"]
-  verbs: ["get", "list", "watch"]
----
-# rolebinding.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: pod-reader-binding
-  namespace: default
-subjects:
-- kind: ServiceAccount
-  name: pod-reader-sa
-  namespace: default
-roleRef:
-  kind: Role
-  name: pod-reader
-  apiGroup: rbac.authorization.k8s.io
-
-# Apply
-kubectl apply -f serviceaccount.yaml
-kubectl apply -f role.yaml
-kubectl apply -f rolebinding.yaml
-
-# Test permissions
-SA="system:serviceaccount:default:pod-reader-sa"
-
-echo "=== Allowed actions ==="
-kubectl auth can-i list pods --as=$SA      # yes
-kubectl auth can-i get pods --as=$SA       # yes
-kubectl auth can-i watch pods --as=$SA     # yes
-
-echo "=== Denied actions ==="
-kubectl auth can-i create pods --as=$SA    # no
-kubectl auth can-i delete pods --as=$SA    # no
-kubectl auth can-i get secrets --as=$SA    # no
-kubectl auth can-i list deployments --as=$SA  # no
-
-echo "=== Verify binding ==="
-kubectl describe rolebinding pod-reader-binding
-
-# Clean up
-kubectl delete rolebinding pod-reader-binding
-kubectl delete role pod-reader
-kubectl delete serviceaccount pod-reader-sa`
+              solutionCode: ''
             }
           },
           {
@@ -14539,68 +10909,7 @@ spec:
                 'The SA name in pod spec must match the SA name exactly',
                 'kubectl get pod <name> -o yaml | grep serviceAccount to verify',
               ],
-              solutionCode: `# custom-sa.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: no-token-sa
-  namespace: default
-automountServiceAccountToken: false
----
-# secure-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: secure-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: secure-app
-  template:
-    metadata:
-      labels:
-        app: secure-app
-    spec:
-      serviceAccountName: no-token-sa
-      automountServiceAccountToken: false
-      containers:
-      - name: app
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-
-# Apply
-kubectl apply -f custom-sa.yaml
-kubectl apply -f secure-deployment.yaml
-kubectl rollout status deployment/secure-app --timeout=60s
-
-# Verify SA token is NOT mounted
-POD=$(kubectl get pods -l app=secure-app -o name | head -1)
-echo "=== Checking for SA token ==="
-kubectl exec $POD -- ls /var/run/secrets/kubernetes.io/serviceaccount/ 2>&1 || echo "Token directory not mounted — GOOD!"
-
-# Compare with default SA pod
-kubectl run with-token --image=nginx:1.25 --restart=Never
-kubectl wait --for=condition=Ready pod/with-token --timeout=60s
-echo "=== Default SA pod HAS token ==="
-kubectl exec with-token -- ls /var/run/secrets/kubernetes.io/serviceaccount/
-# Shows: ca.crt  namespace  token
-
-# Verify SA assignment
-kubectl get pod $POD -o jsonpath='{.spec.serviceAccountName}'    # no-token-sa
-
-echo "=== Cleanup ==="
-kubectl delete deployment secure-app
-kubectl delete pod with-token
-kubectl delete serviceaccount no-token-sa`
+              solutionCode: ''
             }
           },
           {
@@ -14736,83 +11045,7 @@ spec:
                 'Test enforcement: kubectl exec frontend-pod -- curl http://backend-svc',
                 'Without Calico, NetworkPolicies are accepted by K8s but not enforced',
               ],
-              solutionCode: `# deny-all.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-all-ingress
-  namespace: default
-spec:
-  podSelector: {}      # applies to ALL pods
-  policyTypes:
-  - Ingress            # deny all ingress (no ingress rules = deny)
----
-# deny-all-egress.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-all-egress
-  namespace: default
-spec:
-  podSelector: {}
-  policyTypes:
-  - Egress
-  egress:
-  - to:
-    - namespaceSelector:
-        matchLabels:
-          kubernetes.io/metadata.name: kube-system
-    ports:
-    - port: 53        # allow DNS
-      protocol: UDP
----
-# allow-frontend-backend.yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-frontend-to-backend
-  namespace: default
-spec:
-  podSelector:
-    matchLabels:
-      app: backend           # protects backend pods
-  policyTypes:
-  - Ingress
-  ingress:
-  - from:
-    - podSelector:
-        matchLabels:
-          app: frontend      # only from frontend pods
-    ports:
-    - port: 80
-      protocol: TCP
-
-# Apply
-kubectl apply -f deny-all.yaml
-kubectl apply -f deny-all-egress.yaml
-kubectl apply -f allow-frontend-backend.yaml
-
-# Verify policies
-kubectl get networkpolicies
-kubectl describe networkpolicy deny-all-ingress
-kubectl describe networkpolicy allow-frontend-to-backend
-
-# Deploy test pods to verify (on Calico cluster)
-kubectl run backend --image=nginx:1.25 --labels=app=backend
-kubectl run frontend --image=curlimages/curl --labels=app=frontend \
-  --restart=Never -- sleep 3600
-
-kubectl wait --for=condition=Ready pod/frontend --timeout=60s
-kubectl wait --for=condition=Ready pod/backend --timeout=60s
-
-BACKEND_IP=$(kubectl get pod backend -o jsonpath='{.status.podIP}')
-
-# This should succeed (frontend -> backend allowed)
-kubectl exec frontend -- curl -s --connect-timeout 5 http://$BACKEND_IP | grep title
-
-# Clean up
-kubectl delete pod frontend backend
-kubectl delete networkpolicy deny-all-ingress deny-all-egress allow-frontend-to-backend`
+              solutionCode: ''
             }
           },
           {
@@ -14941,78 +11174,7 @@ spec:
                 'Verify: kubectl exec <pod> -- whoami or kubectl exec <pod> -- id',
                 'If pod fails to start, kubectl describe pod shows security violation',
               ],
-              solutionCode: `# hardened-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hardened-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: hardened
-  template:
-    metadata:
-      labels:
-        app: hardened
-    spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 101        # nginx official image uses UID 101 for nginx user
-        runAsGroup: 101
-        fsGroup: 101
-      containers:
-      - name: app
-        image: nginxinc/nginx-unprivileged:1.25   # designed to run as non-root
-        ports:
-        - containerPort: 8080   # unprivileged nginx uses 8080
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop: [ALL]
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: nginx-run
-          mountPath: /var/run
-        - name: nginx-cache
-          mountPath: /var/cache/nginx
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-      volumes:
-      - name: tmp
-        emptyDir: {}
-      - name: nginx-run
-        emptyDir: {}
-      - name: nginx-cache
-        emptyDir: {}
-
-# Apply
-kubectl apply -f hardened-deployment.yaml
-kubectl rollout status deployment/hardened-app --timeout=90s
-
-# Verify non-root
-POD=$(kubectl get pods -l app=hardened -o name | head -1)
-kubectl exec $POD -- whoami    # nginx (not root)
-kubectl exec $POD -- id        # uid=101(nginx) gid=101(nginx)
-
-# Verify read-only FS (should fail)
-kubectl exec $POD -- touch /test.txt 2>&1 || echo "Read-only filesystem — GOOD!"
-
-# Verify tmp is writable
-kubectl exec $POD -- touch /tmp/test.txt && echo "/tmp is writable — correct!"
-
-# Verify capabilities
-kubectl exec $POD -- cat /proc/1/status | grep CapEff
-
-# Clean up
-kubectl delete deployment hardened-app`
+              solutionCode: ''
             }
           },
           {
@@ -15096,157 +11258,7 @@ kubectl create namespace secure-app
                 'SA impersonation: system:serviceaccount:secure-app:my-sa',
                 'Use nginxinc/nginx-unprivileged for non-root nginx',
               ],
-              solutionCode: `#!/bin/bash
-# harden.sh
-set -e
-
-NS=secure-app
-
-echo "=== 1. Create namespace ==="
-kubectl create namespace $NS --dry-run=client -o yaml | kubectl apply -f -
-
-echo "=== 2. NetworkPolicy: deny all ingress ==="
-kubectl apply -n $NS -f - <<'YAML'
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-all-ingress
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-YAML
-
-echo "=== 3. ResourceQuota ==="
-kubectl apply -n $NS -f - <<'YAML'
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: namespace-quota
-spec:
-  hard:
-    requests.cpu: "4"
-    requests.memory: 8Gi
-    limits.cpu: "8"
-    limits.memory: 16Gi
-    pods: "20"
-YAML
-
-echo "=== 4. ServiceAccount, Role, RoleBinding ==="
-kubectl apply -n $NS -f - <<'YAML'
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: app-sa
-automountServiceAccountToken: false
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: pod-reader
-rules:
-- apiGroups: [""]
-  resources: ["pods", "pods/log"]
-  verbs: ["get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: app-pod-reader
-subjects:
-- kind: ServiceAccount
-  name: app-sa
-  namespace: secure-app
-roleRef:
-  kind: Role
-  name: pod-reader
-  apiGroup: rbac.authorization.k8s.io
-YAML
-
-echo "=== 5. Hardened Deployment ==="
-kubectl apply -n $NS -f - <<'YAML'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: secure-nginx
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: secure-nginx
-  template:
-    metadata:
-      labels:
-        app: secure-nginx
-    spec:
-      serviceAccountName: app-sa
-      automountServiceAccountToken: false
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 101
-        runAsGroup: 101
-        fsGroup: 101
-      containers:
-      - name: nginx
-        image: nginxinc/nginx-unprivileged:1.25
-        ports:
-        - containerPort: 8080
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop: [ALL]
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-        volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: nginx-run
-          mountPath: /var/run
-        - name: nginx-cache
-          mountPath: /var/cache/nginx
-      volumes:
-      - name: tmp
-        emptyDir: {}
-      - name: nginx-run
-        emptyDir: {}
-      - name: nginx-cache
-        emptyDir: {}
-YAML
-
-echo "=== 6. Wait for deployment ==="
-kubectl rollout status deployment/secure-nginx -n $NS --timeout=90s
-
-echo "=== 7. Verification ==="
-SA="system:serviceaccount:$NS:app-sa"
-
-echo "--- RBAC checks ---"
-kubectl auth can-i list pods -n $NS --as=$SA    # yes
-kubectl auth can-i get pods -n $NS --as=$SA     # yes
-kubectl auth can-i create pods -n $NS --as=$SA  # no
-kubectl auth can-i delete pods -n $NS --as=$SA  # no
-
-echo "--- Non-root check ---"
-POD=$(kubectl get pods -n $NS -l app=secure-nginx -o name | head -1)
-kubectl exec -n $NS $POD -- whoami    # nginx (not root)
-kubectl exec -n $NS $POD -- id
-
-echo "--- Read-only FS check ---"
-kubectl exec -n $NS $POD -- touch /etc/test 2>&1 || echo "Read-only FS confirmed!"
-
-echo "--- NetworkPolicies ---"
-kubectl get networkpolicies -n $NS
-
-echo "--- ResourceQuota ---"
-kubectl describe resourcequota -n $NS
-
-echo "=== Cleanup ==="
-kubectl delete namespace $NS`
+              solutionCode: ''
             }
           },
         ]
@@ -15456,51 +11468,7 @@ helm uninstall my-nginx --keep-history  # keep revision history
                 'helm install takes 30-60s for image pull',
                 'helm get manifest my-nginx shows the actual K8s YAML',
               ],
-              solutionCode: `#!/bin/bash
-# helm-basics.sh
-
-echo "=== 1. Check/Install Helm ==="
-if ! command -v helm &>/dev/null; then
-  echo "Installing helm via brew..."
-  brew install helm
-fi
-helm version
-
-echo "=== 2. Add Bitnami Repository ==="
-helm repo add bitnami https://charts.bitnami.com/bitnami 2>/dev/null || echo "Repo already added"
-helm repo update
-
-echo "=== 3. Search for nginx charts ==="
-helm search repo bitnami/nginx
-
-echo "=== 4. Install nginx chart ==="
-helm install my-nginx bitnami/nginx \
-  --set replicaCount=1 \
-  --set service.type=ClusterIP \
-  --wait \
-  --timeout=120s
-
-echo "=== 5. List releases ==="
-helm list
-
-echo "=== 6. Release status ==="
-helm status my-nginx
-
-echo "=== 7. Deployed resources ==="
-kubectl get pods,svc -l app.kubernetes.io/instance=my-nginx
-
-echo "=== 8. View rendered manifests ==="
-helm get manifest my-nginx | head -40
-
-echo "=== 9. View used values ==="
-helm get values my-nginx
-
-echo "=== 10. Uninstall ==="
-helm uninstall my-nginx
-kubectl get pods | grep nginx || echo "No nginx pods remaining — clean uninstall!"
-
-echo "=== Verify helm list is empty ==="
-helm list`
+              solutionCode: ''
             }
           },
           {
@@ -15630,53 +11598,7 @@ helm install myapp . -f production-values.yaml
                 'Render and filter: helm template my-release ./mywebapp | grep -A 3 replicas',
                 'helm lint returns "1 chart(s) linted, 0 chart(s) failed" on success',
               ],
-              solutionCode: `#!/bin/bash
-# chart-anatomy.sh
-
-echo "=== 1. Create Helm chart ==="
-helm create mywebapp
-
-echo "=== 2. Chart structure ==="
-find mywebapp -type f | sort
-
-echo "=== 3. Modify values.yaml ==="
-# Set replicaCount to 2
-sed -i.bak 's/^replicaCount: 1/replicaCount: 2/' mywebapp/values.yaml
-
-# Set image tag to 1.26
-sed -i.bak 's/  tag: ""/  tag: "1.26"/' mywebapp/values.yaml
-
-echo "Current values (relevant lines):"
-grep -E 'replicaCount|tag:' mywebapp/values.yaml
-
-echo "=== 4. Render templates ==="
-helm template my-release ./mywebapp | grep -A 3 "replicas:"
-# Should show: replicas: 2
-
-echo "=== 5. Show image in rendered output ==="
-helm template my-release ./mywebapp | grep -A 2 "image:"
-# Should show: nginx:1.26
-
-echo "=== 6. Lint chart ==="
-helm lint ./mywebapp
-# Should show: 1 chart(s) linted, 0 chart(s) failed
-
-echo "=== 7. Chart metadata ==="
-helm show chart ./mywebapp
-
-echo "=== 8. Default values ==="
-helm show values ./mywebapp | head -20
-
-echo "=== 9. Install the chart ==="
-helm install my-webrelease ./mywebapp --wait --timeout=90s
-
-echo "=== 10. Verify deployed ==="
-helm list
-kubectl get pods -l app.kubernetes.io/instance=my-webrelease
-
-echo "=== Cleanup ==="
-helm uninstall my-webrelease
-rm -rf mywebapp`
+              solutionCode: ''
             }
           },
           {
@@ -15815,80 +11737,7 @@ tag: {{ .Values.image.tag | default "latest" }}
                 '{{- if ... }} vs {{ if ... }}: the dash removes surrounding whitespace',
                 'nindent 12 adds 12 spaces of indentation to the toYaml output',
               ],
-              solutionCode: `#!/bin/bash
-# templating-demo.sh
-
-# Create chart
-helm create condloop
-cd condloop
-
-# Replace the container spec in templates/deployment.yaml
-cat > /tmp/deployment-patch.yaml << 'PATCH'
-          env:
-          {{- range .Values.env }}
-          - name: {{ .name | quote }}
-            value: {{ .value | quote }}
-          {{- end }}
-          {{- if .Values.resources.enabled }}
-          resources:
-            {{- toYaml .Values.resources.config | nindent 12 }}
-          {{- end }}
-PATCH
-
-# Update values.yaml
-cat >> values.yaml << 'VALUES'
-
-env:
-  - name: APP_ENV
-    value: production
-  - name: LOG_LEVEL
-    value: info
-  - name: SERVICE_NAME
-    value: myapp
-
-resources:
-  enabled: true
-  config:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
-      memory: 128Mi
-VALUES
-
-# Manually edit deployment.yaml to include the template
-# (In real workflow, edit the file directly)
-# Here we show the critical template section:
-
-cat << 'TEMPLATE'
-# In templates/deployment.yaml, under containers:
-          env:
-          {{- range .Values.env }}
-          - name: {{ .name | quote }}
-            value: {{ .value | quote }}
-          {{- end }}
-          {{- if .Values.resources.enabled }}
-          resources:
-            {{- toYaml .Values.resources.config | nindent 12 }}
-          {{- end }}
-TEMPLATE
-
-echo "=== Lint chart ==="
-helm lint .
-
-echo "=== Render with resources.enabled=true ==="
-helm template my-release . | grep -A 15 "env:"
-
-echo "=== Render with resources.enabled=false ==="
-helm template my-release . --set resources.enabled=false | grep -B 2 -A 5 "image:"
-# resources block should not appear
-
-echo "=== Render with extra env var ==="
-helm template my-release . --set-json 'env[3]={"name":"DEBUG","value":"true"}' | grep -A 10 "env:"
-
-cd ..
-rm -rf condloop`
+              solutionCode: ''
             }
           },
           {
@@ -16015,60 +11864,7 @@ Hook-delete-policy controls when the hook resource is deleted: \`hook-succeeded\
                 'helm rollback <release-name> <revision> (revision 1 = initial install)',
                 'helm get values my-release shows current values',
               ],
-              solutionCode: `#!/bin/bash
-# upgrade-rollback.sh
-set -e
-
-RELEASE=demo-nginx
-
-echo "=== 1. Initial Install (replicaCount=1) ==="
-helm install $RELEASE bitnami/nginx \
-  --set replicaCount=1 \
-  --set service.type=ClusterIP \
-  --wait \
-  --timeout=120s
-
-echo "=== 2. Check initial state ==="
-kubectl get deployment -l app.kubernetes.io/instance=$RELEASE
-# Shows: READY 1/1
-
-echo "=== 3. Upgrade to replicaCount=3 ==="
-helm upgrade $RELEASE bitnami/nginx \
-  --set replicaCount=3 \
-  --set service.type=ClusterIP \
-  --wait \
-  --timeout=120s
-
-echo "=== 4. Verify upgrade ==="
-kubectl get deployment -l app.kubernetes.io/instance=$RELEASE
-# Shows: READY 3/3
-
-echo "=== 5. Check revision history ==="
-helm history $RELEASE
-# REVISION  STATUS      DESCRIPTION
-# 1         superseded  Install complete
-# 2         deployed    Upgrade complete
-
-echo "=== 6. Get current values ==="
-helm get values $RELEASE
-
-echo "=== 7. Rollback to revision 1 ==="
-helm rollback $RELEASE 1 --wait --timeout=120s
-
-echo "=== 8. Verify rollback ==="
-kubectl get deployment -l app.kubernetes.io/instance=$RELEASE
-# Shows: READY 1/1 (back to original)
-
-echo "=== 9. History after rollback ==="
-helm history $RELEASE
-# REVISION  STATUS      DESCRIPTION
-# 1         superseded  Install complete
-# 2         superseded  Upgrade complete
-# 3         deployed    Rollback to 1
-
-echo "=== 10. Cleanup ==="
-helm uninstall $RELEASE
-echo "Done!"`
+              solutionCode: ''
             }
           },
           {
@@ -16159,195 +11955,7 @@ appVersion: "1.0"
                 'Templates can reference both .Values.frontend and .Values.backend',
                 'helm upgrade twotier-dev ./twotier -f production-values.yaml',
               ],
-              solutionCode: `#!/bin/bash
-# twotier-demo.sh
-
-mkdir -p twotier/templates
-
-# Chart.yaml
-cat > twotier/Chart.yaml << 'EOF'
-apiVersion: v2
-name: twotier
-description: Two-tier frontend + backend web application
-type: application
-version: 0.1.0
-appVersion: "1.0"
-EOF
-
-# values.yaml
-cat > twotier/values.yaml << 'EOF'
-frontend:
-  replicaCount: 1
-  image:
-    repository: nginx
-    tag: "1.25"
-  service:
-    type: NodePort
-    port: 80
-    nodePort: 30200
-
-backend:
-  replicaCount: 1
-  image:
-    repository: nginx
-    tag: "1.25"
-  service:
-    type: ClusterIP
-    port: 80
-EOF
-
-# production-values.yaml
-cat > twotier/production-values.yaml << 'EOF'
-frontend:
-  replicaCount: 2
-backend:
-  replicaCount: 2
-EOF
-
-# templates/frontend-deploy.yaml
-cat > twotier/templates/frontend-deploy.yaml << 'EOF'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}-frontend
-  labels:
-    app: {{ .Release.Name }}-frontend
-spec:
-  replicas: {{ .Values.frontend.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ .Release.Name }}-frontend
-  template:
-    metadata:
-      labels:
-        app: {{ .Release.Name }}-frontend
-    spec:
-      containers:
-      - name: frontend
-        image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-EOF
-
-# templates/backend-deploy.yaml
-cat > twotier/templates/backend-deploy.yaml << 'EOF'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: {{ .Release.Name }}-backend
-  labels:
-    app: {{ .Release.Name }}-backend
-spec:
-  replicas: {{ .Values.backend.replicaCount }}
-  selector:
-    matchLabels:
-      app: {{ .Release.Name }}-backend
-  template:
-    metadata:
-      labels:
-        app: {{ .Release.Name }}-backend
-    spec:
-      containers:
-      - name: backend
-        image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
-EOF
-
-# templates/frontend-svc.yaml
-cat > twotier/templates/frontend-svc.yaml << 'EOF'
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Release.Name }}-frontend
-spec:
-  type: {{ .Values.frontend.service.type }}
-  selector:
-    app: {{ .Release.Name }}-frontend
-  ports:
-  - port: {{ .Values.frontend.service.port }}
-    targetPort: 80
-    nodePort: {{ .Values.frontend.service.nodePort }}
-EOF
-
-# templates/backend-svc.yaml
-cat > twotier/templates/backend-svc.yaml << 'EOF'
-apiVersion: v1
-kind: Service
-metadata:
-  name: {{ .Release.Name }}-backend
-spec:
-  type: {{ .Values.backend.service.type }}
-  selector:
-    app: {{ .Release.Name }}-backend
-  ports:
-  - port: {{ .Values.backend.service.port }}
-    targetPort: 80
-EOF
-
-# templates/post-install-hook.yaml
-cat > twotier/templates/post-install-hook.yaml << 'EOF'
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: {{ .Release.Name }}-post-install-check
-  annotations:
-    "helm.sh/hook": post-install
-    "helm.sh/hook-delete-policy": hook-succeeded
-    "helm.sh/hook-weight": "0"
-spec:
-  template:
-    spec:
-      containers:
-      - name: verify
-        image: busybox
-        command: ['sh', '-c', 'wget -qO- http://{{ .Release.Name }}-frontend:80 && echo "Frontend OK" && wget -qO- http://{{ .Release.Name }}-backend:80 && echo "Backend OK"']
-      restartPolicy: Never
-  backoffLimit: 3
-EOF
-
-echo "=== Lint chart ==="
-helm lint ./twotier
-
-echo "=== Render templates ==="
-helm template twotier-dev ./twotier | grep -E 'replicas:|name:|type:'
-
-echo "=== Install ==="
-helm install twotier-dev ./twotier --wait --timeout=120s
-
-echo "=== Verify (1 replica each) ==="
-kubectl get deployments | grep twotier
-
-echo "=== Upgrade with production values (2 replicas) ==="
-helm upgrade twotier-dev ./twotier -f twotier/production-values.yaml --wait --timeout=120s
-
-echo "=== Verify upgrade (2 replicas each) ==="
-kubectl get deployments | grep twotier
-
-echo "=== Helm history ==="
-helm history twotier-dev
-
-echo "=== Rollback ==="
-helm rollback twotier-dev 1 --wait --timeout=120s
-kubectl get deployments | grep twotier   # back to 1 replica
-
-echo "=== Cleanup ==="
-helm uninstall twotier-dev
-rm -rf twotier`
+              solutionCode: ''
             }
           },
         ]
@@ -16490,98 +12098,7 @@ spec:
                 'Generate load: kubectl run load-gen --image=busybox --restart=Never -- sh -c "while true; do wget -qO- http://hpa-nginx; done"',
                 'Watch HPA: kubectl get hpa hpa-nginx -w',
               ],
-              solutionCode: `# deployment-hpa.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hpa-nginx
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: hpa-nginx
-  template:
-    metadata:
-      labels:
-        app: hpa-nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        resources:
-          requests:
-            cpu: 100m
-            memory: 64Mi
-          limits:
-            cpu: 300m
-            memory: 128Mi
----
-# hpa.yaml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: hpa-nginx
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: hpa-nginx
-  minReplicas: 2
-  maxReplicas: 10
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 50
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 60   # faster scale-down for demo
-
-# Setup
-minikube addons enable metrics-server
-
-kubectl apply -f deployment-hpa.yaml
-kubectl rollout status deployment/hpa-nginx --timeout=60s
-kubectl apply -f hpa.yaml
-
-echo "Waiting 60s for metrics to be collected..."
-sleep 60
-
-echo "=== Initial HPA state ==="
-kubectl get hpa hpa-nginx
-# TARGETS: ~5%/50% with 2 replicas
-
-echo "=== Create ClusterIP service for load generator ==="
-kubectl expose deployment hpa-nginx --name=hpa-nginx-svc --port=80
-
-echo "=== Generate CPU load (run for 3 minutes) ==="
-kubectl run load-gen --image=busybox --restart=Never \
-  -- sh -c 'for i in $(seq 1 1000); do wget -qO- http://hpa-nginx-svc; done'
-
-echo "=== Watch HPA scale up (Ctrl+C when done) ==="
-kubectl get hpa hpa-nginx -w &
-HPA_PID=$!
-
-# Watch pods
-kubectl get pods -l app=hpa-nginx -w &
-PODS_PID=$!
-
-sleep 120
-kill $HPA_PID $PODS_PID 2>/dev/null
-
-echo "=== Final state ==="
-kubectl get hpa hpa-nginx
-kubectl get pods -l app=hpa-nginx
-
-echo "=== Cleanup ==="
-kubectl delete deployment hpa-nginx
-kubectl delete hpa hpa-nginx
-kubectl delete svc hpa-nginx-svc
-kubectl delete pod load-gen 2>/dev/null || true`
+              solutionCode: ''
             }
           },
           {
@@ -16709,63 +12226,7 @@ spec:
                 'Get pod logs: kubectl logs -l job-name=<job-name>',
                 'Manually trigger: kubectl create job manual --from=cronjob/demo-cron',
               ],
-              solutionCode: `# cronjob.yaml
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: demo-cron
-spec:
-  schedule: "*/1 * * * *"        # every minute
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 1
-  startingDeadlineSeconds: 60
-  jobTemplate:
-    spec:
-      backoffLimit: 2
-      template:
-        spec:
-          containers:
-          - name: reporter
-            image: busybox
-            command:
-            - sh
-            - -c
-            - echo "CronJob ran at $(date) on host $(hostname)"
-          restartPolicy: OnFailure
-
-# Apply
-kubectl apply -f cronjob.yaml
-kubectl get cronjob demo-cron
-
-echo "Waiting 70s for first job..."
-sleep 70
-
-echo "=== Jobs created ==="
-kubectl get jobs | grep demo-cron
-
-echo "=== Logs from completed pod ==="
-JOB=$(kubectl get jobs -l 'cronjob.kubernetes.io/cronjob-name=demo-cron' --sort-by=.metadata.creationTimestamp -o name | tail -1)
-kubectl logs $JOB
-# Output: CronJob ran at Mon Jan  1 12:01:00 UTC 2024 on host demo-cron-xxxx
-
-echo "Waiting for 2nd job..."
-sleep 65
-
-echo "=== Two jobs now ==="
-kubectl get jobs | grep demo-cron
-
-echo "=== Manually trigger a job ==="
-kubectl create job manual-run --from=cronjob/demo-cron
-kubectl wait --for=condition=complete job/manual-run --timeout=60s
-kubectl logs job/manual-run
-
-echo "=== CronJob status ==="
-kubectl describe cronjob demo-cron
-
-echo "=== Cleanup ==="
-kubectl delete cronjob demo-cron
-kubectl delete job manual-run 2>/dev/null || true`
+              solutionCode: ''
             }
           },
           {
@@ -16895,80 +12356,7 @@ spec:
                 'hostPath should be /var/log (node filesystem)',
                 'DaemonSets don\'t have replicas — count is determined by node count',
               ],
-              solutionCode: `# node-reporter-ds.yaml
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: node-reporter
-spec:
-  selector:
-    matchLabels:
-      app: node-reporter
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
-  template:
-    metadata:
-      labels:
-        app: node-reporter
-    spec:
-      tolerations:
-      - key: node-role.kubernetes.io/control-plane
-        operator: Exists
-        effect: NoSchedule
-      containers:
-      - name: reporter
-        image: busybox
-        command:
-        - sh
-        - -c
-        - |
-          echo "Node: $(hostname), Time: $(date)" > /var/log/node-name.log
-          echo "DaemonSet pod started on $(hostname)"
-          while true; do
-            date >> /var/log/node-name.log
-            sleep 60
-          done
-        volumeMounts:
-        - name: varlog
-          mountPath: /var/log
-        resources:
-          requests:
-            cpu: 10m
-            memory: 16Mi
-          limits:
-            cpu: 50m
-            memory: 32Mi
-      volumes:
-      - name: varlog
-        hostPath:
-          path: /var/log
-          type: DirectoryOrCreate
-
-# Apply
-kubectl apply -f node-reporter-ds.yaml
-
-# Verify (1 pod per node)
-kubectl get daemonset node-reporter
-# DESIRED=1 CURRENT=1 (1 minikube node)
-
-kubectl get pods -l app=node-reporter -o wide
-# Shows which node each pod is on
-
-kubectl rollout status daemonset/node-reporter --timeout=60s
-
-# Verify file written to node
-POD=$(kubectl get pods -l app=node-reporter -o name | head -1)
-kubectl exec $POD -- cat /var/log/node-name.log
-# Output: Node: minikube, Time: ...
-
-# On multi-node cluster: one pod per node
-# kubectl get nodes   # shows all nodes
-# kubectl get pods -l app=node-reporter -o wide   # one pod per node
-
-# Cleanup
-kubectl delete daemonset node-reporter`
+              solutionCode: ''
             }
           },
           {
@@ -17095,111 +12483,7 @@ spec:
                 'Or just nslookup to verify DNS resolves',
                 'StatefulSet name + ordinal = pod name: redis-0, redis-1, redis-2',
               ],
-              solutionCode: `# headless-svc.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: redis-svc
-spec:
-  clusterIP: None
-  selector:
-    app: redis-sts
-  ports:
-  - port: 80
----
-# statefulset.yaml
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: redis
-spec:
-  serviceName: redis-svc
-  replicas: 3
-  selector:
-    matchLabels:
-      app: redis-sts
-  podManagementPolicy: OrderedReady
-  updateStrategy:
-    type: RollingUpdate
-    rollingUpdate:
-      partition: 2    # canary: only pod with ordinal >= 2 gets new version
-  template:
-    metadata:
-      labels:
-        app: redis-sts
-    spec:
-      containers:
-      - name: redis
-        image: busybox
-        command:
-        - sh
-        - -c
-        - |
-          echo "My name is $(hostname). PVC data:" > /data/id.txt
-          cat /data/id.txt
-          sleep 3600
-        volumeMounts:
-        - name: data
-          mountPath: /data
-        resources:
-          requests:
-            cpu: 10m
-            memory: 16Mi
-          limits:
-            cpu: 50m
-            memory: 32Mi
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests:
-          storage: 100Mi
-
-# Apply
-kubectl apply -f headless-svc.yaml
-kubectl apply -f statefulset.yaml
-
-# Watch sequential startup
-kubectl get pods -l app=redis-sts -w
-
-# Wait for all 3
-kubectl wait --for=condition=Ready pod/redis-0 pod/redis-1 pod/redis-2 --timeout=120s
-
-echo "=== Verify stable pod names ==="
-kubectl get pods -l app=redis-sts
-# redis-0  Running
-# redis-1  Running
-# redis-2  Running
-
-echo "=== Stable DNS test: pod-0 reaches pod-2 by DNS ==="
-kubectl exec redis-0 -- nslookup redis-2.redis-svc
-# Should resolve to redis-2's IP
-
-kubectl exec redis-0 -- nslookup redis-1.redis-svc.default.svc.cluster.local
-
-echo "=== Per-pod PVCs ==="
-kubectl get pvc | grep redis
-# data-redis-0  Bound
-# data-redis-1  Bound
-# data-redis-2  Bound
-
-echo "=== Partition canary update: only redis-2 gets new image ==="
-kubectl set image statefulset/redis redis=busybox:1.36
-# partition: 2 means only redis-2 is updated; redis-0 and redis-1 stay on busybox:latest
-
-sleep 10
-kubectl get pods -l app=redis-sts -o jsonpath='{range .items[*]}{.metadata.name}: {.spec.containers[0].image}{"\n"}{end}'
-
-echo "=== Full rollout: set partition to 0 ==="
-kubectl patch statefulset redis -p '{"spec":{"updateStrategy":{"rollingUpdate":{"partition":0}}}}'
-
-echo "=== Cleanup (PVCs NOT auto-deleted) ==="
-kubectl delete statefulset redis
-kubectl delete service redis-svc
-kubectl get pvc | grep redis   # still exists!
-kubectl delete pvc data-redis-0 data-redis-1 data-redis-2`
+              solutionCode: ''
             }
           },
           {
@@ -17379,158 +12663,7 @@ t=300: Load stops — HPA scales down (stabilization: 5min)
                 'Watch HPA: kubectl get hpa -w & then sleep 120 then kill',
                 'CronJob fires every 5 min — may need to wait; use kubectl create job for immediate test',
               ],
-              solutionCode: `# scaling-stack.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: hpa-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: hpa-app
-  template:
-    metadata:
-      labels:
-        app: hpa-app
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.25
-        resources:
-          requests:
-            cpu: 100m
-            memory: 64Mi
-          limits:
-            cpu: 500m
-            memory: 128Mi
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: hpa-app
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: hpa-app
-  minReplicas: 2
-  maxReplicas: 8
-  metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 60
-  behavior:
-    scaleDown:
-      stabilizationWindowSeconds: 60
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: reporter
-spec:
-  schedule: "*/5 * * * *"
-  concurrencyPolicy: Forbid
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    spec:
-      backoffLimit: 1
-      template:
-        spec:
-          containers:
-          - name: reporter
-            image: busybox
-            command: [sh, -c, 'echo "Report at $(date) from $(hostname)"']
-          restartPolicy: OnFailure
----
-apiVersion: apps/v1
-kind: DaemonSet
-metadata:
-  name: node-logger
-spec:
-  selector:
-    matchLabels:
-      app: node-logger
-  template:
-    metadata:
-      labels:
-        app: node-logger
-    spec:
-      containers:
-      - name: logger
-        image: busybox
-        command:
-        - sh
-        - -c
-        - while true; do echo "$(date): node=$(hostname)" >> /var/log/ds.log; sleep 60; done
-        volumeMounts:
-        - name: varlog
-          mountPath: /var/log
-        resources:
-          requests:
-            cpu: 10m
-            memory: 16Mi
-          limits:
-            cpu: 20m
-            memory: 32Mi
-      volumes:
-      - name: varlog
-        hostPath:
-          path: /var/log
-
----
-#!/bin/bash
-# run.sh
-set -e
-
-echo "=== Enable metrics-server ==="
-minikube addons enable metrics-server
-
-echo "=== Apply all resources ==="
-kubectl apply -f scaling-stack.yaml
-
-echo "=== Wait for Deployment ==="
-kubectl rollout status deployment/hpa-app --timeout=60s
-
-echo "=== Waiting 70s for metrics collection ==="
-sleep 70
-
-echo "=== Initial HPA state ==="
-kubectl get hpa hpa-app
-
-echo "=== Generate CPU load ==="
-kubectl expose deployment hpa-app --name=hpa-app-svc --port=80 2>/dev/null || true
-kubectl run load-gen --image=busybox --restart=Never \
-  -- sh -c 'while true; do wget -qO- http://hpa-app-svc 2>/dev/null; done' 2>/dev/null || true
-
-echo "=== Watch HPA for 2 minutes ==="
-kubectl get hpa hpa-app -w &
-HPA_WATCH=$!
-sleep 120
-kill $HPA_WATCH 2>/dev/null
-
-echo "=== HPA final state ==="
-kubectl get hpa hpa-app
-kubectl get pods -l app=hpa-app
-
-echo "=== Trigger CronJob manually for immediate test ==="
-kubectl create job reporter-manual --from=cronjob/reporter
-kubectl wait --for=condition=complete job/reporter-manual --timeout=30s
-kubectl logs job/reporter-manual
-
-echo "=== DaemonSet pod logs ==="
-DS_POD=$(kubectl get pods -l app=node-logger -o name | head -1)
-kubectl exec $DS_POD -- cat /var/log/ds.log
-
-echo "=== Cleanup ==="
-kubectl delete -f scaling-stack.yaml
-kubectl delete pod load-gen 2>/dev/null || true
-kubectl delete svc hpa-app-svc 2>/dev/null || true
-kubectl delete job reporter-manual 2>/dev/null || true`
+              solutionCode: ''
             }
           },
         ]
@@ -17739,82 +12872,7 @@ REGION="us-east-1"
                 'eksctl create cluster takes 15-20 minutes',
                 'Verify: kubectl get nodes should show 2 Ready nodes',
               ],
-              solutionCode: `#!/bin/bash
-# eks-demo.sh — ⚠️ CREATES REAL AWS RESOURCES (~$0.12/hr)
-
-echo "=============================================="
-echo "  ⚠️  AWS EKS COST WARNING"
-echo "=============================================="
-echo ""
-echo "  This script creates:"
-echo "  - EKS Control Plane:  ~\$0.10/hr (\$72/month)"
-echo "  - 2x t3.micro nodes:  ~\$0.02/hr"
-echo "  - Total:              ~\$0.12/hr"
-echo ""
-echo "  AWS Free Tier does NOT cover EKS."
-echo "  You WILL be charged. Delete when done."
-echo ""
-echo "=============================================="
-echo ""
-
-read -p "Type 'I UNDERSTAND THE COST' to continue: " CONFIRM
-if [ "$CONFIRM" != "I UNDERSTAND THE COST" ]; then
-  echo "Aborted. No resources created."
-  exit 0
-fi
-
-CLUSTER_NAME="k8s-demo-$(date +%s)"
-REGION="us-east-1"
-
-echo ""
-echo "Cluster name: $CLUSTER_NAME"
-echo ""
-
-# Register cleanup to run on script exit
-cleanup() {
-  echo ""
-  echo "=============================================="
-  echo "  CLEANUP: Deleting EKS cluster..."
-  echo "  This takes 10-15 minutes."
-  echo "=============================================="
-  eksctl delete cluster --name $CLUSTER_NAME --region $REGION
-  echo "Cluster deleted. Check AWS Cost Explorer to verify."
-}
-trap cleanup EXIT
-
-echo "=== Creating EKS cluster (15-20 minutes) ==="
-eksctl create cluster \\
-  --name $CLUSTER_NAME \\
-  --region $REGION \\
-  --nodegroup-name workers \\
-  --node-type t3.micro \\
-  --nodes 2 \\
-  --nodes-min 1 \\
-  --nodes-max 3 \\
-  --managed
-
-echo "=== Verify connectivity ==="
-kubectl get nodes
-kubectl get nodes -o wide
-
-echo "=== Deploy test workload ==="
-kubectl create deployment hello-eks --image=nginx:1.25 --replicas=2
-kubectl expose deployment hello-eks --type=LoadBalancer --port=80
-
-echo "Waiting for deployment..."
-kubectl rollout status deployment/hello-eks --timeout=120s
-
-echo "=== LoadBalancer details (real cloud LB!) ==="
-kubectl get svc hello-eks
-echo "(Wait 2-3 minutes for EXTERNAL-IP to appear from AWS ELB)"
-
-echo "=== Cluster info ==="
-kubectl cluster-info
-kubectl get nodes
-
-echo ""
-echo "Script complete. Cleanup will run automatically on exit."
-echo "Or run: eksctl delete cluster --name $CLUSTER_NAME --region $REGION"`
+              solutionCode: ''
             }
           },
           {
@@ -17947,119 +13005,7 @@ spec:
                 'ALB Ingress requires AWS Load Balancer Controller installed on cluster',
                 'For NLB instead of ALB: use service.beta.kubernetes.io/aws-load-balancer-type: nlb',
               ],
-              solutionCode: `# ebs-storageclass.yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: ebs-gp3
-  annotations:
-    storageclass.kubernetes.io/is-default-class: "true"
-provisioner: ebs.csi.aws.com
-parameters:
-  type: gp3
-  encrypted: "true"
-  iops: "3000"
-  throughput: "125"
-volumeBindingMode: WaitForFirstConsumer
-reclaimPolicy: Delete
-allowVolumeExpansion: true
----
-# ebs-pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: app-data
-spec:
-  storageClassName: ebs-gp3
-  accessModes: [ReadWriteOnce]
-  resources:
-    requests:
-      storage: 10Gi
----
-# app-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: eks-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: eks-app
-  template:
-    metadata:
-      labels:
-        app: eks-app
-    spec:
-      containers:
-      - name: app
-        image: nginx:1.25
-        ports:
-        - containerPort: 80
-        volumeMounts:
-        - name: data
-          mountPath: /data
-        resources:
-          requests:
-            cpu: 100m
-            memory: 128Mi
-          limits:
-            cpu: 500m
-            memory: 256Mi
-      volumes:
-      - name: data
-        persistentVolumeClaim:
-          claimName: app-data
----
-# app-service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: eks-app-svc
-spec:
-  selector:
-    app: eks-app
-  ports:
-  - port: 80
-    targetPort: 80
----
-# alb-ingress.yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: eks-app-ingress
-  annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: eks-app-svc
-            port:
-              number: 80
-
-# Apply (requires EKS cluster with EBS CSI driver and AWS LB Controller)
-# kubectl apply -f ebs-storageclass.yaml
-# kubectl apply -f ebs-pvc.yaml
-# kubectl apply -f app-deployment.yaml
-# kubectl apply -f app-service.yaml
-# kubectl apply -f alb-ingress.yaml
-
-# Check ALB creation (takes 2-3 minutes)
-# kubectl get ingress eks-app-ingress
-# EXTERNAL-IP shows the ALB DNS name
-
-# Check EBS volume
-# kubectl get pvc app-data   # STATUS: Bound
-# kubectl get pv             # shows the EBS volume`
+              solutionCode: ''
             }
           },
           {
@@ -18185,81 +13131,7 @@ argocd app status my-app
                 'Verify: kubectl get application -n argocd or argocd app list',
                 'Watch: kubectl get pods -n guestbook -w (should appear after sync)',
               ],
-              solutionCode: `#!/bin/bash
-# argocd-demo.sh
-
-echo "=== 1. Install ArgoCD ==="
-kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-echo "Waiting for ArgoCD pods (2-3 minutes)..."
-kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=argocd-server \
-  -n argocd \
-  --timeout=180s
-
-echo "=== 2. Get admin password ==="
-ARGOCD_PWD=$(kubectl -n argocd get secret argocd-initial-admin-secret \
-  -o jsonpath='{.data.password}' | base64 -d)
-echo "ArgoCD password: $ARGOCD_PWD"
-
-echo "=== 3. Port-forward UI (background) ==="
-kubectl port-forward svc/argocd-server -n argocd 8080:443 &
-PF_PID=$!
-sleep 3
-echo "ArgoCD UI: https://localhost:8080 (accept self-signed cert)"
-echo "Username: admin | Password: $ARGOCD_PWD"
-
-echo "=== 4. Create ArgoCD Application ==="
-kubectl apply -f - << 'EOF'
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: guestbook
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/argoproj/argocd-example-apps
-    targetRevision: master
-    path: guestbook
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: guestbook
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-    - CreateNamespace=true
-EOF
-
-echo "=== 5. Wait for sync ==="
-sleep 30
-
-echo "=== 6. Check application status ==="
-kubectl get application guestbook -n argocd
-kubectl get application guestbook -n argocd -o jsonpath='{.status.sync.status}'
-
-echo "=== 7. Verify pods deployed ==="
-kubectl get pods -n guestbook
-
-echo "=== 8. Optional: ArgoCD CLI ==="
-if command -v argocd &>/dev/null; then
-  argocd login localhost:8080 \
-    --username admin \
-    --password "$ARGOCD_PWD" \
-    --insecure
-  argocd app list
-  argocd app get guestbook
-fi
-
-echo "=== Cleanup ==="
-kill $PF_PID 2>/dev/null
-kubectl delete application guestbook -n argocd
-kubectl delete namespace guestbook
-kubectl delete namespace argocd`
+              solutionCode: ''
             }
           },
           {
@@ -18453,133 +13325,7 @@ REGION="us-east-1"
                 'Helm install with --wait blocks until pods are ready',
                 'Get LoadBalancer IP: kubectl get svc -l app.kubernetes.io/instance=my-release -o jsonpath="{.items[0].status.loadBalancer.ingress[0].hostname}"',
               ],
-              solutionCode: `#!/bin/bash
-# eks-production-deploy.sh
-# ⚠️ Creates real AWS resources — see cost warning below
-
-echo ""
-echo "=========================================================="
-echo "  ⚠️  EKS PRODUCTION DEPLOY — REAL AWS COSTS"
-echo "=========================================================="
-echo ""
-echo "  Resources this script creates:"
-echo "  • EKS Control Plane:  \$0.10/hr  (~\$72/month)"
-echo "  • 2x t3.small nodes:  \$0.041/hr (~\$30/month)"
-echo "  • Network Load Balancer: \$0.008/hr + LCU costs"
-echo "  • Total estimated:    ~\$0.15/hr"
-echo ""
-echo "  ⚠️  AWS Free Tier does NOT cover EKS."
-echo "  ⚠️  Set a timer. DELETE the cluster when done."
-echo "  ⚠️  Cluster name includes timestamp for easy identification."
-echo ""
-echo "=========================================================="
-echo ""
-read -p "Type 'I UNDERSTAND THE COST' to create the cluster: " CONFIRM
-if [ "$CONFIRM" != "I UNDERSTAND THE COST" ]; then
-  echo "Aborted. No AWS resources created."
-  exit 0
-fi
-
-CLUSTER_NAME="prod-demo-$(date +%s)"
-REGION="us-east-1"
-RELEASE_NAME="myapp"
-
-echo ""
-echo "Cluster name: $CLUSTER_NAME (note this for manual cleanup)"
-echo ""
-
-# ALWAYS cleanup on exit (success, error, or Ctrl+C)
-cleanup() {
-  local exit_code=$?
-  echo ""
-  echo "=========================================================="
-  echo "  MANDATORY CLEANUP: Deleting EKS cluster..."
-  echo "  This takes 10-15 minutes."
-  echo "  DO NOT close this terminal until complete."
-  echo "=========================================================="
-  helm uninstall $RELEASE_NAME 2>/dev/null || true
-  eksctl delete cluster --name $CLUSTER_NAME --region $REGION
-
-  echo ""
-  echo "Verifying cleanup..."
-  aws ec2 describe-instances \
-    --filters "Name=tag:alpha.eksctl.io/cluster-name,Values=$CLUSTER_NAME" \
-    --query 'Reservations[].Instances[].InstanceId' \
-    --output text
-
-  echo "Cleanup complete. Check AWS Cost Explorer tomorrow to verify \$0 charges."
-  exit $exit_code
-}
-trap cleanup EXIT
-
-set -e
-
-echo "=== Step 1: Create EKS cluster (15-20 minutes) ==="
-eksctl create cluster \\
-  --name $CLUSTER_NAME \\
-  --region $REGION \\
-  --nodegroup-name workers \\
-  --node-type t3.small \\
-  --nodes 2 \\
-  --nodes-min 1 \\
-  --nodes-max 4 \\
-  --managed \\
-  --asg-access
-
-echo "=== Step 2: Verify connectivity ==="
-kubectl get nodes
-kubectl get nodes -o wide
-
-echo "=== Step 3: Install EBS CSI driver ==="
-eksctl create addon \\
-  --name aws-ebs-csi-driver \\
-  --cluster $CLUSTER_NAME \\
-  --region $REGION
-
-echo "=== Step 4: Add Helm repos ==="
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-
-echo "=== Step 5: Deploy nginx via Helm ==="
-helm install $RELEASE_NAME bitnami/nginx \\
-  --set replicaCount=2 \\
-  --set service.type=LoadBalancer \\
-  --wait \\
-  --timeout=300s
-
-echo "=== Step 6: Verify deployment ==="
-kubectl get deployment -l app.kubernetes.io/instance=$RELEASE_NAME
-kubectl get pods -l app.kubernetes.io/instance=$RELEASE_NAME
-helm status $RELEASE_NAME
-
-echo "=== Step 7: Wait for LoadBalancer IP ==="
-echo "Waiting for AWS NLB to provision (2-3 minutes)..."
-for i in $(seq 1 18); do
-  EXTERNAL=$(kubectl get svc -l app.kubernetes.io/instance=$RELEASE_NAME \
-    -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
-  if [ -n "$EXTERNAL" ]; then
-    echo "External URL: http://$EXTERNAL"
-    break
-  fi
-  echo "Waiting... ($i/18)"
-  sleep 10
-done
-
-echo "=== Step 8: Test the deployment ==="
-if [ -n "$EXTERNAL" ]; then
-  sleep 30  # DNS propagation
-  curl -s --max-time 10 http://$EXTERNAL | grep -i welcome || echo "HTTP test complete"
-fi
-
-echo ""
-echo "=========================================================="
-echo "  Deployment successful!"
-echo "  Cluster: $CLUSTER_NAME"
-echo "  App URL: http://$EXTERNAL"
-echo ""
-echo "  The cleanup trap will now DELETE the cluster."
-echo "  Do not close this terminal."
-echo "=========================================================="`
+              solutionCode: ''
             }
           },
         ]
@@ -18602,32 +13348,7 @@ echo "=========================================================="`
 # 4. services.yaml`,
           rubric: ['Namespace production created', 'Frontend has 2+ replicas', 'Postgres is StatefulSet with PVC', 'All services use correct selectors', 'Resource requests/limits on all containers'],
           hints: ['Use kubectl create ns production', 'StatefulSet uses volumeClaimTemplates', 'ClusterIP DNS: postgres-svc.production.svc.cluster.local'],
-          solutionCode: `# frontend-deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: frontend
-  namespace: production
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: frontend
-  template:
-    metadata:
-      labels:
-        app: frontend
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.26
-        resources:
-          requests:
-            cpu: 50m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi`,
+          solutionCode: '',
         },
         {
           id: 'k8s-milestone-2',
@@ -18637,22 +13358,7 @@ spec:
           boilerplate: `# Add: rbac.yaml, network-policies.yaml, secrets.yaml, configmap.yaml`,
           rubric: ['ServiceAccount with automountServiceAccountToken: false', 'deny-all NetworkPolicy', 'Tier-specific allow policies', 'Secret for DB_PASSWORD', 'runAsNonRoot: true on all pods'],
           hints: ['echo -n "password" | base64', 'NetworkPolicy podSelector uses matchLabels', 'runAsNonRoot: true under securityContext'],
-          solutionCode: `apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: app-sa
-  namespace: production
-automountServiceAccountToken: false
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: pod-reader
-  namespace: production
-rules:
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list", "watch"]`,
+          solutionCode: '',
         },
         {
           id: 'k8s-milestone-3',
@@ -18662,21 +13368,7 @@ rules:
           boilerplate: `# helm create myapp; modify Chart.yaml, values.yaml; create production-values.yaml; helm lint myapp`,
           rubric: ['helm lint passes', 'values.yaml has replicaCount image resources', 'production-values.yaml has 3+ replicas', 'ConfigMap uses .Values', 'helm template previews correctly'],
           hints: ['{{ .Values.replicaCount | default 1 }}', 'helm template myapp --values production-values.yaml'],
-          solutionCode: `# values.yaml
-replicaCount: 1
-image:
-  repository: nginx
-  tag: "1.26"
-resources:
-  requests:
-    cpu: 50m
-    memory: 64Mi
-# production-values.yaml
-replicaCount: 3
-resources:
-  requests:
-    cpu: 200m
-    memory: 256Mi`,
+          solutionCode: '',
         },
         {
           id: 'k8s-milestone-4',
@@ -18689,17 +13381,7 @@ resources:
 set -euo pipefail`,
           rubric: ['EKS created with eksctl', 'ArgoCD installed', 'HPA with CPU target', 'CronJob for backup sim', 'Cleanup script deletes cluster'],
           hints: ['eksctl create cluster --name my-cluster --nodes 2 --node-type t3.micro --region us-east-1', 'ALWAYS verify: aws elb describe-load-balancers after delete'],
-          solutionCode: `#!/bin/bash
-set -euo pipefail
-CLUSTER="prod-demo"; REGION="us-east-1"
-echo "Creating EKS cluster (incurs AWS charges)..."
-eksctl create cluster --name \${CLUSTER} --region \${REGION} --nodes 2 --node-type t3.micro
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s
-echo "Cleanup (MANDATORY):"
-eksctl delete cluster --name \${CLUSTER} --region \${REGION}
-echo "Cluster deleted. Verify in AWS console."`,
+          solutionCode: '',
         },
       ],
     },
