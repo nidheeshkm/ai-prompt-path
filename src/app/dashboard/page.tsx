@@ -4,12 +4,12 @@ import { useAuth } from '@/lib/auth-context'
 import { useProgress } from '@/lib/progress-context'
 import { useEnrollment } from '@/lib/enrollment-context'
 import { courses, getCourseTopics } from '@/data/curriculum'
-import { getLevelForXp, getXpProgress, getNextLevel, getAllBadgeDefinitions } from '@/lib/gamification'
+import { getAllBadgeDefinitions, getCourseLevel } from '@/lib/gamification'
 import { supabase } from '@/lib/supabase'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Flame, Target, BookOpen, CheckCircle, ChevronRight, Zap, Award, Plus, AlertTriangle, Lock } from 'lucide-react'
+import { Flame, Target, BookOpen, CheckCircle, ChevronRight, Zap, Award, Plus, AlertTriangle, Lock, TrendingUp } from 'lucide-react'
 
 const COURSE_GRADIENTS = [
   'from-emerald-500 to-cyan-500',
@@ -45,10 +45,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  const level = getLevelForXp(profile.xp)
-  const xpProgress = getXpProgress(profile.xp)
-  const nextLevel = getNextLevel(profile.xp)
 
   const enrolledCourses = courses.filter(c => enrollments.some(e => e.course_id === c.id))
   const totalCompleted = enrolledCourses.reduce((sum, course) => {
@@ -93,18 +89,11 @@ export default function DashboardPage() {
         {/* Stats row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard
-            gradient="from-violet-500 to-purple-600"
-            icon={<Zap className="w-5 h-5 text-white" />}
-            label="Level"
-            value={String(level.level)}
-            sub={level.title}
-          />
-          <StatCard
             gradient="from-amber-500 to-orange-500"
-            icon={<Target className="w-5 h-5 text-white" />}
+            icon={<Zap className="w-5 h-5 text-white" />}
             label="Total XP"
             value={profile.xp.toLocaleString()}
-            sub="experience points"
+            sub="across all courses"
           />
           <StatCard
             gradient="from-orange-500 to-red-500"
@@ -114,35 +103,19 @@ export default function DashboardPage() {
             sub="days in a row"
           />
           <StatCard
+            gradient="from-violet-500 to-purple-600"
+            icon={<TrendingUp className="w-5 h-5 text-white" />}
+            label="Best Streak"
+            value={`${profile.longest_streak || 0}`}
+            sub="days"
+          />
+          <StatCard
             gradient="from-emerald-500 to-cyan-500"
             icon={<BookOpen className="w-5 h-5 text-white" />}
             label="Topics Done"
             value={`${totalCompleted}`}
-            sub={`of ${totalTopics}`}
+            sub={`of ${totalTopics} enrolled`}
           />
-        </div>
-
-        {/* XP Progress bar */}
-        <div className="glass rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white">
-                {level.level}
-              </div>
-              <span className="text-sm font-semibold text-slate-800">{level.title}</span>
-            </div>
-            {nextLevel && (
-              <span className="text-xs text-slate-400">
-                {xpProgress.current} / {xpProgress.needed} XP to Level {nextLevel.level}
-              </span>
-            )}
-          </div>
-          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="xp-bar h-full rounded-full transition-all duration-700"
-              style={{ width: `${xpProgress.percentage}%` }}
-            />
-          </div>
         </div>
 
         {/* Certificates */}
@@ -204,16 +177,27 @@ export default function DashboardPage() {
             <div className="grid gap-5 md:grid-cols-2">
               {enrolledCourses.map((course, i) => {
                 const allTopics = getCourseTopics(course.id)
-                const completedTopics = allTopics.filter(t => progressMap[`${course.id}__${t.id}`]?.status === 'completed').length
+                const completedTopicEntries = allTopics.filter(t => progressMap[`${course.id}__${t.id}`]?.status === 'completed')
                 const completedMilestones = course.project.milestones.filter(
                   m => milestoneMap[`${course.id}__${m.id}`]?.status === 'completed'
                 ).length
                 const total = allTopics.length + course.project.milestones.length
-                const done = completedTopics + completedMilestones
+                const done = completedTopicEntries.length + completedMilestones
                 const pct = total > 0 ? Math.round((done / total) * 100) : 0
                 const hasCert = certificates.some(c => c.course_id === course.id)
                 const nextTopic = allTopics.find(t => progressMap[`${course.id}__${t.id}`]?.status !== 'completed')
                 const gradient = COURSE_GRADIENTS[i % COURSE_GRADIENTS.length]
+
+                // Per-course XP and level
+                const totalCourseXp = allTopics.reduce((s, t) => s + t.xp, 0)
+                  + course.project.milestones.reduce((s, m) => s + m.xp, 0)
+                const earnedCourseXp = completedTopicEntries.reduce((s, t) => {
+                  const topic = allTopics.find(at => at.id === t.id)
+                  return s + (topic?.xp ?? 0)
+                }, 0) + course.project.milestones.filter(
+                  m => milestoneMap[`${course.id}__${m.id}`]?.status === 'completed'
+                ).reduce((s, m) => s + m.xp, 0)
+                const courseLevel = getCourseLevel(earnedCourseXp, totalCourseXp, course.levelTitles)
 
                 return (
                   <div key={course.id} className="glass rounded-2xl overflow-hidden flex flex-col">
@@ -237,12 +221,55 @@ export default function DashboardPage() {
                         )}
                       </div>
 
-                      {/* Progress bar */}
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full bg-gradient-to-r ${gradient} rounded-full transition-all`}
-                          style={{ width: `${pct}%` }}
-                        />
+                      {/* Course level badge + XP bar */}
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded-md bg-gradient-to-br ${gradient} flex items-center justify-center text-[10px] font-bold text-white shrink-0`}>
+                              {courseLevel.tier}
+                            </div>
+                            <span className="text-xs font-semibold text-slate-800">{courseLevel.title}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400">
+                            {earnedCourseXp.toLocaleString()} / {totalCourseXp.toLocaleString()} XP
+                          </span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden mb-2">
+                          <div
+                            className={`h-full bg-gradient-to-r ${gradient} rounded-full transition-all`}
+                            style={{ width: `${courseLevel.fillPct}%` }}
+                          />
+                        </div>
+                        {/* 5-tier dots roadmap */}
+                        <div className="flex items-center gap-1">
+                          {course.levelTitles.map((title, idx) => {
+                            const reached = courseLevel.tier > idx + 1
+                            const current = courseLevel.tier === idx + 1
+                            return (
+                              <div key={idx} className="flex-1 flex flex-col items-center gap-0.5" title={title}>
+                                <div className={`w-2 h-2 rounded-full transition-all ${
+                                  reached ? 'bg-emerald-400'
+                                  : current ? `bg-gradient-to-br ${gradient}`
+                                  : 'bg-slate-200'
+                                }`} />
+                                <span className={`text-[8px] leading-none text-center truncate w-full text-center ${
+                                  current ? 'text-slate-700 font-semibold' : 'text-slate-400'
+                                }`}>
+                                  {title.split(' ').pop()}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {courseLevel.nextTitle && courseLevel.xpToNext > 0 && (
+                          <p className="text-[10px] text-slate-400 mt-1.5">
+                            {courseLevel.xpToNext} XP to <span className="text-slate-600 font-medium">{courseLevel.nextTitle}</span>
+                          </p>
+                        )}
+                        {!courseLevel.nextTitle && (
+                          <p className="text-[10px] text-emerald-600 font-semibold mt-1.5">🏆 Max level reached!</p>
+                        )}
                       </div>
 
                       {/* Chapter chips */}

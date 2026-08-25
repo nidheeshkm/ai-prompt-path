@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth-context'
-import { getLevelForXp, getXpProgress, getNextLevel } from '@/lib/gamification'
+import { getLevelForXp, getXpProgress } from '@/lib/gamification'
 import { Flame, LogOut, Menu, X, Settings, Zap, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
@@ -56,13 +56,11 @@ export default function Header() {
                 {profile.current_streak || 0}
               </div>
 
-              {/* XP + Level */}
+              {/* XP + prestige level */}
               <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-sm">
-                    {level.level}
-                  </div>
-                  <span className="text-xs text-slate-400 hidden lg:inline">{level.title}</span>
+                {/* Level number bubble — title lives on the dashboard course card */}
+                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-sm" title={`Platform level ${level.level}`}>
+                  {level.level}
                 </div>
 
                 {/* Mini XP bar */}
@@ -126,11 +124,11 @@ export default function Header() {
           {/* HUD row */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white" title={`Platform level ${level.level}`}>
                 {level.level}
               </div>
               <div>
-                <p className="text-xs font-semibold text-slate-800">{level.title}</p>
+                <p className="text-xs font-semibold text-slate-800">Platform Level {level.level}</p>
                 <p className="text-xs text-slate-400">{profile.xp.toLocaleString()} XP</p>
               </div>
             </div>
