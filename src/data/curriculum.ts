@@ -7922,14 +7922,14 @@ export type Course = {
 export const courses: Course[] = [
   {
     id: 'promptpath-starter',
-    title: 'PromptPath Starter',
-    tagline: 'Master LangChain from zero to production',
+    title: 'LangChain: Zero to Production',
+    tagline: 'Build production-ready AI applications from the ground up',
     description: 'A complete, hands-on journey through the LangChain ecosystem. Start from the fundamentals of LLMs, work through prompt engineering, chains, RAG, agents, and LangGraph, and finish by building a production-grade AI application. Every chapter includes lessons, quizzes, and coding challenges.',
     icon: '🦜',
     level: 'beginner',
     estimatedHours: 40,
     tags: ['LangChain', 'LangGraph', 'LangSmith', 'Python', 'RAG', 'Agents'],
-    levelTitles: ['AI Learner', 'AI Practitioner', 'AI Developer', 'AI Engineer', 'AI Architect'],
+    levelTitles: ['LangChain Beginner', 'Chain Builder', 'RAG Engineer', 'Agent Developer', 'LangChain Architect'],
     chapters: curriculum,
     project: {
       id: 'research-assistant',
