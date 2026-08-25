@@ -1,16 +1,18 @@
 import type { Course } from '@/data/curriculum'
 
+// Global prestige levels — domain-neutral (not tech/course specific).
+// Meaningful level titles live on each Course's `levelTitles` array instead.
 export const LEVELS = [
-  { level: 1, xpRequired: 0, title: 'Novice' },
-  { level: 2, xpRequired: 300, title: 'Apprentice' },
-  { level: 3, xpRequired: 750, title: 'Practitioner' },
-  { level: 4, xpRequired: 1500, title: 'Chain Builder' },
-  { level: 5, xpRequired: 2500, title: 'Retrieval Engineer' },
-  { level: 6, xpRequired: 4000, title: 'Agent Architect' },
-  { level: 7, xpRequired: 6000, title: 'Graph Master' },
-  { level: 8, xpRequired: 8500, title: 'Production Engineer' },
-  { level: 9, xpRequired: 10500, title: 'Expert' },
-  { level: 10, xpRequired: 12350, title: 'LangChain Hero' },
+  { level: 1,  xpRequired: 0,     title: 'Starter' },
+  { level: 2,  xpRequired: 300,   title: 'Explorer' },
+  { level: 3,  xpRequired: 750,   title: 'Learner' },
+  { level: 4,  xpRequired: 1500,  title: 'Achiever' },
+  { level: 5,  xpRequired: 2500,  title: 'Specialist' },
+  { level: 6,  xpRequired: 4000,  title: 'Veteran' },
+  { level: 7,  xpRequired: 6000,  title: 'Expert' },
+  { level: 8,  xpRequired: 8500,  title: 'Master' },
+  { level: 9,  xpRequired: 10500, title: 'Champion' },
+  { level: 10, xpRequired: 12350, title: 'Legend' },
 ]
 
 export function getLevelForXp(xp: number) {
@@ -37,6 +39,58 @@ export function getXpProgress(xp: number) {
     current: progressInLevel,
     needed: levelRange,
     percentage: Math.round((progressInLevel / levelRange) * 100),
+  }
+}
+
+// ── Per-course levels ────────────────────────────────────────────
+// Five tiers based on % of total course XP earned.
+const COURSE_LEVEL_THRESHOLDS = [0, 0.2, 0.45, 0.70, 0.90] as const
+
+export type CourseLevel = {
+  tier: 1 | 2 | 3 | 4 | 5
+  title: string
+  nextTitle: string | null
+  /** 0–100 progress through the current tier */
+  fillPct: number
+  /** XP still needed to reach the next tier, 0 if at max */
+  xpToNext: number
+  earnedXp: number
+  totalXp: number
+}
+
+export function getCourseLevel(
+  earnedXp: number,
+  totalCourseXp: number,
+  levelTitles: [string, string, string, string, string],
+): CourseLevel {
+  const pct = totalCourseXp > 0 ? earnedXp / totalCourseXp : 0
+
+  let tierIdx = 0
+  for (let i = COURSE_LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (pct >= COURSE_LEVEL_THRESHOLDS[i]) { tierIdx = i; break }
+  }
+
+  const currentThreshold = COURSE_LEVEL_THRESHOLDS[tierIdx]
+  const nextThreshold = COURSE_LEVEL_THRESHOLDS[tierIdx + 1] ?? 1
+
+  const progressInTier = pct - currentThreshold
+  const tierRange = nextThreshold - currentThreshold
+  const fillPct = tierIdx === 4 && pct >= 0.9
+    ? Math.min(100, Math.round(((pct - 0.9) / 0.1) * 100))
+    : Math.min(100, Math.round((progressInTier / tierRange) * 100))
+
+  const xpToNext = tierIdx < 4
+    ? Math.max(0, Math.ceil(nextThreshold * totalCourseXp) - earnedXp)
+    : 0
+
+  return {
+    tier: (tierIdx + 1) as 1 | 2 | 3 | 4 | 5,
+    title: levelTitles[tierIdx],
+    nextTitle: levelTitles[tierIdx + 1] ?? null,
+    fillPct,
+    xpToNext,
+    earnedXp,
+    totalXp: totalCourseXp,
   }
 }
 

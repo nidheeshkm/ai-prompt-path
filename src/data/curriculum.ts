@@ -7912,6 +7912,9 @@ export type Course = {
   level: 'beginner' | 'intermediate' | 'advanced'
   estimatedHours: number
   tags: string[]
+  // Five course-specific level titles, from beginner (index 0) to expert (index 4).
+  // Used on dashboard course cards instead of generic global titles.
+  levelTitles: [string, string, string, string, string]
   chapters: Chapter[]
   project: Project
 }
@@ -7926,6 +7929,7 @@ export const courses: Course[] = [
     level: 'beginner',
     estimatedHours: 40,
     tags: ['LangChain', 'LangGraph', 'LangSmith', 'Python', 'RAG', 'Agents'],
+    levelTitles: ['AI Learner', 'AI Practitioner', 'AI Developer', 'AI Engineer', 'AI Architect'],
     chapters: curriculum,
     project: {
       id: 'research-assistant',
@@ -8432,6 +8436,7 @@ class ResearchAgent:
     level: 'intermediate',
     estimatedHours: 60,
     tags: ['Kubernetes', 'Docker', 'Linux', 'AWS', 'EKS', 'Helm', 'DevOps'],
+    levelTitles: ['Linux Beginner', 'Container Trainee', 'K8s Operator', 'DevOps Engineer', 'Platform Architect'],
     chapters: [
       {
         id: 101,
