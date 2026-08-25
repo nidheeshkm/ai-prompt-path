@@ -42,19 +42,7 @@ export function EnrollmentProvider({ children }: { children: ReactNode }) {
       supabase.from('certificates').select('*').eq('user_id', user.id),
     ])
 
-    // Backward-compat: any user with no enrollments (registered before enrollment was
-    // introduced, or missed by the SQL backfill) is auto-enrolled in the starter course.
-    if ((envData?.length ?? 0) === 0) {
-      await supabase
-        .from('enrollments')
-        .upsert({ user_id: user.id, course_id: 'promptpath-starter' }, { onConflict: 'user_id,course_id' })
-      const { data: refreshed } = await supabase
-        .from('enrollments').select('*').eq('user_id', user.id)
-      setEnrollments(refreshed || [])
-    } else {
-      setEnrollments(envData || [])
-    }
-
+    setEnrollments(envData || [])
     setCertificates(certData || [])
     setLoading(false)
   }, [user])

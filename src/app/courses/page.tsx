@@ -53,9 +53,9 @@ export default function CourseCatalogPage() {
             <span className="text-xs font-semibold text-amber-600 uppercase tracking-wider">Course Catalog</span>
           </div>
           <h1 className="text-3xl font-bold text-slate-900">
-            Start your <span className="gradient-text">AI engineering</span> journey
+            Build skills that <span className="gradient-text">hold up under pressure</span>
           </h1>
-          <p className="text-slate-500 mt-2 text-sm">Hands-on courses with AI-powered assessments and certificates.</p>
+          <p className="text-slate-500 mt-2 text-sm">Hands-on courses with AI-graded assessments, mastery-gated progress, and certificates.</p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
