@@ -13386,6 +13386,3703 @@ set -euo pipefail`,
       ],
     },
   },
+
+  {
+    id: 'springboot-ai-architect',
+    title: 'Be an AI-Enabled Java Spring Boot Developer — From Zero to Architect',
+    tagline: 'Master Spring Boot with AI tooling and reach architect-level thinking',
+    description: 'A dual-track course for complete beginners and experienced Java developers. You will go from zero (or skip the basics) through AI-accelerated development, microservices, Spring AI integration, DDD/CQRS, Kubernetes, and architect-level system design — all with AI tools woven into every workflow.',
+    icon: '☕',
+    level: 'intermediate' as const,
+    estimatedHours: 88,
+    tags: ['Java', 'Spring Boot', 'Spring AI', 'GitHub Copilot', 'Cursor', 'Microservices', 'Kubernetes', 'System Design'],
+    levelTitles: ['Java Beginner', 'Spring Boot Developer', 'AI-Powered Engineer', 'Senior Developer', 'Software Architect'] as [string, string, string, string, string],
+    chapters: [
+      // ═══════════════════════════════════════════
+      // PART I: Java & Spring Boot Foundations
+      // ═══════════════════════════════════════════
+      {
+        id: 201,
+        title: 'Java Essentials Crash Course',
+        description: 'Core Java concepts every Spring Boot developer must know — with Java 21 highlights including Virtual Threads.',
+        part: 'Part I: Java & Spring Boot Foundations',
+        icon: '☕',
+        topics: [
+          {
+            id: '201.1',
+            title: 'OOP in Java: Classes, Interfaces & Polymorphism',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# OOP in Java: Classes, Interfaces & Polymorphism
+
+## Why This Matters for Spring Boot
+
+Spring Boot is built entirely on OOP principles. When Spring injects a \`JpaRepository\` into your service, it is using **interface polymorphism**. When you annotate a class with \`@Service\`, Spring creates an instance — an **object** — and manages its lifecycle. Understanding these foundations lets you read and write Spring code fluently instead of copying it blindly.
+
+## Classes and Objects
+
+A **class** is a blueprint; an **object** is an instance of that blueprint.
+
+\`\`\`java
+public class User {
+    private String email;    // field (encapsulation)
+    private String name;
+
+    public User(String email, String name) {  // constructor
+        this.email = email;
+        this.name = name;
+    }
+
+    public String getEmail() { return email; }  // getter
+    public String getName()  { return name;  }
+}
+
+// Creating an object:
+User u = new User("alice@example.com", "Alice");
+System.out.println(u.getName()); // Alice
+\`\`\`
+
+## Inheritance
+
+\`\`\`java
+public class AdminUser extends User {
+    private String adminRole;
+
+    public AdminUser(String email, String name, String adminRole) {
+        super(email, name);  // calls parent constructor
+        this.adminRole = adminRole;
+    }
+
+    public String getAdminRole() { return adminRole; }
+}
+\`\`\`
+
+**Spring Boot uses this heavily** — e.g. \`@RestController\` classes often extend a \`BaseController\` that handles common error mapping.
+
+## Interfaces — The Heart of Spring
+
+An interface defines a **contract** with no implementation.
+
+\`\`\`java
+public interface PaymentGateway {
+    PaymentResult charge(String customerId, long amountCents);
+}
+
+// Stripe implementation
+@Service
+public class StripeGateway implements PaymentGateway {
+    @Override
+    public PaymentResult charge(String customerId, long amountCents) {
+        // call Stripe API
+    }
+}
+
+// PayPal implementation
+@Service("paypal")
+public class PayPalGateway implements PaymentGateway {
+    @Override
+    public PaymentResult charge(String customerId, long amountCents) {
+        // call PayPal API
+    }
+}
+\`\`\`
+
+Your service depends on the **interface**, not the implementation:
+
+\`\`\`java
+@Service
+public class OrderService {
+    private final PaymentGateway paymentGateway;
+
+    // Spring injects the right implementation
+    public OrderService(PaymentGateway paymentGateway) {
+        this.paymentGateway = paymentGateway;
+    }
+}
+\`\`\`
+
+Swapping payment providers = changing one line (or a config flag). This is **Dependency Inversion** — the D in SOLID.
+
+## Polymorphism
+
+The same method call behaves differently based on the actual object type at runtime.
+
+\`\`\`java
+List<PaymentGateway> gateways = List.of(
+    new StripeGateway(),
+    new PayPalGateway()
+);
+
+for (PaymentGateway gw : gateways) {
+    gw.charge("cus_123", 1000);  // each implementation runs its own version
+}
+\`\`\`
+
+## Abstract Classes vs Interfaces
+
+| | Abstract Class | Interface |
+|---|---|---|
+| **Can have state (fields)** | Yes | No (only constants) |
+| **Can have constructors** | Yes | No |
+| **Multiple inheritance** | No | Yes (a class can implement many) |
+| **Default method bodies** | Yes | Yes (since Java 8, \`default\`) |
+| **When to use** | Shared base behaviour | Contract / capability |
+
+> **Rule of thumb**: Use interfaces for Spring beans. Use abstract classes when several implementations genuinely share 70%+ of their logic.
+
+## The SOLID Principles — Quick Reference
+
+| Letter | Principle | Spring Example |
+|---|---|---|
+| S | Single Responsibility | Each \`@Service\` does one job |
+| O | Open/Closed | Add features via new classes, not editing old ones |
+| L | Liskov Substitution | Any impl can replace the interface |
+| I | Interface Segregation | Small focused interfaces (\`UserReader\`, \`UserWriter\`) |
+| D | Dependency Inversion | Depend on interfaces, let Spring inject impls |
+`,
+            quiz: [
+              {
+                question: 'In Spring Boot, what is the PRIMARY reason services depend on interfaces rather than concrete classes?',
+                options: [
+                  'Interfaces compile faster than concrete classes',
+                  'It allows Spring to swap implementations via dependency injection without changing the dependent class',
+                  'Java requires all Spring beans to implement an interface',
+                  'Interfaces make code run faster at runtime',
+                ],
+                correctIndex: 1,
+                explanation: 'Depending on an interface lets you swap implementations (e.g. Stripe → PayPal, or mock in tests) by changing configuration rather than editing the dependent class. This is the Dependency Inversion principle and it is foundational to how Spring DI works.',
+              },
+              {
+                question: 'What is the key difference between an abstract class and an interface in Java?',
+                options: [
+                  'Abstract classes cannot have any methods with bodies',
+                  'A class can extend multiple abstract classes but only one interface',
+                  'Abstract classes can have instance fields and constructors; a class can implement many interfaces but only extend one abstract class',
+                  'Interfaces are always faster than abstract classes at runtime',
+                ],
+                correctIndex: 2,
+                explanation: 'Abstract classes can hold state (fields) and constructors, making them suitable for shared base behaviour. A class can only extend one abstract class, but can implement many interfaces — giving interfaces the flexibility needed for capability-based design.',
+              },
+              {
+                question: 'Which SOLID principle is most directly applied when a Spring @Service receives its dependencies through its constructor?',
+                options: [
+                  'Single Responsibility Principle',
+                  'Open/Closed Principle',
+                  'Dependency Inversion Principle',
+                  'Liskov Substitution Principle',
+                ],
+                correctIndex: 2,
+                explanation: 'Constructor injection is the classic application of the Dependency Inversion Principle (DIP): the high-level class declares what interface it needs; the container decides which concrete implementation to inject. This decouples the class from its collaborators.',
+              },
+              {
+                question: 'At runtime, Java resolves which version of an overridden method to call based on:',
+                options: [
+                  'The declared type of the variable',
+                  'The actual type of the object instance',
+                  'The order in which classes were loaded',
+                  'The package in which the method is declared',
+                ],
+                correctIndex: 1,
+                explanation: 'This is polymorphism via dynamic dispatch. Even if the variable is declared as PaymentGateway, Java calls the charge() method on the actual object — StripeGateway or PayPalGateway — determined at runtime.',
+              },
+            ],
+          },
+          {
+            id: '201.2',
+            title: 'Generics, Collections & the Stream API',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# Generics, Collections & the Stream API
+
+## Generics — Type Safety at Compile Time
+
+Generics let you write classes and methods that work with any type while keeping type information at compile time.
+
+\`\`\`java
+// Without generics — unsafe, requires casting
+List rawList = new ArrayList();
+rawList.add("hello");
+String s = (String) rawList.get(0); // ClassCastException risk
+
+// With generics — safe
+List<String> typedList = new ArrayList<>();
+typedList.add("hello");
+String s = typedList.get(0); // no cast needed
+\`\`\`
+
+Spring Boot uses generics everywhere. \`JpaRepository<User, Long>\` tells Spring the entity type is \`User\` and the primary key type is \`Long\`.
+
+\`\`\`java
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email);
+}
+\`\`\`
+
+### Writing Your Own Generic Method
+
+\`\`\`java
+public <T> ApiResponse<T> success(T data) {
+    return new ApiResponse<>(200, data, null);
+}
+
+// Works with any type:
+ApiResponse<User>    userResp  = success(new User(...));
+ApiResponse<List<Order>> orders = success(orderList);
+\`\`\`
+
+## The Collections Framework
+
+| Interface | Implementation | Characteristics |
+|---|---|---|
+| \`List\` | \`ArrayList\` | Ordered, allows duplicates, O(1) get by index |
+| \`List\` | \`LinkedList\` | Ordered, O(1) add/remove at ends |
+| \`Set\` | \`HashSet\` | No duplicates, O(1) add/contains |
+| \`Set\` | \`LinkedHashSet\` | No duplicates, insertion-ordered |
+| \`Map\` | \`HashMap\` | Key→value, O(1) get/put |
+| \`Map\` | \`LinkedHashMap\` | Key→value, insertion-ordered |
+
+\`\`\`java
+// Common patterns in Spring Boot services
+Map<String, User> userCache = new HashMap<>();
+Set<String> processedIds  = new HashSet<>();
+List<Order>  pending      = new ArrayList<>();
+\`\`\`
+
+## The Stream API — Data Processing Pipelines
+
+Streams let you process collections declaratively — no loops, no mutable state.
+
+\`\`\`java
+List<Order> orders = orderRepository.findAll();
+
+// Imperative (old way):
+List<Order> highValue = new ArrayList<>();
+for (Order o : orders) {
+    if (o.getTotal() > 1000) {
+        highValue.add(o);
+    }
+}
+
+// Stream (new way):
+List<Order> highValue = orders.stream()
+    .filter(o -> o.getTotal() > 1000)
+    .collect(Collectors.toList());
+\`\`\`
+
+### Common Stream Operations
+
+\`\`\`java
+List<User> users = userRepository.findAll();
+
+// filter — keep matching elements
+users.stream().filter(u -> u.isActive())
+
+// map — transform each element
+users.stream().map(u -> u.getEmail())  // Stream<String>
+
+// sorted
+users.stream().sorted(Comparator.comparing(User::getName))
+
+// collect to list
+.collect(Collectors.toList())
+
+// collect to map
+.collect(Collectors.toMap(User::getId, u -> u))
+
+// count
+long activeCount = users.stream().filter(User::isActive).count();
+
+// findFirst — returns Optional
+Optional<User> admin = users.stream()
+    .filter(u -> u.getRole() == Role.ADMIN)
+    .findFirst();
+
+// anyMatch / allMatch
+boolean hasAdmin = users.stream().anyMatch(u -> u.getRole() == Role.ADMIN);
+\`\`\`
+
+### Real Spring Boot Example — Stream in a Service
+
+\`\`\`java
+@Service
+public class ReportService {
+
+    public Map<String, Long> orderCountByStatus(List<Order> orders) {
+        return orders.stream()
+            .collect(Collectors.groupingBy(
+                o -> o.getStatus().name(),
+                Collectors.counting()
+            ));
+    }
+
+    public BigDecimal totalRevenue(List<Order> orders) {
+        return orders.stream()
+            .map(Order::getTotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+}
+\`\`\`
+
+## Optional — Null Safety
+
+\`Optional<T>\` explicitly models "might be absent" — no more \`NullPointerException\` from forgotten null checks.
+
+\`\`\`java
+// Repository returns Optional
+Optional<User> opt = userRepository.findByEmail(email);
+
+// Pattern 1: get or throw a domain exception
+User user = opt.orElseThrow(() -> new UserNotFoundException(email));
+
+// Pattern 2: get or a default
+User user = opt.orElse(User.anonymous());
+
+// Pattern 3: conditional action
+opt.ifPresent(u -> auditLog.record("login", u.getId()));
+
+// Pattern 4: transform if present
+Optional<String> name = opt.map(User::getName);
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'In JpaRepository<User, Long>, what do the two generic type parameters represent?',
+                options: [
+                  'The service class and the controller class',
+                  'The entity type (User) and the type of its primary key (Long)',
+                  'The entity type (User) and the maximum number of records to return',
+                  'The DTO type and the database table type',
+                ],
+                correctIndex: 1,
+                explanation: 'JpaRepository<T, ID> takes the entity class (User) as T and its primary key type (Long, UUID, etc.) as ID. Spring Data uses these to generate typed repository methods like findById(Long id).',
+              },
+              {
+                question: 'Which Stream operation transforms each element to a different type?',
+                options: ['filter', 'map', 'reduce', 'collect'],
+                correctIndex: 1,
+                explanation: 'map() applies a function to each element and returns a new Stream of the results — e.g. stream of User objects → stream of email Strings. filter() keeps/removes elements without changing their type. collect() is the terminal operation that produces a result.',
+              },
+              {
+                question: 'What is the main advantage of returning Optional<User> from a repository method instead of User?',
+                options: [
+                  'It makes the query run faster',
+                  'It forces the caller to explicitly handle the "not found" case, preventing accidental NullPointerExceptions',
+                  'It allows returning multiple users in one call',
+                  'It is required by Spring Data JPA specification',
+                ],
+                correctIndex: 1,
+                explanation: 'Optional makes absence explicit in the type system. The caller must call orElseThrow(), orElse(), or ifPresent() — they cannot accidentally call methods on a null reference. This is especially important in service layers where missing records should throw domain exceptions.',
+              },
+              {
+                question: 'Which Collection type should you choose when you need to store unique user IDs and check containment in O(1) time?',
+                options: ['ArrayList', 'LinkedList', 'HashSet', 'LinkedHashMap'],
+                correctIndex: 2,
+                explanation: 'HashSet provides O(1) average-case add() and contains() with no duplicates. ArrayList allows duplicates and has O(n) contains(). LinkedList is optimal for queue operations. LinkedHashMap is a key-value store.',
+              },
+            ],
+          },
+          {
+            id: '201.3',
+            title: 'Lambdas, Functional Interfaces & Optional',
+            xp: 75,
+            assessmentType: 'coding' as const,
+            content: `# Lambdas, Functional Interfaces & Optional
+
+## Lambdas — Anonymous Functions Inline
+
+A lambda is a short anonymous function you can pass as an argument.
+
+\`\`\`java
+// Before lambdas (anonymous class):
+Runnable r = new Runnable() {
+    @Override
+    public void run() {
+        System.out.println("hello");
+    }
+};
+
+// With lambda:
+Runnable r = () -> System.out.println("hello");
+\`\`\`
+
+A lambda works wherever a **functional interface** (an interface with exactly one abstract method) is expected.
+
+## Core Functional Interfaces
+
+| Interface | Signature | Description |
+|---|---|---|
+| \`Predicate<T>\` | \`T → boolean\` | Tests a condition |
+| \`Function<T,R>\` | \`T → R\` | Transforms T to R |
+| \`Consumer<T>\` | \`T → void\` | Acts on T, no return |
+| \`Supplier<T>\` | \`() → T\` | Produces a T |
+| \`BiFunction<T,U,R>\` | \`(T,U) → R\` | Takes two args, returns R |
+
+\`\`\`java
+Predicate<String>    isLong  = s -> s.length() > 10;
+Function<String,Integer> len = String::length;   // method reference
+Consumer<User>       log     = u -> logger.info(u.getEmail());
+Supplier<List<Order>> empty  = ArrayList::new;
+\`\`\`
+
+## Method References
+
+A cleaner lambda when you are just calling an existing method:
+
+\`\`\`java
+// Lambda           →  Method reference
+u -> u.getName()   →  User::getName
+s -> Integer.parseInt(s) → Integer::parseInt
+() -> new ArrayList<>()  → ArrayList::new
+\`\`\`
+
+## Composing Functions
+
+\`\`\`java
+Function<String, String> trim  = String::trim;
+Function<String, String> upper = String::toUpperCase;
+
+Function<String, String> normalise = trim.andThen(upper);
+normalise.apply("  hello  "); // "HELLO"
+\`\`\`
+
+## Practical Patterns in Spring Boot
+
+\`\`\`java
+// Custom validator using Predicate
+public class UserValidator {
+    private static final Predicate<String> validEmail =
+        email -> email != null && email.contains("@");
+
+    public void validate(User user) {
+        if (!validEmail.test(user.getEmail())) {
+            throw new ValidationException("Invalid email");
+        }
+    }
+}
+
+// Service using Supplier for lazy defaults
+public Order findOrCreate(String ref, Supplier<Order> factory) {
+    return orderRepository.findByRef(ref)
+        .orElseGet(factory);  // factory only called if not found
+}
+
+// Usage:
+Order order = findOrCreate("ORD-001", () -> new Order("ORD-001", userId));
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Implement a \`UserFilterService\` that uses lambdas and functional interfaces to filter and transform user data.
+
+Your class must implement **three methods**:
+
+1. \`filterActive(List<User> users) → List<User>\`
+   Return only users where \`isActive()\` is true.
+
+2. \`getEmails(List<User> users) → List<String>\`
+   Return a list of email strings for all users, sorted alphabetically.
+
+3. \`findFirstAdminEmail(List<User> users) → Optional<String>\`
+   Return the email of the first user whose role equals \`"ADMIN"\`, or an empty Optional if none exists.
+
+Use the Stream API and lambdas — no for-loops.
+
+The \`User\` class is provided with: \`String email\`, \`boolean active\`, \`String role\` and their getters.`,
+              boilerplate: `import java.util.*;
+import java.util.stream.*;
+
+public class User {
+    private final String email;
+    private final boolean active;
+    private final String role;
+
+    public User(String email, boolean active, String role) {
+        this.email  = email;
+        this.active = active;
+        this.role   = role;
+    }
+
+    public String getEmail()  { return email;  }
+    public boolean isActive() { return active; }
+    public String getRole()   { return role;   }
+}
+
+public class UserFilterService {
+
+    public List<User> filterActive(List<User> users) {
+        // TODO: return only active users using stream + filter
+        return Collections.emptyList();
+    }
+
+    public List<User> getEmails(List<User> users) {
+        // TODO: return sorted list of email strings using stream + map + sorted
+        return Collections.emptyList();
+    }
+
+    public Optional<String> findFirstAdminEmail(List<User> users) {
+        // TODO: find first ADMIN user and return their email as Optional<String>
+        return Optional.empty();
+    }
+}`,
+              rubric: [
+                'filterActive uses stream().filter() with a lambda or method reference',
+                'getEmails uses stream().map() to extract emails and sorted() to sort them',
+                'findFirstAdminEmail uses stream().filter() + findFirst() + map() to return Optional<String>',
+                'No for-loops used in any method',
+                'All three methods pass unit tests with mixed input lists',
+              ],
+              hints: [
+                'users.stream().filter(User::isActive).collect(Collectors.toList())',
+                'For sorted emails: .map(User::getEmail).sorted()',
+                'For findFirst: .filter(u -> "ADMIN".equals(u.getRole())).findFirst().map(User::getEmail)',
+              ],
+              solutionCode: `import java.util.*;
+import java.util.stream.*;
+
+public class UserFilterService {
+
+    public List<User> filterActive(List<User> users) {
+        return users.stream()
+            .filter(User::isActive)
+            .collect(Collectors.toList());
+    }
+
+    public List<String> getEmails(List<User> users) {
+        return users.stream()
+            .map(User::getEmail)
+            .sorted()
+            .collect(Collectors.toList());
+    }
+
+    public Optional<String> findFirstAdminEmail(List<User> users) {
+        return users.stream()
+            .filter(u -> "ADMIN".equals(u.getRole()))
+            .findFirst()
+            .map(User::getEmail);
+    }
+}`,
+            },
+          },
+          {
+            id: '201.4',
+            title: 'Java 21 Highlights: Records, Sealed Classes & Virtual Threads',
+            xp: 75,
+            assessmentType: 'quiz' as const,
+            content: `# Java 21 Highlights: Records, Sealed Classes & Virtual Threads
+
+Java 21 is the current LTS (Long-Term Support) release. Senior job postings now explicitly call out Java 21 proficiency — particularly Virtual Threads. Spring Boot 3.x runs on Java 17+ but is optimised for 21.
+
+## Records — Immutable Data Carriers
+
+Before records, a simple DTO required 30+ lines (fields, constructor, getters, equals, hashCode, toString). A record generates all of it:
+
+\`\`\`java
+// 30 lines → 1 line
+public record UserDto(String email, String name, String role) {}
+
+// Usage:
+UserDto dto = new UserDto("alice@example.com", "Alice", "ADMIN");
+dto.email();  // "alice@example.com"  (generated accessor)
+dto.name();   // "Alice"
+
+// Records are immutable — no setters. Perfect for DTOs and API responses.
+// equals(), hashCode(), toString() all auto-generated.
+\`\`\`
+
+**In Spring Boot REST APIs:**
+
+\`\`\`java
+@PostMapping("/users")
+public ResponseEntity<UserDto> createUser(@RequestBody CreateUserRequest req) {
+    User saved = userService.create(req.email(), req.name());
+    return ResponseEntity.ok(new UserDto(saved.getEmail(), saved.getName(), saved.getRole()));
+}
+
+public record CreateUserRequest(String email, String name) {}
+\`\`\`
+
+Spring's Jackson library serialises/deserialises records automatically.
+
+## Sealed Classes — Controlled Inheritance
+
+Sealed classes restrict which classes can extend them — great for modelling domain states.
+
+\`\`\`java
+public sealed interface PaymentResult
+    permits PaymentResult.Success, PaymentResult.Failure, PaymentResult.Pending {}
+
+public record Success(String transactionId, long amount) implements PaymentResult {}
+public record Failure(String reason, String code)       implements PaymentResult {}
+public record Pending(String checkUrl)                  implements PaymentResult {}
+\`\`\`
+
+The compiler knows every possible subtype, enabling exhaustive pattern matching:
+
+\`\`\`java
+String message = switch (result) {
+    case Success s  -> "Charged " + s.amount() + ", txn: " + s.transactionId();
+    case Failure f  -> "Failed: " + f.reason();
+    case Pending p  -> "Pending — check: " + p.checkUrl();
+    // No default needed — compiler verifies exhaustiveness
+};
+\`\`\`
+
+## Virtual Threads — Project Loom
+
+This is the **biggest Java 21 feature for backend developers**.
+
+### The Problem with Platform Threads
+
+Traditional Java threads map 1:1 to OS threads. Each thread consumes ~1MB of memory. A server handling 10,000 concurrent requests needs 10,000 OS threads — which is impractical.
+
+Traditional solution: reactive programming (WebFlux, callbacks). Effective, but hard to read and debug.
+
+### Virtual Threads — Simple Concurrency at Scale
+
+Virtual threads are **lightweight threads managed by the JVM**, not the OS. You can create millions of them. When a virtual thread blocks on I/O (a database call, HTTP request), it releases the OS thread — which picks up another virtual thread to run.
+
+\`\`\`java
+// Creating a virtual thread — same API as before
+Thread.ofVirtual().start(() -> {
+    // This thread may block on DB — that's fine, zero OS thread waste
+    User user = userRepository.findById(1L).orElseThrow();
+    System.out.println(user.getName());
+});
+
+// Or use the executor:
+try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+    executor.submit(() -> processOrder(orderId));
+}
+\`\`\`
+
+**Enabling virtual threads in Spring Boot 3.2+:**
+
+\`\`\`yaml
+# application.yml
+spring:
+  threads:
+    virtual:
+      enabled: true
+\`\`\`
+
+That single setting makes Spring Boot use virtual threads for all incoming HTTP requests. Your existing blocking code (JPA queries, RestTemplate calls) becomes scalable — no rewrite needed.
+
+### Virtual Threads vs Reactive
+
+| | Virtual Threads | Reactive (WebFlux) |
+|---|---|---|
+| **Code style** | Familiar blocking style | Reactive/functional chains |
+| **Debugging** | Normal stack traces | Complex async traces |
+| **Learning curve** | Low | High |
+| **Peak throughput** | Very high | Very high |
+| **Best for** | New projects, most use cases | Extreme memory constraints |
+
+> For most Spring Boot REST APIs, **virtual threads are the right choice**. Reactive is still valuable for streaming or when backpressure control matters.
+
+## Pattern Matching for instanceof
+
+\`\`\`java
+// Before Java 21:
+if (obj instanceof User) {
+    User u = (User) obj;
+    System.out.println(u.getName());
+}
+
+// Java 21 — bind directly:
+if (obj instanceof User u) {
+    System.out.println(u.getName());
+}
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'What single application.yml property enables virtual threads across all Spring Boot 3.2+ HTTP request handling?',
+                options: [
+                  'spring.mvc.async.request-timeout: -1',
+                  'spring.threads.virtual.enabled: true',
+                  'server.tomcat.threads.max: 0',
+                  'spring.reactor.netty.io-worker-count: 0',
+                ],
+                correctIndex: 1,
+                explanation: 'spring.threads.virtual.enabled: true tells Spring Boot to use a virtual-thread-per-task executor for incoming HTTP requests. With this one change, all existing blocking code (JPA, RestTemplate) becomes scalable without any code rewrite.',
+              },
+              {
+                question: 'What is the primary advantage of Java Records for Spring Boot DTOs?',
+                options: [
+                  'Records are faster at runtime than regular classes',
+                  'Records auto-generate constructor, accessors, equals, hashCode, and toString, eliminating DTO boilerplate',
+                  'Records allow mutable fields which makes them easier to update',
+                  'Records are required by Spring Boot 3.x for all REST request/response objects',
+                ],
+                correctIndex: 1,
+                explanation: 'A record declaration like record UserDto(String email, String name) {} automatically generates all the boilerplate: a canonical constructor, accessor methods (not getters — email() not getEmail()), equals/hashCode based on all fields, and a readable toString. Records are also immutable by design.',
+              },
+              {
+                question: 'Why does traditional thread-per-request fail at high concurrency (e.g. 10,000 simultaneous requests)?',
+                options: [
+                  'Java cannot create more than 1,000 threads',
+                  'Each OS thread consumes significant memory (~1MB) and OS threads are a limited OS resource — 10K threads is impractical',
+                  'The JVM garbage collector pauses all threads beyond a certain count',
+                  'Spring Boot\'s dispatcher servlet is single-threaded',
+                ],
+                correctIndex: 1,
+                explanation: 'Platform (OS) threads are expensive — each takes roughly 1MB of stack memory and the OS has limits on how many it can schedule efficiently. At 10K concurrent requests, thread-per-request means 10K OS threads which causes memory pressure and context-switching overhead. Virtual threads solve this by being JVM-managed and cheap to create by the millions.',
+              },
+              {
+                question: 'What benefit do sealed classes provide that regular inheritance does not?',
+                options: [
+                  'Sealed classes run faster than open classes',
+                  'The compiler knows every permitted subtype, enabling exhaustive switch expressions without a default branch',
+                  'Sealed classes can implement multiple interfaces simultaneously',
+                  'Sealed classes cannot be instantiated, making them safer than abstract classes',
+                ],
+                correctIndex: 1,
+                explanation: 'Because the compiler knows the complete set of subtypes permitted by a sealed hierarchy, it can verify that a switch expression covers all cases. No default branch is needed — and if you add a new subtype later, the compiler will flag every switch that is now non-exhaustive, preventing silent bugs.',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 202,
+        title: 'Spring Boot 3.x Fundamentals',
+        description: 'How Spring Boot really works — autoconfiguration, IoC, beans, DI, and profiles.',
+        part: 'Part I: Java & Spring Boot Foundations',
+        icon: '🍃',
+        topics: [
+          {
+            id: '202.1',
+            title: 'How Spring Boot Works: Autoconfiguration & the IoC Container',
+            xp: 75,
+            assessmentType: 'quiz' as const,
+            content: `# How Spring Boot Works: Autoconfiguration & the IoC Container
+
+## The Two Core Ideas
+
+Spring Boot is built on two foundational concepts:
+
+1. **IoC (Inversion of Control)** — you declare what you need; the framework creates and wires it
+2. **Autoconfiguration** — Spring Boot reads your classpath and auto-configures sensible defaults
+
+## The IoC Container
+
+In traditional code, your class creates its dependencies:
+
+\`\`\`java
+// Without IoC — tightly coupled
+public class OrderService {
+    private PaymentGateway gateway = new StripeGateway(); // hard-coded
+}
+\`\`\`
+
+With IoC, the container creates and manages objects (called **beans**):
+
+\`\`\`java
+// With IoC — loosely coupled
+@Service
+public class OrderService {
+    private final PaymentGateway gateway;
+
+    public OrderService(PaymentGateway gateway) {  // container injects this
+        this.gateway = gateway;
+    }
+}
+\`\`\`
+
+The **ApplicationContext** is Spring's IoC container — it creates beans, manages their lifecycle, and injects dependencies.
+
+## How @SpringBootApplication Works
+
+\`\`\`java
+@SpringBootApplication  // = @Configuration + @EnableAutoConfiguration + @ComponentScan
+public class MyApp {
+    public static void main(String[] args) {
+        SpringApplication.run(MyApp.class, args);
+    }
+}
+\`\`\`
+
+This single annotation does three things:
+- **@Configuration** — this class can declare beans
+- **@ComponentScan** — scan this package and sub-packages for @Component, @Service, @Repository, @Controller
+- **@EnableAutoConfiguration** — read the classpath and configure Spring automatically
+
+## Autoconfiguration — The Magic Explained
+
+When you add \`spring-boot-starter-data-jpa\` to your pom.xml, Spring Boot:
+
+1. Finds \`spring-boot-autoconfigure.jar\` on the classpath
+2. Reads \`AutoConfiguration.imports\` — a list of ~150 auto-configuration classes
+3. Each class has \`@ConditionalOnClass\`, \`@ConditionalOnMissingBean\`, etc.
+4. Only activates if the condition is met — DataSource auto-config only runs if a JDBC driver is on the classpath
+
+\`\`\`java
+// Simplified view of what Spring Boot does internally:
+@ConditionalOnClass(DataSource.class)          // only if a JDBC driver is present
+@ConditionalOnMissingBean(DataSource.class)    // only if YOU haven't defined one
+@AutoConfiguration
+public class DataSourceAutoConfiguration {
+
+    @Bean
+    public DataSource dataSource(DataSourceProperties props) {
+        return DataSourceBuilder.create()
+            .url(props.getUrl())
+            .username(props.getUsername())
+            .build();
+    }
+}
+\`\`\`
+
+**Key insight**: Autoconfiguration is always overridable. Define your own \`@Bean DataSource\` and Spring Boot backs off, using yours instead.
+
+## The Request-to-Response Journey
+
+\`\`\`
+HTTP Request
+    ↓
+DispatcherServlet           (Spring MVC front controller)
+    ↓
+HandlerMapping              (finds the right @Controller method)
+    ↓
+HandlerAdapter              (invokes the method)
+    ↓
+@Controller / @RestController
+    ↓
+@Service (business logic)
+    ↓
+@Repository (data access)
+    ↓
+Database
+    ↑ (response flows back up)
+\`\`\`
+
+## Starter Dependencies — Curated Dependency Sets
+
+Instead of figuring out which 12 JARs you need for JPA, you add one starter:
+
+\`\`\`xml
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-data-jpa</artifactId>
+    <!-- Pulls in: Spring Data JPA, Hibernate, JDBC, transaction management -->
+</dependency>
+\`\`\`
+
+Common starters:
+| Starter | What it includes |
+|---|---|
+| \`spring-boot-starter-web\` | Spring MVC, Tomcat, Jackson |
+| \`spring-boot-starter-data-jpa\` | Spring Data JPA, Hibernate |
+| \`spring-boot-starter-security\` | Spring Security |
+| \`spring-boot-starter-test\` | JUnit 5, Mockito, AssertJ |
+| \`spring-boot-starter-actuator\` | Health, metrics, info endpoints |
+`,
+            quiz: [
+              {
+                question: 'What does @EnableAutoConfiguration tell Spring Boot to do?',
+                options: [
+                  'Enable all Spring Security features automatically',
+                  'Read the classpath and conditionally configure beans based on what libraries are present',
+                  'Automatically generate REST endpoints for every @Entity class',
+                  'Enable hot-reloading of application classes during development',
+                ],
+                correctIndex: 1,
+                explanation: '@EnableAutoConfiguration triggers Spring Boot\'s autoconfiguration mechanism: it scans AutoConfiguration.imports for ~150 configuration classes, each with @Conditional annotations. A class only activates when its conditions are met — e.g. DataSourceAutoConfiguration only runs when a JDBC driver is on the classpath.',
+              },
+              {
+                question: 'If you define your own @Bean DataSource in a @Configuration class, what does Spring Boot\'s DataSourceAutoConfiguration do?',
+                options: [
+                  'It throws a ConflictingBeanDefinitionException',
+                  'Both beans are created and Spring uses the one declared last',
+                  'It backs off because of @ConditionalOnMissingBean — your bean takes precedence',
+                  'It wraps your DataSource in a connection pool automatically',
+                ],
+                correctIndex: 2,
+                explanation: 'DataSourceAutoConfiguration is annotated with @ConditionalOnMissingBean(DataSource.class). When Spring sees you have already registered a DataSource bean, the condition is false and the auto-configured one is never created. This is how Spring Boot lets you override any default.',
+              },
+              {
+                question: 'What is the IoC (Inversion of Control) principle in the context of Spring Boot?',
+                options: [
+                  'Your code controls when Spring starts and stops the application',
+                  'Spring creates and injects objects your classes need, instead of your classes creating their own dependencies',
+                  'Spring automatically inverts the direction of HTTP requests for security',
+                  'IoC means all database transactions are automatically rolled back on error',
+                ],
+                correctIndex: 1,
+                explanation: 'IoC flips the traditional flow: instead of your class instantiating its dependencies (new StripeGateway()), it declares what interface it needs and the Spring IoC container decides which implementation to create and inject. This decouples classes and makes testing easy — swap a real implementation for a mock with no code change.',
+              },
+              {
+                question: 'Which component in Spring MVC acts as the single entry point that receives all HTTP requests and routes them to the correct @Controller method?',
+                options: ['ApplicationContext', 'HandlerMapping', 'DispatcherServlet', 'BeanFactory'],
+                correctIndex: 2,
+                explanation: 'DispatcherServlet is Spring MVC\'s Front Controller. Every HTTP request enters through it; it delegates to HandlerMapping to find the right controller method, HandlerAdapter to invoke it, and ViewResolver (or message converters for REST) to produce the response.',
+              },
+            ],
+          },
+          {
+            id: '202.2',
+            title: 'Beans, Dependency Injection & Component Scanning',
+            xp: 75,
+            assessmentType: 'quiz' as const,
+            content: `# Beans, Dependency Injection & Component Scanning
+
+## What is a Spring Bean?
+
+A **bean** is any object that Spring creates, configures, and manages. The Spring IoC container owns the lifecycle: creation → dependency injection → initialisation → use → destruction.
+
+## Stereotype Annotations — How to Declare Beans
+
+\`\`\`java
+@Component    // generic — any Spring-managed component
+@Service      // business logic layer (no extra behaviour, but conveys intent)
+@Repository   // data access layer (adds exception translation for DB errors)
+@Controller   // Spring MVC — handles HTTP requests, returns view names
+@RestController // = @Controller + @ResponseBody — returns JSON/XML
+\`\`\`
+
+All of these are \`@Component\` aliases. Component scanning detects them automatically.
+
+## Dependency Injection — Three Styles
+
+### 1. Constructor Injection (Recommended)
+
+\`\`\`java
+@Service
+public class OrderService {
+    private final UserRepository userRepo;
+    private final PaymentGateway gateway;
+
+    // Spring sees one constructor → injects automatically (no @Autowired needed in Spring 4.3+)
+    public OrderService(UserRepository userRepo, PaymentGateway gateway) {
+        this.userRepo = userRepo;
+        this.gateway  = gateway;
+    }
+}
+\`\`\`
+
+Why constructor injection is best:
+- Fields are \`final\` — immutable after construction
+- Makes dependencies explicit — you can see what a class needs just from the constructor
+- Easy to test — just \`new OrderService(mockRepo, mockGateway)\`
+
+### 2. Field Injection (Avoid)
+
+\`\`\`java
+@Service
+public class OrderService {
+    @Autowired  // Spring injects via reflection after construction
+    private UserRepository userRepo;
+    // Problems: can't use final, harder to test, hidden dependencies
+}
+\`\`\`
+
+### 3. Setter Injection (Rare — optional dependencies)
+
+\`\`\`java
+@Autowired(required = false)
+public void setAuditLogger(AuditLogger logger) {
+    this.logger = logger;
+}
+\`\`\`
+
+## Bean Scopes
+
+\`\`\`java
+@Service                          // default: singleton
+@Scope("prototype")               // new instance per injection point
+@RequestScope                     // one instance per HTTP request
+@SessionScope                     // one instance per HTTP session
+\`\`\`
+
+**Singleton** (default) means one instance per ApplicationContext. For stateless services (which they should be), this is always correct.
+
+## Declaring Beans Explicitly with @Bean
+
+When you can't annotate a class (e.g. a third-party library class):
+
+\`\`\`java
+@Configuration
+public class AppConfig {
+
+    @Bean
+    public ObjectMapper objectMapper() {
+        return JsonMapper.builder()
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+            .build();
+    }
+
+    @Bean
+    @Primary  // preferred when multiple implementations exist
+    public PaymentGateway stripeGateway(StripeProperties props) {
+        return new StripeGateway(props.getApiKey());
+    }
+}
+\`\`\`
+
+## Handling Multiple Implementations
+
+When two beans implement the same interface:
+
+\`\`\`java
+@Service("stripe")
+public class StripeGateway implements PaymentGateway { ... }
+
+@Service("paypal")
+public class PayPalGateway implements PaymentGateway { ... }
+
+// Injection — use @Qualifier to pick one
+@Service
+public class OrderService {
+    public OrderService(@Qualifier("stripe") PaymentGateway gateway) {
+        this.gateway = gateway;
+    }
+}
+
+// Or inject all implementations
+@Service
+public class PaymentRouter {
+    private final Map<String, PaymentGateway> gateways;
+    // Spring injects a map keyed by bean name
+    public PaymentRouter(Map<String, PaymentGateway> gateways) {
+        this.gateways = gateways;
+    }
+}
+\`\`\`
+
+## Component Scanning
+
+\`@SpringBootApplication\` scans the package it lives in and all sub-packages. Structure your project so that all components are in sub-packages of your main class:
+
+\`\`\`
+com.example.myapp
+├── MyAppApplication.java       ← @SpringBootApplication here
+├── controller/
+│   └── OrderController.java    ← found by scan
+├── service/
+│   └── OrderService.java       ← found by scan
+└── repository/
+    └── OrderRepository.java    ← found by scan
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'Why is constructor injection preferred over field injection in Spring Boot?',
+                options: [
+                  'Constructor injection is faster because Spring does not use reflection',
+                  'Fields can be final, all dependencies are explicit, and the class is easily testable without a Spring container',
+                  'Field injection does not work with @Autowired in Spring Boot 3',
+                  'Constructor injection automatically validates that all dependencies are non-null',
+                ],
+                correctIndex: 1,
+                explanation: 'Constructor injection makes dependencies explicit (visible in the signature), allows fields to be final (immutability), and lets you test the class without Spring: just call new OrderService(mockRepo, mockGateway). Field injection hides dependencies, prevents final, and requires a Spring container or reflection tricks to test.',
+              },
+              {
+                question: 'What is the default bean scope in Spring and what does it mean?',
+                options: [
+                  'prototype — a new instance is created every time the bean is requested',
+                  'request — one instance per HTTP request',
+                  'singleton — one instance per Spring ApplicationContext, shared by all callers',
+                  'thread — one instance per thread of execution',
+                ],
+                correctIndex: 2,
+                explanation: 'The default scope is singleton: Spring creates exactly one instance of the bean and injects that same instance everywhere it is needed. This is correct for stateless services (no instance variables that change per request). If a bean holds per-request state, use @RequestScope instead.',
+              },
+              {
+                question: 'You have StripeGateway and PayPalGateway both implementing PaymentGateway. How does Spring know which to inject into OrderService?',
+                options: [
+                  'Spring always injects the bean that was registered first',
+                  'Spring throws NoUniqueBeanDefinitionException and the app fails to start unless you use @Qualifier or @Primary',
+                  'Spring injects both implementations as a list automatically',
+                  'Spring injects whichever implementation is alphabetically first',
+                ],
+                correctIndex: 1,
+                explanation: 'When Spring finds multiple beans for one injection point, it throws NoUniqueBeanDefinitionException unless you disambiguate: use @Qualifier("beanName") at the injection point to name the one you want, or mark one implementation @Primary to make it the default. You can also inject Map<String, PaymentGateway> to get all implementations keyed by name.',
+              },
+              {
+                question: 'When should you use @Bean in a @Configuration class instead of annotating the class with @Service or @Component?',
+                options: [
+                  'Always — @Bean is more explicit and therefore always preferred',
+                  'When the class is in a third-party library you cannot modify, or when you need fine-grained construction logic',
+                  'Only when the bean has prototype scope',
+                  '@Bean should be used for repositories; @Service for business logic only',
+                ],
+                correctIndex: 1,
+                explanation: '@Component stereotypes require modifying the class — impossible for third-party library classes. @Bean in a @Configuration class lets you instantiate and configure any object (Jackson\'s ObjectMapper, a Stripe SDK client, etc.) and register it as a Spring bean, with full control over construction arguments.',
+              },
+            ],
+          },
+          {
+            id: '202.3',
+            title: 'application.yml, Profiles & Externalized Configuration',
+            xp: 75,
+            assessmentType: 'coding' as const,
+            content: `# application.yml, Profiles & Externalized Configuration
+
+## application.yml vs application.properties
+
+Spring Boot supports both formats. YAML is preferred for its readability and hierarchy:
+
+\`\`\`yaml
+# application.yml
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/mydb
+    username: postgres
+    password: secret
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+app:
+  payment:
+    stripe-key: sk_test_abc123
+    retry-attempts: 3
+\`\`\`
+
+## Binding Config to a @ConfigurationProperties Class
+
+Avoid scattering \`@Value\` annotations everywhere. Bind a whole section to a typed class:
+
+\`\`\`java
+@ConfigurationProperties(prefix = "app.payment")
+@Component
+public class PaymentProperties {
+    private String stripeKey;
+    private int retryAttempts = 3;  // default value
+
+    // getters and setters (or use a record in Spring Boot 3.x)
+}
+
+// Usage — injected like any other bean:
+@Service
+public class PaymentService {
+    private final PaymentProperties props;
+
+    public PaymentService(PaymentProperties props) {
+        this.props = props;
+    }
+
+    public void charge() {
+        String key = props.getStripeKey(); // type-safe, IDE-complete
+    }
+}
+\`\`\`
+
+## Spring Profiles — Environment-Specific Config
+
+Profiles let you have different config for dev, staging, and production.
+
+\`\`\`yaml
+# application.yml — shared by all environments
+spring:
+  application:
+    name: my-service
+
+---
+# application-dev.yml
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:mem:testdb   # in-memory for local dev
+  jpa:
+    show-sql: true
+
+---
+# application-prod.yml
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:postgresql://\${DB_HOST}:5432/mydb  # env var in production
+    username: \${DB_USER}
+    password: \${DB_PASSWORD}
+  jpa:
+    show-sql: false
+\`\`\`
+
+Activate a profile:
+\`\`\`bash
+# Via environment variable (preferred in containers)
+SPRING_PROFILES_ACTIVE=prod java -jar app.jar
+
+# Via JVM arg
+java -Dspring.profiles.active=prod -jar app.jar
+\`\`\`
+
+## The Configuration Precedence Order
+
+Spring Boot resolves config from multiple sources, later sources override earlier ones:
+
+1. Default values in code
+2. \`application.yml\` in classpath
+3. \`application-{profile}.yml\`
+4. OS environment variables
+5. JVM system properties (-D flags)
+6. Command-line arguments
+
+Environment variables always win in production — they are set by your deployment platform (Kubernetes Secrets, AWS Parameter Store) and override everything else.
+
+## Using Environment Variables Safely
+
+\`\`\`yaml
+app:
+  payment:
+    stripe-key: \${STRIPE_API_KEY}            # required — fails fast if missing
+    webhook-secret: \${STRIPE_WEBHOOK_SECRET:} # optional — empty string if absent
+    retry-attempts: \${PAYMENT_RETRIES:3}     # optional — default 3 if absent
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a \`DatabaseProperties\` configuration class that binds the \`database\` section from application.yml.
+
+Your \`DatabaseProperties\` class must:
+1. Bind to prefix \`"database"\`
+2. Have fields: \`String host\` (default: \`"localhost"\`), \`int port\` (default: \`5432\`), \`String name\`, \`int poolSize\` (default: \`10\`)
+3. Include a method \`jdbcUrl()\` that returns \`"jdbc:postgresql://" + host + ":" + port + "/" + name\`
+
+Then create a \`DatabaseConfig\` \`@Configuration\` class with a \`@Bean\` method that returns a \`DataSourceInfo\` record containing the jdbc URL and pool size.
+
+The \`DataSourceInfo\` record: \`record DataSourceInfo(String jdbcUrl, int poolSize) {}\``,
+              boilerplate: `import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+
+// TODO: Create DatabaseProperties class
+// - annotate with @ConfigurationProperties(prefix = "database")
+// - annotate with @Component
+// - fields: host (default "localhost"), port (default 5432), name, poolSize (default 10)
+// - method: jdbcUrl() returning jdbc:postgresql://host:port/name
+
+public record DataSourceInfo(String jdbcUrl, int poolSize) {}
+
+// TODO: Create DatabaseConfig class
+// - annotate with @Configuration
+// - @Bean method: dataSourceInfo(DatabaseProperties props) -> DataSourceInfo`,
+              rubric: [
+                '@ConfigurationProperties(prefix = "database") on DatabaseProperties',
+                'Default values: host="localhost", port=5432, poolSize=10',
+                'jdbcUrl() correctly concatenates jdbc:postgresql://host:port/name',
+                '@Configuration on DatabaseConfig with a @Bean method',
+                '@Bean method constructs DataSourceInfo with props.jdbcUrl() and props.getPoolSize()',
+              ],
+              hints: [
+                'Use field defaults: private String host = "localhost";',
+                'jdbcUrl(): return "jdbc:postgresql://" + host + ":" + port + "/" + name;',
+                '@Bean public DataSourceInfo dataSourceInfo(DatabaseProperties props) { return new DataSourceInfo(props.jdbcUrl(), props.getPoolSize()); }',
+              ],
+              solutionCode: `import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
+
+@Component
+@ConfigurationProperties(prefix = "database")
+public class DatabaseProperties {
+    private String host     = "localhost";
+    private int    port     = 5432;
+    private String name;
+    private int    poolSize = 10;
+
+    public String jdbcUrl() {
+        return "jdbc:postgresql://" + host + ":" + port + "/" + name;
+    }
+
+    public String getHost()     { return host;     }
+    public void   setHost(String host)   { this.host = host; }
+    public int    getPort()     { return port;     }
+    public void   setPort(int port)      { this.port = port; }
+    public String getName()     { return name;     }
+    public void   setName(String name)   { this.name = name; }
+    public int    getPoolSize() { return poolSize; }
+    public void   setPoolSize(int s)     { this.poolSize = s; }
+}
+
+public record DataSourceInfo(String jdbcUrl, int poolSize) {}
+
+@Configuration
+public class DatabaseConfig {
+    @Bean
+    public DataSourceInfo dataSourceInfo(DatabaseProperties props) {
+        return new DataSourceInfo(props.jdbcUrl(), props.getPoolSize());
+    }
+}`,
+            },
+          },
+        ],
+      },
+      {
+        id: 203,
+        title: 'REST APIs with Spring MVC',
+        description: 'Build production-quality REST APIs: controllers, DTOs, validation, and error handling.',
+        part: 'Part I: Java & Spring Boot Foundations',
+        icon: '🌐',
+        topics: [
+          {
+            id: '203.1',
+            title: 'Controllers, Request Mapping & ResponseEntity',
+            xp: 75,
+            assessmentType: 'quiz' as const,
+            content: `# Controllers, Request Mapping & ResponseEntity
+
+## @RestController — The Starting Point
+
+\`\`\`java
+@RestController                     // @Controller + @ResponseBody
+@RequestMapping("/api/v1/orders")   // base path for all methods
+public class OrderController {
+
+    private final OrderService orderService;
+
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+}
+\`\`\`
+
+## Mapping HTTP Methods
+
+\`\`\`java
+@GetMapping("/{id}")
+public ResponseEntity<OrderDto> getOrder(@PathVariable Long id) {
+    return orderService.findById(id)
+        .map(ResponseEntity::ok)
+        .orElse(ResponseEntity.notFound().build());
+}
+
+@PostMapping
+public ResponseEntity<OrderDto> createOrder(
+        @RequestBody @Valid CreateOrderRequest req,
+        UriComponentsBuilder ucb) {
+    OrderDto created = orderService.create(req);
+    URI location = ucb.path("/api/v1/orders/{id}")
+        .buildAndExpand(created.id()).toUri();
+    return ResponseEntity.created(location).body(created);  // 201 Created
+}
+
+@PutMapping("/{id}")
+public ResponseEntity<OrderDto> updateOrder(
+        @PathVariable Long id,
+        @RequestBody @Valid UpdateOrderRequest req) {
+    return ResponseEntity.ok(orderService.update(id, req));
+}
+
+@DeleteMapping("/{id}")
+public ResponseEntity<Void> deleteOrder(@PathVariable Long id) {
+    orderService.delete(id);
+    return ResponseEntity.noContent().build();  // 204 No Content
+}
+\`\`\`
+
+## ResponseEntity — Full HTTP Control
+
+\`ResponseEntity<T>\` lets you control status code, headers, and body independently:
+
+\`\`\`java
+// Common response patterns:
+ResponseEntity.ok(body)                     // 200 with body
+ResponseEntity.created(uri).body(body)      // 201 with Location header
+ResponseEntity.noContent().build()          // 204 no body
+ResponseEntity.notFound().build()           // 404 no body
+ResponseEntity.badRequest().body(error)     // 400 with error body
+
+// Custom status + headers:
+return ResponseEntity
+    .status(HttpStatus.PARTIAL_CONTENT)
+    .header("X-Page", "1")
+    .body(pageResult);
+\`\`\`
+
+## Extracting Request Data
+
+\`\`\`java
+@GetMapping("/search")
+public List<OrderDto> search(
+        @RequestParam String status,                   // ?status=PENDING
+        @RequestParam(defaultValue = "0") int page,   // ?page=0
+        @RequestParam(defaultValue = "20") int size,  // ?size=20
+        @RequestHeader("X-Tenant-Id") String tenantId, // request header
+        Principal principal) {                          // authenticated user
+    return orderService.search(status, page, size, tenantId);
+}
+
+@GetMapping("/{orderId}/items/{itemId}")
+public OrderItemDto getItem(
+        @PathVariable Long orderId,
+        @PathVariable Long itemId) {
+    return orderService.getItem(orderId, itemId);
+}
+\`\`\`
+
+## REST HTTP Status Code Reference
+
+| Status | Meaning | Use when |
+|---|---|---|
+| 200 OK | Success with body | GET, PUT success |
+| 201 Created | Resource created | POST creates a resource |
+| 204 No Content | Success, no body | DELETE |
+| 400 Bad Request | Invalid input | Validation failure |
+| 401 Unauthorized | Not authenticated | Missing/invalid token |
+| 403 Forbidden | Authenticated but not authorized | Wrong role |
+| 404 Not Found | Resource does not exist | GET/PUT on missing ID |
+| 409 Conflict | State conflict | Duplicate creation |
+| 422 Unprocessable | Valid JSON, semantic error | Business rule violation |
+| 500 Internal Server Error | Unexpected failure | Unhandled exception |
+`,
+            quiz: [
+              {
+                question: 'What HTTP status code should a POST endpoint return when it successfully creates a new resource?',
+                options: ['200 OK', '201 Created', '204 No Content', '202 Accepted'],
+                correctIndex: 1,
+                explanation: '201 Created is the semantically correct response for a successful POST that creates a new resource. It should include a Location header pointing to the new resource\'s URL. 200 is for successful GETs/PUTs. 204 is for successful DELETEs with no response body.',
+              },
+              {
+                question: 'What is the difference between @PathVariable and @RequestParam?',
+                options: [
+                  '@PathVariable reads from the URL path (/orders/{id}); @RequestParam reads from query string (?page=0)',
+                  '@PathVariable reads from query string; @RequestParam reads from request headers',
+                  '@PathVariable is for POST requests; @RequestParam is for GET requests',
+                  'There is no difference — they are interchangeable',
+                ],
+                correctIndex: 0,
+                explanation: '@PathVariable extracts values embedded in the URL path (e.g. /orders/42 → id=42). @RequestParam reads from the query string (e.g. /orders?status=PENDING → status="PENDING"). Both can have default values and required flags.',
+              },
+              {
+                question: 'Why is ResponseEntity<T> preferred over returning the body type directly from a controller method?',
+                options: [
+                  'Returning T directly causes a 500 error in Spring Boot 3',
+                  'ResponseEntity gives full control over HTTP status code, response headers, and body, enabling proper REST semantics',
+                  'ResponseEntity automatically serialises the body to XML instead of JSON',
+                  'Spring MVC can only map methods that return ResponseEntity',
+                ],
+                correctIndex: 1,
+                explanation: 'Returning T directly always produces a 200 OK. ResponseEntity lets you return 201 with a Location header, 404 with no body, 204 with no body, or any custom status/header combination — all required for proper REST API design. For simple cases where 200 is always correct, returning T is acceptable.',
+              },
+              {
+                question: 'Your GET /orders/99 endpoint returns ResponseEntity.notFound().build(). What does the HTTP response look like?',
+                options: [
+                  'Status 404, empty body, no Location header',
+                  'Status 404, body {"error":"Not Found"}, Content-Type: application/json',
+                  'Status 200, body null, Content-Type: application/json',
+                  'Status 500, body containing a NullPointerException stack trace',
+                ],
+                correctIndex: 0,
+                explanation: 'ResponseEntity.notFound().build() produces HTTP 404 with no response body and no Content-Type header. The .build() method creates a ResponseEntity with a null body. If you want a JSON error body with a 404, use ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorDto) instead.',
+              },
+            ],
+          },
+          {
+            id: '203.2',
+            title: 'DTOs, Validation & Bean Validation',
+            xp: 80,
+            assessmentType: 'coding' as const,
+            content: `# DTOs, Validation & Bean Validation
+
+## Why DTOs?
+
+A DTO (Data Transfer Object) is the shape of data entering or leaving your API — decoupled from your JPA entity.
+
+\`\`\`java
+// Entity — database shape
+@Entity
+public class User {
+    @Id Long id;
+    String email;
+    String passwordHash;  // NEVER expose this in API responses
+    LocalDateTime createdAt;
+    // ... JPA annotations, relationships
+}
+
+// Response DTO — API shape (safe to return)
+public record UserResponse(Long id, String email, LocalDateTime createdAt) {}
+
+// Request DTO — what clients send
+public record CreateUserRequest(String email, String password, String name) {}
+\`\`\`
+
+This separation means:
+- You can evolve the DB schema without breaking the API contract
+- Sensitive fields (passwordHash) never accidentally leak
+- Request validation lives in the DTO, not the entity
+
+## Bean Validation Annotations
+
+Add \`spring-boot-starter-validation\` to your project, then annotate DTO fields:
+
+\`\`\`java
+public record CreateUserRequest(
+    @NotBlank(message = "Email is required")
+    @Email(message = "Must be a valid email address")
+    String email,
+
+    @NotBlank
+    @Size(min = 8, max = 100, message = "Password must be 8-100 characters")
+    String password,
+
+    @NotBlank
+    @Size(max = 50)
+    String name,
+
+    @Min(18) @Max(120)
+    Integer age,          // null is allowed unless @NotNull is added
+
+    @Pattern(regexp = "^\\+?[1-9]\\d{6,14}$", message = "Invalid phone number")
+    String phone          // optional
+) {}
+\`\`\`
+
+## Triggering Validation with @Valid
+
+\`\`\`java
+@PostMapping
+public ResponseEntity<UserResponse> createUser(
+        @RequestBody @Valid CreateUserRequest req) {  // @Valid triggers validation
+    // Only reaches here if all constraints pass
+    User saved = userService.create(req);
+    return ResponseEntity.status(201).body(toResponse(saved));
+}
+\`\`\`
+
+If validation fails, Spring throws \`MethodArgumentNotValidException\` — which you catch in a \`@ControllerAdvice\` (see next topic).
+
+## Custom Validators
+
+\`\`\`java
+// 1. Define the annotation
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+@Constraint(validatedBy = UniqueEmailValidator.class)
+public @interface UniqueEmail {
+    String message() default "Email already in use";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}
+
+// 2. Implement the validator
+@Component
+public class UniqueEmailValidator implements ConstraintValidator<UniqueEmail, String> {
+    private final UserRepository userRepo;
+    public UniqueEmailValidator(UserRepository userRepo) { this.userRepo = userRepo; }
+
+    @Override
+    public boolean isValid(String email, ConstraintValidatorContext ctx) {
+        return email != null && !userRepo.existsByEmail(email);
+    }
+}
+
+// 3. Apply it
+public record CreateUserRequest(
+    @UniqueEmail
+    @Email
+    String email,
+    // ...
+) {}
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Create a \`CreateProductRequest\` DTO record with Bean Validation constraints for a product creation endpoint.
+
+Fields and constraints:
+- \`name\`: required, 2–100 characters
+- \`description\`: optional, max 500 characters
+- \`price\`: required, must be greater than 0 (use \`@DecimalMin\`)
+- \`stock\`: required, must be >= 0 (use \`@Min\`)
+- \`sku\`: required, must match pattern \`^[A-Z]{2,4}-\\d{4,8}$\` (e.g. "PROD-12345")
+- \`categoryId\`: required, must not be null
+
+Then create a \`ProductController\` \`@RestController\` mapped to \`/api/v1/products\` with a \`POST\` endpoint that accepts \`@Valid @RequestBody CreateProductRequest\` and returns \`ResponseEntity<String>\` with body \`"created"\` and status 201.`,
+              boilerplate: `import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
+
+// TODO: Define CreateProductRequest record with constraints
+
+// TODO: Define ProductController
+//   - @RestController
+//   - @RequestMapping("/api/v1/products")
+//   - POST endpoint that accepts @Valid @RequestBody CreateProductRequest
+//   - returns ResponseEntity<String> with body "created" and status 201`,
+              rubric: [
+                '@NotBlank + @Size(min=2, max=100) on name',
+                '@Size(max=500) on description (no @NotBlank — it is optional)',
+                '@NotNull + @DecimalMin("0.01") on price (BigDecimal)',
+                '@NotNull + @Min(0) on stock (Integer)',
+                '@NotBlank + @Pattern with correct regex on sku',
+                '@NotNull on categoryId (Long)',
+                'POST endpoint with @Valid @RequestBody, returns 201',
+              ],
+              hints: [
+                'Records can use Bean Validation annotations on their components',
+                '@DecimalMin(value = "0.01") works on BigDecimal',
+                'Pattern: @Pattern(regexp = "^[A-Z]{2,4}-\\\\d{4,8}$")',
+                'Return ResponseEntity.status(201).body("created")',
+              ],
+              solutionCode: `import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
+
+public record CreateProductRequest(
+    @NotBlank
+    @Size(min = 2, max = 100)
+    String name,
+
+    @Size(max = 500)
+    String description,
+
+    @NotNull
+    @DecimalMin("0.01")
+    BigDecimal price,
+
+    @NotNull
+    @Min(0)
+    Integer stock,
+
+    @NotBlank
+    @Pattern(regexp = "^[A-Z]{2,4}-\\d{4,8}$", message = "SKU must match format XX-12345")
+    String sku,
+
+    @NotNull
+    Long categoryId
+) {}
+
+@RestController
+@RequestMapping("/api/v1/products")
+public class ProductController {
+
+    @PostMapping
+    public ResponseEntity<String> createProduct(@Valid @RequestBody CreateProductRequest req) {
+        // business logic would go here
+        return ResponseEntity.status(201).body("created");
+    }
+}`,
+            },
+          },
+          {
+            id: '203.3',
+            title: 'Global Exception Handling & Problem Details (RFC 9457)',
+            xp: 75,
+            assessmentType: 'quiz' as const,
+            content: `# Global Exception Handling & Problem Details (RFC 9457)
+
+## The Problem with Unhandled Exceptions
+
+Without exception handling, your API returns inconsistent error shapes — sometimes a Spring default HTML page, sometimes a raw stack trace. Clients can't reliably parse errors.
+
+## @ControllerAdvice — Central Error Handler
+
+\`@ControllerAdvice\` intercepts exceptions from all controllers:
+
+\`\`\`java
+@RestControllerAdvice  // = @ControllerAdvice + @ResponseBody
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ProblemDetail handleValidation(MethodArgumentNotValidException ex) {
+        ProblemDetail pd = ProblemDetail.forStatusAndDetail(
+            HttpStatus.BAD_REQUEST, "Validation failed");
+        pd.setTitle("Invalid Request");
+
+        Map<String, String> errors = new LinkedHashMap<>();
+        ex.getBindingResult().getFieldErrors()
+            .forEach(fe -> errors.put(fe.getField(), fe.getDefaultMessage()));
+        pd.setProperty("errors", errors);
+        return pd;
+    }
+
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(Exception.class)  // catch-all
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ProblemDetail handleUnexpected(Exception ex, HttpServletRequest req) {
+        log.error("Unexpected error on {}", req.getRequestURI(), ex);
+        return ProblemDetail.forStatusAndDetail(
+            HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred");
+    }
+}
+\`\`\`
+
+## Problem Details — RFC 9457 (Spring Boot 3 Native Support)
+
+Spring Boot 3.x natively supports [RFC 9457 Problem Details](https://www.rfc-editor.org/rfc/rfc9457) — a standard JSON error format.
+
+\`\`\`json
+{
+  "type": "https://example.com/errors/validation-failed",
+  "title": "Invalid Request",
+  "status": 400,
+  "detail": "Validation failed",
+  "instance": "/api/v1/orders",
+  "errors": {
+    "email": "Must be a valid email address",
+    "price": "must be greater than 0"
+  }
+}
+\`\`\`
+
+Enable in Spring Boot 3:
+\`\`\`yaml
+spring:
+  mvc:
+    problemdetails:
+      enabled: true
+\`\`\`
+
+## Custom Domain Exceptions
+
+\`\`\`java
+// Define semantic exceptions
+public class ResourceNotFoundException extends RuntimeException {
+    public ResourceNotFoundException(String resource, Object id) {
+        super(resource + " not found with id: " + id);
+    }
+}
+
+public class BusinessRuleException extends RuntimeException {
+    private final String code;
+    public BusinessRuleException(String code, String message) {
+        super(message);
+        this.code = code;
+    }
+    public String getCode() { return code; }
+}
+
+// Throw from service layer:
+@Service
+public class OrderService {
+    public Order findById(Long id) {
+        return orderRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+    }
+}
+\`\`\`
+
+## Consistent Error Response Pattern
+
+\`\`\`
+Client sends invalid request
+    ↓
+Controller method throws MethodArgumentNotValidException (via @Valid)
+    ↓
+GlobalExceptionHandler.handleValidation() catches it
+    ↓
+Returns ProblemDetail with status 400 and field-level error map
+    ↓
+Client receives standard RFC 9457 JSON — always the same shape
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'What does @RestControllerAdvice do that makes it suitable for REST API error handling?',
+                options: [
+                  'It restricts which controllers can throw exceptions',
+                  'It combines @ControllerAdvice (intercepts exceptions across all controllers) with @ResponseBody (serialises the return value to JSON)',
+                  'It automatically logs all exceptions to a file',
+                  'It converts all exceptions to 500 Internal Server Error automatically',
+                ],
+                correctIndex: 1,
+                explanation: '@RestControllerAdvice = @ControllerAdvice + @ResponseBody. @ControllerAdvice intercepts exceptions thrown anywhere in your @Controller/@RestController classes. @ResponseBody means the return value of @ExceptionHandler methods is serialised to JSON/XML automatically — no ViewResolver needed.',
+              },
+              {
+                question: 'What HTTP status code and response body does MethodArgumentNotValidException represent, and when is it thrown?',
+                options: [
+                  '500 Internal Server Error — when Spring encounters a bug in your code',
+                  '400 Bad Request — thrown by Spring when @Valid validation fails on a @RequestBody or @RequestParam',
+                  '422 Unprocessable Entity — thrown when the JSON cannot be parsed',
+                  '403 Forbidden — thrown when the request body contains invalid credentials',
+                ],
+                correctIndex: 1,
+                explanation: 'MethodArgumentNotValidException is thrown by Spring MVC when @Valid triggers constraint validation and one or more constraints fail. The correct response is 400 Bad Request. The exception carries a BindingResult with field-level error details you can extract and return to the client.',
+              },
+              {
+                question: 'What is the advantage of using RFC 9457 Problem Details format over a custom error response class?',
+                options: [
+                  'Problem Details are processed faster by HTTP clients',
+                  'It is a standard format that clients and API tooling (Swagger, Postman) already understand, reducing the need for custom parsing logic',
+                  'Problem Details automatically include the full stack trace for debugging',
+                  'Spring Boot only supports RFC 9457 in Spring Boot 3.x and later',
+                ],
+                correctIndex: 1,
+                explanation: 'RFC 9457 defines a standard JSON structure for HTTP error responses (type, title, status, detail, instance). Using it means your API speaks a language clients, API gateways, and monitoring tools already understand without custom parsing. Spring Boot 3.x supports it natively via ProblemDetail and spring.mvc.problemdetails.enabled: true.',
+              },
+              {
+                question: 'Why should domain exceptions (like ResourceNotFoundException) extend RuntimeException rather than checked Exception?',
+                options: [
+                  'Spring can only handle RuntimeException in @ExceptionHandler methods',
+                  'Checked exceptions require every caller to declare throws or catch them, cluttering service and controller method signatures with exception handling unrelated to business logic',
+                  'RuntimeException is faster because the JVM skips stack trace generation',
+                  'Spring\'s @Transactional only rolls back on RuntimeException by default',
+                ],
+                correctIndex: 1,
+                explanation: 'Both are true — checked exceptions pollute every method signature between the throw point and the handler, and @Transactional rolls back on RuntimeException by default. Unchecked (Runtime) domain exceptions let you throw from deep in a service, have @ControllerAdvice handle them at the top, without every intermediate method declaring throws.',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 204,
+        title: 'Spring Data JPA & Persistence',
+        description: 'Entities, repositories, JPQL, transactions, the N+1 problem, and Flyway migrations.',
+        part: 'Part I: Java & Spring Boot Foundations',
+        icon: '🗄️',
+        topics: [
+          {
+            id: '204.1',
+            title: 'Entities, Repositories & JPQL Queries',
+            xp: 80,
+            assessmentType: 'quiz' as const,
+            content: `# Entities, Repositories & JPQL Queries
+
+## JPA Entities — Mapping Java to Database Tables
+
+\`\`\`java
+@Entity
+@Table(name = "orders")
+public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 50)
+    private String status;
+
+    @Column(name = "total_cents", nullable = false)
+    private Long totalCents;   // store money as cents, never float
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items = new ArrayList<>();
+
+    @PrePersist
+    protected void onCreate() { createdAt = LocalDateTime.now(); }
+
+    // getters, setters
+}
+\`\`\`
+
+## Spring Data JPA Repositories
+
+Spring Data generates the SQL for common operations automatically:
+
+\`\`\`java
+public interface OrderRepository extends JpaRepository<Order, Long> {
+
+    // Derived queries — Spring generates SQL from method name:
+    List<Order> findByStatus(String status);
+    List<Order> findByUserIdOrderByCreatedAtDesc(Long userId);
+    Optional<Order> findTopByUserIdOrderByCreatedAtDesc(Long userId);
+    long countByStatus(String status);
+    boolean existsByIdAndUserId(Long id, Long userId);
+
+    // Custom JPQL — when derived queries get complicated:
+    @Query("SELECT o FROM Order o WHERE o.totalCents > :minCents AND o.status = :status")
+    List<Order> findHighValueByStatus(@Param("minCents") long minCents,
+                                      @Param("status") String status);
+
+    // Native SQL when you need DB-specific features:
+    @Query(value = "SELECT * FROM orders WHERE created_at > NOW() - INTERVAL '7 days'",
+           nativeQuery = true)
+    List<Order> findRecentOrders();
+
+    // Modifying query
+    @Modifying
+    @Query("UPDATE Order o SET o.status = :status WHERE o.id = :id")
+    int updateStatus(@Param("id") Long id, @Param("status") String status);
+}
+\`\`\`
+
+## JPQL vs SQL
+
+JPQL (Java Persistence Query Language) works on **entity classes and fields**, not table names and columns:
+
+\`\`\`java
+// JPQL — entity-centric
+"SELECT o FROM Order o WHERE o.user.email = :email"
+
+// SQL — table-centric
+"SELECT o.* FROM orders o JOIN users u ON o.user_id = u.id WHERE u.email = :email"
+\`\`\`
+
+JPQL is portable across databases; native SQL is not.
+
+## Pagination and Sorting
+
+\`\`\`java
+public interface OrderRepository extends JpaRepository<Order, Long> {
+    Page<Order> findByStatus(String status, Pageable pageable);
+}
+
+// In the service:
+Pageable page = PageRequest.of(
+    pageNumber,            // 0-indexed
+    pageSize,
+    Sort.by("createdAt").descending()
+);
+Page<Order> result = orderRepository.findByStatus("PENDING", page);
+
+result.getContent();         // List<Order> for this page
+result.getTotalElements();   // total matching records
+result.getTotalPages();
+result.hasNext();
+\`\`\`
+`,
+            quiz: [
+              {
+                question: 'What does the Spring Data JPA method name findByUserIdOrderByCreatedAtDesc(Long userId) generate?',
+                options: [
+                  'A JPQL query that finds orders by user ID, sorted by creation date descending',
+                  'A method that deletes all orders for a user, then recreates them in descending order',
+                  'A query that finds users by their order count, sorted descending',
+                  'An error — Spring Data cannot parse method names with multiple clauses',
+                ],
+                correctIndex: 0,
+                explanation: 'Spring Data JPA parses the method name: findBy (SELECT) + UserId (WHERE user_id = ?) + OrderBy (ORDER BY) + CreatedAt (created_at) + Desc (DESC). It generates the JPQL and SQL automatically. No implementation needed.',
+              },
+              {
+                question: 'Why should money values (like order totals) be stored as cents (Long) rather than as a decimal or double?',
+                options: [
+                  'Databases cannot store decimal values accurately',
+                  'Floating-point types (float, double) have rounding errors that accumulate in financial calculations, causing penny discrepancies',
+                  'Long integers are required by the JPA specification for @Column fields',
+                  'Spring Data JPA cannot map BigDecimal fields to database columns',
+                ],
+                correctIndex: 1,
+                explanation: 'float and double use binary floating-point which cannot exactly represent most decimal fractions. 0.1 + 0.2 != 0.3 in binary. For money, store integers (cents) or use BigDecimal with exact precision. Never use double for financial values.',
+              },
+              {
+                question: 'What is the difference between JPQL and native SQL in Spring Data JPA?',
+                options: [
+                  'JPQL is faster; native SQL is for legacy databases only',
+                  'JPQL references entity class names and field names; native SQL references table and column names and is database-specific',
+                  'JPQL can only do SELECT; native SQL supports INSERT and UPDATE',
+                  'JPQL runs in the JVM; native SQL runs in the database',
+                ],
+                correctIndex: 1,
+                explanation: 'JPQL is an ORM-level language — it references your Java entities (Order, not orders table) and their fields (totalCents, not total_cents column). It is portable across databases. Native SQL uses actual table/column names and may use DB-specific syntax (PostgreSQL arrays, MySQL JSON functions), so it is not portable.',
+              },
+              {
+                question: 'A Page<Order> findByStatus(String status, Pageable pageable) method returns a Page object. What does Page.getTotalElements() return?',
+                options: [
+                  'The number of items on the current page only',
+                  'The total count of all matching records across all pages',
+                  'The total number of pages available',
+                  'The size of the Pageable passed in',
+                ],
+                correctIndex: 1,
+                explanation: 'Page.getTotalElements() returns the total count of all records matching the query across all pages — not just the current page. This is what your API response should include so clients can display "Showing 20 of 450 results". getContent() returns the actual List for the current page only.',
+              },
+            ],
+          },
+          {
+            id: '204.2',
+            title: 'Transactions, Lazy Loading & the N+1 Problem',
+            xp: 80,
+            assessmentType: 'quiz' as const,
+            content: `# Transactions, Lazy Loading & the N+1 Problem
+
+## @Transactional — Atomic Operations
+
+A transaction ensures that a group of database operations either all succeed or all roll back.
+
+\`\`\`java
+@Service
+@Transactional(readOnly = true)  // class-level default: all methods read-only
+public class OrderService {
+
+    @Transactional  // overrides class default — this one is read-write
+    public Order createOrder(CreateOrderRequest req) {
+        Order order = new Order(req.status(), req.userId());
+        req.items().forEach(item ->
+            order.addItem(new OrderItem(item.productId(), item.quantity()))
+        );
+        return orderRepository.save(order);
+        // If an exception is thrown here, the INSERT is rolled back automatically
+    }
+
+    // read-only (from class @Transactional) — Hibernate optimises: no dirty checking
+    public List<Order> findByUser(Long userId) {
+        return orderRepository.findByUserId(userId);
+    }
+
+    @Transactional(rollbackOn = BusinessRuleException.class) // also roll back on checked exceptions
+    public void cancelOrder(Long id) {
+        Order order = orderRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Order", id));
+        if (!order.canBeCancelled()) {
+            throw new BusinessRuleException("ORDER_ALREADY_SHIPPED", "Cannot cancel shipped order");
+        }
+        order.setStatus("CANCELLED");
+        // save() not needed — JPA dirty checking detects changes and flushes on commit
+    }
+}
+\`\`\`
+
+**Key rules:**
+- @Transactional only works on **public** methods called from **outside** the bean (Spring proxy limitation)
+- @Transactional rolls back on **RuntimeException** by default; checked exceptions must be explicitly listed
+- \`readOnly = true\` tells Hibernate to skip dirty checking — measurable performance gain on read-heavy services
+
+## Lazy vs Eager Loading
+
+\`\`\`java
+@ManyToOne(fetch = FetchType.LAZY)   // default for @ManyToOne — load on demand
+private User user;
+
+@OneToMany(fetch = FetchType.LAZY)   // default for @OneToMany — always use LAZY here
+private List<OrderItem> items;
+
+@ManyToOne(fetch = FetchType.EAGER)  // loaded in the same query — use sparingly
+private Category category;
+\`\`\`
+
+**LAZY** = field is a proxy; the SQL fires only when you call \`order.getUser().getName()\`
+**EAGER** = field is always loaded with the parent — can cause massive JOINs
+
+> Always use LAZY for collections (\`@OneToMany\`). Use EAGER only for small, frequently-needed associations.
+
+## The N+1 Problem — The #1 JPA Performance Bug
+
+Given 100 orders, each with a user:
+
+\`\`\`java
+// This looks fine but causes 101 SQL queries:
+List<Order> orders = orderRepository.findAll(); // Query 1: SELECT * FROM orders (100 rows)
+for (Order o : orders) {
+    System.out.println(o.getUser().getName()); // Query 2..101: SELECT * FROM users WHERE id=?
+}
+\`\`\`
+
+1 query to load orders + N queries to load each user = **N+1 queries**.
+
+### Fix 1 — JPQL JOIN FETCH
+
+\`\`\`java
+@Query("SELECT o FROM Order o JOIN FETCH o.user")
+List<Order> findAllWithUsers();
+// Result: 1 SQL query with JOIN instead of 101 queries
+\`\`\`
+
+### Fix 2 — @EntityGraph (declarative)
+
+\`\`\`java
+@EntityGraph(attributePaths = {"user", "items"})
+List<Order> findAll();  // eagerly loads user and items in one query
+\`\`\`
+
+### Fix 3 — DTO projection (best for read-only)
+
+\`\`\`java
+@Query("SELECT new com.example.dto.OrderSummary(o.id, o.status, u.email) " +
+       "FROM Order o JOIN o.user u")
+List<OrderSummary> findOrderSummaries();
+// Only fetches the three needed columns — no unnecessary data
+\`\`\`
+
+## Detecting N+1 in Development
+
+\`\`\`yaml
+spring:
+  jpa:
+    show-sql: true
+  logging:
+    level:
+      org.hibernate.SQL: DEBUG
+      org.hibernate.orm.jdbc.bind: TRACE  # shows parameter values
+\`\`\`
+
+Watch the logs: if you see the same SELECT repeated with different IDs, you have an N+1.
+`,
+            quiz: [
+              {
+                question: 'Why does @Transactional only work on public methods called from outside the Spring bean?',
+                options: [
+                  'It is a Java visibility restriction — private methods cannot be transactional',
+                  'Spring implements @Transactional using a proxy that wraps the bean; calling a method internally bypasses the proxy, so no transaction begins',
+                  '@Transactional on private methods compiles but does nothing silently',
+                  'Spring Security blocks @Transactional from applying to non-public methods',
+                ],
+                correctIndex: 1,
+                explanation: 'Spring creates a proxy class that wraps your bean. When external code calls orderService.createOrder(), it hits the proxy which starts a transaction, then delegates to your real method. When your method calls another method in the same class (this.helperMethod()), it bypasses the proxy entirely — no new transaction starts. Solution: move the helper to a separate Spring bean.',
+              },
+              {
+                question: 'What causes the N+1 query problem and what is its real-world impact?',
+                options: [
+                  'Loading N records requires N+1 SQL connections',
+                  'One query loads a list of N entities, then Hibernate fires one additional query per entity to load a lazy association — N+1 total queries instead of 1',
+                  'The N+1 problem occurs when a table has more than N+1 columns',
+                  'N+1 occurs when Spring creates more than one @Transactional proxy',
+                ],
+                correctIndex: 1,
+                explanation: 'Fetching 100 orders and then iterating to access order.getUser().getName() triggers 100 individual SELECT statements for users — 101 total instead of 1. At scale, this serialises DB round-trips and is a top cause of slow API response times. Fix with JOIN FETCH, @EntityGraph, or DTO projections.',
+              },
+              {
+                question: 'What is the performance benefit of @Transactional(readOnly = true)?',
+                options: [
+                  'It prevents write queries from running at the database level',
+                  'Hibernate skips dirty checking (tracking changes to loaded entities), reducing memory and CPU overhead on read-heavy operations',
+                  'It enables Spring to cache query results automatically',
+                  'It runs queries on a read replica automatically',
+                ],
+                correctIndex: 1,
+                explanation: 'With readOnly=true, Hibernate knows entities will not be modified, so it skips the first-level cache dirty-checking flush that normally happens before transactions commit. This reduces CPU overhead significantly in read-heavy services. It also hints the JDBC driver and some databases to optimise for read access.',
+              },
+              {
+                question: 'Which approach is best for a read-only list endpoint that only needs order ID, status, and the user\'s email?',
+                options: [
+                  'Load all Order entities with @EntityGraph loading the full User entity',
+                  'Use a JPQL DTO projection: SELECT new OrderSummary(o.id, o.status, u.email) FROM Order o JOIN o.user u',
+                  'Load all Order entities, then call getUser() in a loop to build the response',
+                  'Use native SQL with SELECT * and filter the columns in Java',
+                ],
+                correctIndex: 1,
+                explanation: 'DTO projections are the most efficient approach for read-only endpoints: the SQL fetches only the needed columns (3 columns instead of all entity columns + all user columns), there is no N+1 (it is a JOIN in one query), and Hibernate does not track the result objects for dirty checking since they are not entities.',
+              },
+            ],
+          },
+          {
+            id: '204.3',
+            title: 'Database Migrations with Flyway',
+            xp: 70,
+            assessmentType: 'coding' as const,
+            content: `# Database Migrations with Flyway
+
+## Why Migrations?
+
+\`spring.jpa.hibernate.ddl-auto: create-drop\` wipes your database every restart. In production this is catastrophic. Flyway gives you **version-controlled, incremental, reproducible** schema changes.
+
+## How Flyway Works
+
+1. Creates a \`flyway_schema_history\` table on first run
+2. Scans \`src/main/resources/db/migration\` for SQL files
+3. Runs any file not yet in the history table, in version order
+4. Checksums each file — modifying an applied migration causes startup failure
+
+## Naming Convention
+
+\`\`\`
+V{version}__{description}.sql
+  ↑           ↑
+  number     double underscore
+
+Examples:
+V1__create_users_table.sql
+V2__create_orders_table.sql
+V3__add_phone_to_users.sql
+V4__create_order_items_table.sql
+\`\`\`
+
+## Example Migration Files
+
+\`\`\`sql
+-- V1__create_users_table.sql
+CREATE TABLE users (
+    id         BIGSERIAL PRIMARY KEY,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    name       VARCHAR(100) NOT NULL,
+    role       VARCHAR(50)  NOT NULL DEFAULT 'USER',
+    active     BOOLEAN      NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_email ON users(email);
+\`\`\`
+
+\`\`\`sql
+-- V2__create_orders_table.sql
+CREATE TABLE orders (
+    id          BIGSERIAL PRIMARY KEY,
+    user_id     BIGINT       NOT NULL REFERENCES users(id),
+    status      VARCHAR(50)  NOT NULL DEFAULT 'PENDING',
+    total_cents BIGINT       NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ
+);
+
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_orders_status  ON orders(status);
+\`\`\`
+
+\`\`\`sql
+-- V3__add_stripe_customer_id_to_users.sql
+ALTER TABLE users ADD COLUMN stripe_customer_id VARCHAR(100);
+\`\`\`
+
+## Spring Boot Configuration
+
+\`\`\`xml
+<!-- pom.xml -->
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-core</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.flywaydb</groupId>
+    <artifactId>flyway-database-postgresql</artifactId>
+</dependency>
+\`\`\`
+
+\`\`\`yaml
+# application.yml
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true   # safe for existing databases
+  jpa:
+    hibernate:
+      ddl-auto: validate   # validate schema matches entities, never modify
+\`\`\`
+
+## The Golden Rule
+
+**Never modify an already-applied migration.** If you need to change something, add a new migration file. Flyway stores a checksum of each applied file and will refuse to start if it has changed.
+
+\`\`\`
+✅ V3__add_phone_to_users.sql    (new file — correct)
+❌ Edit V1__create_users_table.sql  (modifying applied migration — Flyway error)
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write two Flyway SQL migration files for a blog application.
+
+**V1__create_blog_tables.sql** must create:
+- Table \`authors\`: id (BIGSERIAL PK), name (VARCHAR 100, NOT NULL), email (VARCHAR 255, NOT NULL UNIQUE), bio (TEXT), created_at (TIMESTAMPTZ, NOT NULL DEFAULT NOW())
+- Table \`posts\`: id (BIGSERIAL PK), author_id (BIGINT, NOT NULL, FK → authors.id), title (VARCHAR 255, NOT NULL), body (TEXT NOT NULL), published (BOOLEAN NOT NULL DEFAULT FALSE), created_at (TIMESTAMPTZ NOT NULL DEFAULT NOW())
+- Index on posts.author_id
+
+**V2__add_tags_to_posts.sql** must:
+- Add column \`tags\` (VARCHAR 500) to the \`posts\` table (nullable — existing rows get NULL)
+
+Return both files as SQL strings in the coding task output.`,
+              boilerplate: `-- V1__create_blog_tables.sql
+-- TODO: Create authors table (id, name, email, bio, created_at)
+-- TODO: Create posts table (id, author_id FK, title, body, published, created_at)
+-- TODO: Add index on posts.author_id
+
+-- V2__add_tags_to_posts.sql
+-- TODO: Add nullable tags column to posts table`,
+              rubric: [
+                'authors table with all required columns and correct types',
+                'email UNIQUE constraint on authors',
+                'posts table with BIGSERIAL PK, correct FK to authors, published default FALSE',
+                'Index on posts.author_id',
+                'V2 uses ALTER TABLE ADD COLUMN for tags (nullable)',
+                'Files follow V{n}__{description}.sql naming',
+              ],
+              hints: [
+                'BIGSERIAL PRIMARY KEY auto-increments in PostgreSQL',
+                'Foreign key: author_id BIGINT NOT NULL REFERENCES authors(id)',
+                'Index: CREATE INDEX idx_posts_author_id ON posts(author_id);',
+                'ALTER TABLE posts ADD COLUMN tags VARCHAR(500);',
+              ],
+              solutionCode: `-- V1__create_blog_tables.sql
+CREATE TABLE authors (
+    id         BIGSERIAL    PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL,
+    email      VARCHAR(255) NOT NULL UNIQUE,
+    bio        TEXT,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE posts (
+    id         BIGSERIAL    PRIMARY KEY,
+    author_id  BIGINT       NOT NULL REFERENCES authors(id),
+    title      VARCHAR(255) NOT NULL,
+    body       TEXT         NOT NULL,
+    published  BOOLEAN      NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_posts_author_id ON posts(author_id);
+
+-- V2__add_tags_to_posts.sql
+ALTER TABLE posts ADD COLUMN tags VARCHAR(500);`,
+            },
+          },
+        ],
+      },
+      // ═══════════════════════════════════════════
+      // PART II: AI Tooling Setup & Developer Mindset
+      // ═══════════════════════════════════════════
+      {
+        id: 205,
+        title: 'The AI-Enabled Developer Workflow',
+        description: 'Understand the landscape of AI coding tools and build the mindset of an augmented developer.',
+        part: 'Part II: AI Tooling Setup & Developer Mindset',
+        icon: '🤖',
+        topics: [
+          {
+            id: '205.1',
+            title: 'GitHub Copilot vs Cursor vs Claude Code — When to Use Which',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# GitHub Copilot vs Cursor vs Claude Code — When to Use Which
+
+The AI coding tool market has consolidated around a few clear leaders. Each has a distinct strength. Knowing which to reach for — and when — is itself a senior skill.
+
+## The Three Major Players (2026)
+
+### GitHub Copilot
+- **Adoption**: Used by 77% of professional developers
+- **Integration**: Embedded in IntelliJ IDEA, VS Code, JetBrains IDEs natively
+- **Strength**: Inline completions, single-file edits, docstring/test generation
+- **Java model**: Trained on billions of lines of Java — excellent at Spring Boot boilerplate
+- **Best for**: Line and block completion while you type; quick generation of repetitive patterns (repository methods, test stubs, DTO classes)
+
+\`\`\`java
+// Type this, then Tab to accept Copilot's completion:
+public List<Order> findOrdersByUserAndStatus(Long userId, String status) {
+    // Copilot suggests: return orderRepository.findByUserIdAndStatus(userId, status);
+\`\`\`
+
+### Cursor
+- **Adoption**: 28% of professional developer market (fastest-growing)
+- **Integration**: A full IDE fork of VS Code with AI woven throughout
+- **Strength**: Multi-file edits, large codebase understanding, "Composer" for complex refactors
+- **Best for**: "Change all controllers to use the new error response format" across 20 files; understanding an unfamiliar codebase; large-scope refactors
+
+\`\`\`
+Cursor Composer prompt:
+"Add a @RateLimiter(name = "default") annotation to every @PostMapping method
+across all controllers in src/main/java/com/example/controller/"
+→ Cursor edits all 8 files simultaneously, previews the diff, you approve
+\`\`\`
+
+### Claude Code (CLI)
+- **Strength**: Deep reasoning, complex architectural decisions, code review, debugging multi-file issues
+- **Best for**: "Why is this transaction deadlocking?", "Design the caching layer for this service", "Review this PR diff for security issues"
+- **Unique value**: Can read your entire repo, reason across files, and produce architectural analysis that inline tools miss
+
+## Decision Matrix
+
+| Task | Best Tool | Why |
+|---|---|---|
+| Writing a new JPA repository method | Copilot | Fast inline completion |
+| Generating a full DTO + mapper | Copilot | Template-heavy, Copilot trained on exactly this |
+| Refactor entity package naming across 15 files | Cursor | Multi-file edit capability |
+| Debug a LazyInitializationException | Claude Code | Deep reasoning about JPA session scope |
+| Write integration tests for a new service | Copilot + Cursor | Copilot for stubs, Cursor for bulk generation |
+| Review a Spring Security config for vulnerabilities | Claude Code | Security reasoning needs full context |
+| Add pagination to all list endpoints | Cursor Composer | Systematic multi-file change |
+
+## The Compounding Effect
+
+The real power is **combining** tools:
+1. **Claude Code** helps you design the architecture and produces a spec
+2. **Cursor Composer** implements the spec across all relevant files
+3. **Copilot** fills in the details as you review and polish
+
+A senior developer who masters all three operates at 2–3× the output of one who uses just one.
+`,
+            quiz: [
+              {
+                question: 'You need to add a consistent @Slf4j logging annotation and a log statement at the start of every public method across 12 service classes. Which tool is best suited for this?',
+                options: [
+                  'GitHub Copilot — because it is the most widely adopted tool',
+                  'Cursor Composer — because it handles multi-file edits across a codebase simultaneously',
+                  'Claude Code CLI — because logging is a security concern requiring deep reasoning',
+                  'IntelliJ IDEA Find & Replace — no AI tool is needed for this',
+                ],
+                correctIndex: 1,
+                explanation: 'Cursor\'s Composer/Agent mode is specifically designed for cross-file systematic changes. Copilot operates one file at a time. Claude Code would work but is better used for reasoning tasks. Cursor can receive the prompt, find all relevant files, make the edits, and show you a unified diff to approve.',
+              },
+              {
+                question: 'A transaction in your Spring Boot application is deadlocking intermittently under load. Which AI tool would give the most useful analysis?',
+                options: [
+                  'GitHub Copilot — it will autocomplete the fix as you type the error message',
+                  'Claude Code CLI — it can read your entity classes, repository, and service to reason about transaction boundaries and lock order',
+                  'Cursor — because it is the fastest-growing tool in 2026',
+                  'None — AI tools cannot help with database deadlocks',
+                ],
+                correctIndex: 1,
+                explanation: 'Deadlock analysis requires reading multiple files (entity mappings, service transaction boundaries, repository queries) and reasoning about execution order under concurrency. Claude Code can ingest your entire relevant codebase and apply its reasoning to diagnose the problem — which inline completion tools cannot do.',
+              },
+              {
+                question: 'GitHub Copilot is used by 77% of professional developers in 2026. Why does Cursor (28% share) remain a distinct tool rather than everyone just using Copilot?',
+                options: [
+                  'Cursor is free while Copilot requires a paid subscription',
+                  'Cursor\'s multi-file edit capability and full IDE integration handle complex, project-level tasks that Copilot\'s inline completion model cannot',
+                  'Cursor supports Java while Copilot only supports JavaScript and Python',
+                  'Cursor generates better test coverage than Copilot',
+                ],
+                correctIndex: 1,
+                explanation: 'Copilot excels at inline completion within a single file. Cursor (which wraps VS Code) can understand and edit across your entire project simultaneously via Composer/Agent mode — ideal for cross-cutting concerns like adding observability, changing API conventions, or large refactors. They serve different points in the workflow.',
+              },
+              {
+                question: 'What does "compounding effect" mean in the context of combining AI coding tools?',
+                options: [
+                  'Each tool charges compound interest on usage',
+                  'Using multiple tools together — design with Claude Code, implement with Cursor, polish with Copilot — produces more output than using any single tool alone',
+                  'Copilot suggestions automatically improve the longer you use them',
+                  'AI tools work faster when running on faster computers',
+                ],
+                correctIndex: 1,
+                explanation: 'Each tool excels at a different phase: Claude Code for architectural reasoning and design, Cursor for systematic multi-file implementation, Copilot for fast inline completions while reviewing and polishing. A developer who orchestrates all three multiplies their effective output — the tools compound each other\'s value.',
+              },
+            ],
+          },
+          {
+            id: '205.2',
+            title: 'The Augmented Developer Mindset',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# The Augmented Developer Mindset
+
+## The Shift Happening Right Now
+
+The role of the developer is not disappearing — it is being redefined. AI tools have made generating code 10× faster. The bottleneck is no longer typing; it is **judgment**: knowing what to build, recognising when generated code is wrong, and understanding systems well enough to course-correct.
+
+> "The best developers in 2026 are not the fastest typists. They are the best reviewers, architects, and problem-framers."
+
+## The Three New Core Skills
+
+### 1. Problem Framing (Prompting)
+
+Vague prompt → vague code. The quality of AI output is proportional to the quality of your specification.
+
+\`\`\`
+❌ Vague prompt:
+"Write a service that handles orders"
+
+✅ Precise prompt:
+"Write an OrderService class in Spring Boot 3.x that:
+- Has a createOrder(CreateOrderRequest req) method annotated with @Transactional
+- Validates that the user exists (throws UserNotFoundException if not)
+- Saves the order via OrderRepository
+- Publishes an OrderCreatedEvent via ApplicationEventPublisher
+- Returns the saved order mapped to an OrderDto using OrderMapper
+All dependencies injected via constructor. Use Java 21 records for DTOs."
+\`\`\`
+
+The second prompt gives Copilot/Cursor enough context to produce production-quality code on the first pass.
+
+### 2. Critical Review
+
+AI code is statistically plausible, not guaranteed correct. Senior developers apply a fast review checklist:
+
+\`\`\`
+For every AI-generated Spring Boot class, ask:
+□ Are transactions placed correctly? (@Transactional on the service, not the controller)
+□ Is the N+1 query problem introduced? (check any lazy collection access in loops)
+□ Are exceptions handled? (or silently swallowed with catch {})
+□ Is sensitive data logged or returned? (passwords, tokens in API responses)
+□ Are security annotations present? (@PreAuthorize on sensitive methods)
+□ Is the code testable? (can I unit-test this without a running Spring context)
+\`\`\`
+
+### 3. Architectural Reasoning
+
+AI tools optimise for local correctness — the method works in isolation. Architects think about:
+- **Coupling**: does this service now know too much about another domain?
+- **Scalability**: will this work at 100× load?
+- **Operability**: can I debug this at 3am from the logs alone?
+
+AI can propose; the architect decides.
+
+## Prompt-First Development Workflow
+
+\`\`\`
+1. UNDERSTAND the requirement fully (30% of your time)
+   ↓
+2. DESIGN at the interface level — what inputs, outputs, contracts?
+   ↓
+3. PROMPT the AI with that precise spec
+   ↓
+4. REVIEW the output against your checklist
+   ↓
+5. REFINE — iterate the prompt or edit manually
+   ↓
+6. TEST — write the test first if the AI didn't; validate edge cases
+\`\`\`
+
+## The Trap: Passive Acceptance
+
+The most dangerous pattern is accepting AI output without review. Signs you have fallen into it:
+- You don't understand why the generated code does what it does
+- You can't explain the design decision to a colleague
+- You feel uncomfortable if asked to debug the generated code
+
+The fix: force yourself to read every generated line and be able to explain it. If you can't, reject it and ask the AI to explain, then simplify.
+`,
+            quiz: [
+              {
+                question: 'A developer uses Copilot to generate an OrderService and accepts the output without reading it carefully. In code review, a colleague finds that the service accesses a lazy collection inside a loop (N+1 problem). What does this illustrate?',
+                options: [
+                  'Copilot is unreliable and should not be used for service classes',
+                  'AI tools optimise for local plausibility — the code looks correct method-by-method but may introduce systemic issues that require reviewer judgment to catch',
+                  'The N+1 problem can only be detected by running load tests',
+                  'The developer should have used Cursor instead of Copilot',
+                ],
+                correctIndex: 1,
+                explanation: 'AI code is statistically plausible — each line resembles correct code seen in training data. But it doesn\'t model the full execution path: a lazy collection access inside a loop looks fine in isolation. Catching it requires a human reviewer who understands JPA session scope and query patterns — exactly the judgment skill that becomes more valuable as code generation gets faster.',
+              },
+              {
+                question: 'What is the most important factor that determines the quality of AI-generated code for a Spring Boot service?',
+                options: [
+                  'The version of the AI model being used',
+                  'The specificity and completeness of the prompt — a vague prompt produces vague code',
+                  'The size of the project — AI works better on small projects',
+                  'Whether the developer uses Copilot or Cursor',
+                ],
+                correctIndex: 1,
+                explanation: 'AI is a prompt-to-code translator. A prompt that specifies the class name, method signatures, dependencies, error conditions, and design constraints gives the model enough context to produce production-quality code. A prompt like "write a service that handles orders" produces generic, often unusable code that requires heavy editing.',
+              },
+              {
+                question: 'According to the "Prompt-First Development" workflow, when should you write the test?',
+                options: [
+                  'Before prompting the AI — always test-first',
+                  'After reviewing the AI output — either the AI writes it or you do, but before marking the work done',
+                  'Tests are optional when using AI because the AI already validated the code',
+                  'After the feature is deployed to production',
+                ],
+                correctIndex: 1,
+                explanation: 'The workflow is: understand → design → prompt → review → refine → TEST. Tests are mandatory — AI-generated code is not validated code. Either ask the AI to write tests in the same prompt (effective), or write them yourself after reviewing. Skipping tests because "the AI seems confident" is how subtle bugs survive to production.',
+              },
+              {
+                question: 'What does "architectural reasoning" contribute that AI tools currently cannot fully replace?',
+                options: [
+                  'Generating code faster than any human can type',
+                  'Evaluating cross-cutting concerns — coupling, scalability at 100× load, operability, domain boundaries — that require full system context and judgment',
+                  'Running unit tests automatically after code generation',
+                  'Syntax checking and compilation error correction',
+                ],
+                correctIndex: 1,
+                explanation: 'AI tools optimise locally — is this method correct in isolation? Architects reason globally: is this design coupling two domains that should be independent? Will this pattern hold at 10× data volume? Will I be able to debug this at 3am from logs alone? These require full system context, experience with failure modes, and trade-off judgment that current AI tools do not reliably apply.',
+              },
+            ],
+          },
+          {
+            id: '205.3',
+            title: 'Measuring Your AI Productivity Gains',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# Measuring Your AI Productivity Gains
+
+## The Industry Benchmark
+
+Studies from Microsoft and Accenture show an average **26% productivity gain** from AI coding tools — but with wide variance. Some developers gain 50%+; others gain under 10%. The difference is almost entirely in how the tools are used, not which tool is chosen.
+
+## What Actually Gets Faster
+
+| Task | Typical Speed Multiplier |
+|---|---|
+| Generating repetitive boilerplate (DTO classes, mappers) | 5–10× faster |
+| Writing unit test stubs | 3–5× faster |
+| Looking up API syntax (Spring annotations, etc.) | Eliminates most searches |
+| Generating SQL migration files | 3–4× faster |
+| Debugging known error patterns | 2–3× faster |
+| Architectural design decisions | Marginal gain (judgment still dominates) |
+| First-time understanding of a complex domain | Little gain |
+
+## What Does Not Get Faster (and Why)
+
+- **Code review**: AI writes the code faster, but you now review more code — net review time may increase
+- **Requirements clarification**: talking to stakeholders and understanding the real problem is unchanged
+- **Integration debugging**: system-level bugs (race conditions, distributed failures) still require deep investigation
+- **Security design**: threat modelling requires domain context AI lacks
+
+## Tracking Your Gains
+
+A simple personal metric:
+
+\`\`\`
+Time-to-first-passing-test:
+  Before AI tools: average minutes to write a complete service + tests
+  With AI tools: same metric, tracked weekly
+
+Story points per sprint:
+  Before: baseline
+  After: delta (control for complexity)
+\`\`\`
+
+## The Honest Productivity Curve
+
+\`\`\`
+Output
+  ↑
+  │              ____────────  (skilled AI user)
+  │         ____/
+  │    ____/
+  │___/
+  │                 ___───     (average)
+  │            ____/
+  │       ____/──────          (unskilled AI user — copying without review)
+  │      /  Bug debt accumulates
+  └────────────────────────→ Time
+      0    1    3    6 months
+\`\`\`
+
+Unskilled AI use initially looks productive but accumulates bug debt that costs more to fix than it saved.
+
+## Practical Benchmarks to Set for This Course
+
+By the end of each Part, you should be able to:
+- **Part I**: Build a complete CRUD REST API from scratch in < 45 minutes
+- **Part II**: Set up all three AI tools and use them for each task type in < 1 day
+- **Part III**: Generate a Spring Boot service + tests + integration test in < 20 minutes per feature
+- **Part VI**: Add a Spring AI chat endpoint to an existing service in < 30 minutes
+`,
+            quiz: [
+              {
+                question: 'Industry studies show an average 26% productivity gain from AI coding tools, but with wide variance. What is the primary driver of whether a developer gains 10% or 50%?',
+                options: [
+                  'The hardware the developer uses — faster machines produce faster completions',
+                  'How the tools are used — specifically prompting quality, review discipline, and applying tools to the right task types',
+                  'The programming language — AI tools are faster for JavaScript than Java',
+                  'Seniority — senior developers gain more because they can better judge AI output',
+                ],
+                correctIndex: 1,
+                explanation: 'The variance in productivity gain is primarily explained by usage patterns: developers who write precise prompts, review output critically, and use each tool for its strength (Copilot for inline, Cursor for multi-file, Claude Code for reasoning) see the highest gains. Developers who accept output passively accumulate bug debt that erases the gains.',
+              },
+              {
+                question: 'AI coding tools are adopted widely. Why does code review time often NOT decrease proportionally to code generation speed?',
+                options: [
+                  'AI-generated code always has bugs that take longer to review',
+                  'Faster code generation means more code is produced — the volume of code to review increases, even if each piece is generated faster',
+                  'AI tools disable IDE review features like SonarQube',
+                  'Code review time is fixed by company policy regardless of AI usage',
+                ],
+                correctIndex: 1,
+                explanation: 'If you generate 3× more code per day, you need to review 3× more code. The review bottleneck simply shifts. High-performing AI-augmented teams solve this by generating more concise code, investing in automated review tooling, and writing tests that reduce the review burden per feature — not by skipping review.',
+              },
+              {
+                question: 'Which of these tasks shows the LOWEST productivity multiplier from AI coding tools?',
+                options: [
+                  'Generating DTO classes from an entity definition',
+                  'Writing unit test stubs for a service method',
+                  'Making architectural decisions about service boundaries in a distributed system',
+                  'Generating Flyway SQL migration files',
+                ],
+                correctIndex: 2,
+                explanation: 'Architectural decisions about service boundaries require full system context, understanding of team capabilities, operational constraints, business requirements, and long-term trade-offs. AI can suggest patterns but the final judgment requires human experience. Boilerplate generation (DTOs, test stubs, migrations) shows the highest multipliers because it is template-heavy and well-represented in training data.',
+              },
+              {
+                question: 'What does the productivity curve for "unskilled AI users" look like over time, and why?',
+                options: [
+                  'Steady linear growth — any AI use is better than none',
+                  'Initially looks productive but flattens and may decline as bug debt from unreviewed generated code accumulates and must be paid back',
+                  'Immediate 26% gain from day one, then stable',
+                  'Slower than non-AI users because of the learning curve',
+                ],
+                correctIndex: 1,
+                explanation: 'Copying AI output without understanding creates bug debt: subtle bugs (N+1 queries, missing transactions, wrong error handling) are accepted into the codebase and compound. The initial velocity looks high, but debugging, rework, and production incidents cost more time than was saved. Sustainable productivity requires the review discipline to reject wrong code.',
+              },
+            ],
+          },
+        ],
+      },
+      {
+        id: 206,
+        title: 'Setting Up Your AI Dev Environment',
+        description: 'Hands-on setup of GitHub Copilot, Cursor, and Claude Code for Spring Boot development.',
+        part: 'Part II: AI Tooling Setup & Developer Mindset',
+        icon: '⚙️',
+        topics: [
+          {
+            id: '206.1',
+            title: 'GitHub Copilot in IntelliJ IDEA & VS Code',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# GitHub Copilot in IntelliJ IDEA & VS Code
+
+## Installation
+
+### IntelliJ IDEA (JetBrains)
+
+1. Open **Settings** → **Plugins** → **Marketplace**
+2. Search **"GitHub Copilot"** → Install → Restart
+3. **Tools** → **GitHub Copilot** → **Login to GitHub**
+4. Authenticate in the browser and return to IDEA
+
+### VS Code
+
+\`\`\`bash
+# Via command palette or:
+code --install-extension GitHub.copilot
+code --install-extension GitHub.copilot-chat
+\`\`\`
+
+Sign in when prompted (GitHub account with active Copilot subscription).
+
+## Key Interactions in IntelliJ
+
+| Shortcut | Action |
+|---|---|
+| \`Tab\` | Accept full suggestion |
+| \`Alt+]\` / \`Alt+[\` | Next / previous suggestion |
+| \`Esc\` | Dismiss suggestion |
+| \`Alt+Enter\` | Show all suggestions panel |
+| \`Ctrl+I\` | Open Copilot chat inline |
+
+## Making Copilot Work Better for Spring Boot Java
+
+### Strategy 1: Write Intent in Comments First
+
+\`\`\`java
+// Find all orders placed by a user in the last 30 days, sorted newest first
+public List<Order> findRecentOrdersByUser(Long userId) {
+    // Copilot suggests a complete, correct implementation
+}
+\`\`\`
+
+### Strategy 2: Name Things Precisely
+
+\`\`\`java
+// Vague name → generic suggestion:
+public void process(Object data) { ... }
+
+// Precise name → accurate suggestion:
+public OrderDto mapOrderToDto(Order order) { ... }
+\`\`\`
+
+### Strategy 3: Open Related Files
+
+Copilot uses open tabs as context. Before generating an OrderService method, open:
+- The \`Order\` entity
+- \`OrderRepository\`
+- Any relevant DTOs
+
+Copilot will use their field names and types in its suggestions.
+
+### Strategy 4: Use Copilot Chat for Explanations
+
+\`\`\`
+In chat panel, ask:
+"Explain why this @Transactional annotation needs to be on the service method
+and not the repository method."
+→ Copilot Chat gives a contextual explanation referencing your actual code.
+\`\`\`
+
+## Configuring Copilot for Java
+
+\`\`\`json
+// .vscode/settings.json or IntelliJ Copilot settings:
+{
+  "github.copilot.enable": {
+    "java": true
+  },
+  "github.copilot.advanced": {
+    "length": 500,        // max suggestion length
+    "listCount": 10       // suggestions in Alt+Enter panel
+  }
+}
+\`\`\`
+
+## What Copilot Does Best in Spring Boot
+
+- Generating repository method signatures from a comment
+- Completing test method bodies when you name the test (\`void should_return_404_when_order_not_found()\`)
+- Writing Jackson annotation blocks for DTOs
+- Generating OpenAPI (@Operation, @ApiResponse) annotations
+- Completing common patterns (null checks, Optional chains, Stream pipelines)
+`,
+            quiz: [
+              {
+                question: 'Why does opening related files (Order entity, OrderRepository) in your IDE before generating OrderService code improve Copilot\'s suggestions?',
+                options: [
+                  'Copilot requires all dependencies to be open or it refuses to suggest',
+                  'Copilot uses the open tabs as context — it learns field names, types, and patterns from them to produce more accurate, project-specific suggestions',
+                  'Opening files improves IDE performance which makes Copilot faster',
+                  'Copilot reads open files to detect licensing headers',
+                ],
+                correctIndex: 1,
+                explanation: 'GitHub Copilot sends the current file content plus nearby open tab content as context to the model. When your Order entity is open, Copilot knows field names like totalCents, status, userId — and will use them correctly in generated code. Without this context, suggestions use generic names like amount, state, id.',
+              },
+              {
+                question: 'A method named void process(Object data) gets a generic, unhelpful Copilot suggestion. Renaming it to void mapOrderEntityToResponseDto(Order order) gets a precise, accurate suggestion. What principle does this illustrate?',
+                options: [
+                  'Copilot only works with specific Java naming conventions',
+                  'Precise, semantically rich names give the model enough signal to infer the intent and generate correct implementations',
+                  'Copilot reads Javadoc comments but ignores method names',
+                  'Long method names generate longer, more detailed code',
+                ],
+                correctIndex: 1,
+                explanation: 'Copilot is a next-token predictor. mapOrderEntityToResponseDto is dense with information: it\'s a mapper (not business logic), it takes an Order and returns a DTO, it\'s a read-only transformation. That signal is enough to generate the correct field-by-field mapping. process(Object) is nearly zero-signal.',
+              },
+              {
+                question: 'You want Copilot to complete the body of a test method. Which method name gives it the best signal?',
+                options: [
+                  'void test1()',
+                  'void testOrder()',
+                  'void shouldReturn404WhenOrderNotFoundById()',
+                  'void orderTest_success()',
+                ],
+                correctIndex: 2,
+                explanation: 'shouldReturn404WhenOrderNotFoundById encodes: what is expected (404), the condition (not found), and what is queried (by ID). Copilot can infer: call the endpoint with a non-existent ID, assert the response status is 404. The other names give almost no signal about what the test should assert.',
+              },
+              {
+                question: 'What is the primary use case for Copilot Chat (the chat panel) versus inline completion?',
+                options: [
+                  'Copilot Chat is for Python; inline completion is for Java',
+                  'Copilot Chat handles multi-turn conversation and explanation of existing code; inline completion handles real-time code generation as you type',
+                  'Copilot Chat is paid; inline completion is free',
+                  'They are identical — Copilot Chat is just a different UI for the same model',
+                ],
+                correctIndex: 1,
+                explanation: 'Inline completion generates code as you type within the editor. Copilot Chat (the side panel) is conversational: ask it to explain a method, suggest refactoring options, debug an error, or answer "why" questions about generated code. Both use the same model but optimised for different interaction modes.',
+              },
+            ],
+          },
+          {
+            id: '206.2',
+            title: 'Cursor Setup for Spring Boot Projects',
+            xp: 60,
+            assessmentType: 'quiz' as const,
+            content: `# Cursor Setup for Spring Boot Projects
+
+## What Cursor Is
+
+Cursor is a VS Code fork with AI capabilities built into the IDE at every level — not a plugin on top of an existing editor. It uses the same extensions ecosystem as VS Code.
+
+## Installation & Java Setup
+
+\`\`\`bash
+# Download from cursor.so — available for Mac, Windows, Linux
+# After install:
+# 1. Install Extension Pack for Java (Microsoft)
+# 2. Install Spring Boot Extension Pack (Pivotal/VMware)
+# 3. Configure JAVA_HOME if not auto-detected
+\`\`\`
+
+\`\`\`json
+// .cursor/settings.json or global settings:
+{
+  "java.jdt.ls.java.home": "/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home",
+  "spring-boot.ls.java.home": "/Library/Java/JavaVirtualMachines/jdk-21.jdk/Contents/Home"
+}
+\`\`\`
+
+## The Three Cursor Interaction Modes
+
+### Mode 1: Tab (inline completion)
+Works like Copilot — completes as you type. Available in all files.
+
+### Mode 2: Cmd+K (inline edit)
+Select code, press Cmd+K, describe the change:
+\`\`\`
+Select: public List<Order> findAll() { return orderRepository.findAll(); }
+Cmd+K: "Add pagination support — take page and size parameters, return Page<OrderDto>"
+→ Cursor rewrites the method with Pageable parameter and Page<> return
+\`\`\`
+
+### Mode 3: Cmd+Shift+I (Composer/Agent)
+Multi-file agent mode — the most powerful:
+\`\`\`
+Composer prompt:
+"Add soft delete to the Order entity and all related service/repository methods:
+1. Add a 'deleted' boolean field and 'deletedAt' timestamp to Order
+2. Add a V5 Flyway migration file
+3. Update OrderRepository to filter out deleted orders by default (using @Where)
+4. Change OrderService.deleteOrder() to set deleted=true instead of removing the record
+5. Add a restoreOrder() method to OrderService"
+
+→ Cursor opens all relevant files, makes all changes, shows unified diff
+\`\`\`
+
+## Cursor Rules — Teach It Your Standards
+
+Create \`.cursorrules\` in your project root:
+
+\`\`\`
+# .cursorrules
+You are a senior Spring Boot developer. When generating Java code:
+- Use constructor injection (never @Autowired on fields)
+- All service methods that modify data must be @Transactional
+- Use Java 21 records for all DTOs and request/response objects
+- Throw ResourceNotFoundException (extends RuntimeException) for not-found cases
+- Use Optional.orElseThrow() — never Optional.get()
+- Add @Valid to all @RequestBody parameters
+- Store money as Long (cents), never float/double
+- All entities use BIGSERIAL (Long) primary keys
+- Never return JPA entities from controller methods — always map to DTOs
+\`\`\`
+
+Cursor reads this file and applies your standards automatically to all generations.
+
+## Project Context — @Codebase
+
+In Composer, prefix a message with \`@Codebase\` to include full project context:
+
+\`\`\`
+@Codebase
+What is the current transaction strategy used across the service layer?
+Are there any services missing @Transactional on write methods?
+\`\`\`
+
+Cursor indexes your entire project and answers based on actual code — not guesses.
+`,
+            quiz: [
+              {
+                question: 'What is the purpose of a .cursorrules file in a Spring Boot project?',
+                options: [
+                  'It configures which Java version Cursor uses for compilation',
+                  'It defines project-specific coding standards that Cursor applies to all AI-generated code — enforcing conventions like constructor injection and transaction strategy without repeating them in every prompt',
+                  'It lists files that Cursor should not read for privacy reasons',
+                  'It is a settings file required for Cursor to recognise Java projects',
+                ],
+                correctIndex: 1,
+                explanation: '.cursorrules is a plain text file with instructions for the AI model. When you define "always use constructor injection, never field injection" in .cursorrules, every Composer prompt and inline generation in your project follows that rule automatically — you don\'t need to repeat it in every prompt. It is your team\'s coding standard as a prompt.',
+              },
+              {
+                question: 'When should you use Cursor\'s Composer (Cmd+Shift+I) over inline completion (Tab)?',
+                options: [
+                  'Composer is for small edits; Tab is for large ones',
+                  'Composer is for multi-file, cross-cutting changes that affect several classes simultaneously; Tab is for single-line or single-method completion',
+                  'Composer works only on new files; Tab works on existing files',
+                  'They are the same — Composer is just a larger text input',
+                ],
+                correctIndex: 1,
+                explanation: 'Tab completion is single-point: it fills in the current line or block based on local context. Composer is an agent mode that can read, plan changes across, and edit multiple files simultaneously — ideal for "add soft delete to the Order system" which touches entity, repository, service, and migration files. Using Tab for multi-file changes would require manually opening and editing each file.',
+              },
+              {
+                question: 'You use @Codebase in a Cursor Composer message: "@Codebase Are any service classes missing @Transactional on write methods?". What makes this query possible?',
+                options: [
+                  '@Codebase is a Spring annotation that lists all transactional methods',
+                  'Cursor indexes your entire project, so @Codebase includes all file contents as context — enabling questions that require reading across many files simultaneously',
+                  '@Codebase reads the Flyway migration history to find write operations',
+                  'Cursor connects to your database to check which methods make writes',
+                ],
+                correctIndex: 1,
+                explanation: 'Cursor maintains an index of your project\'s source code. @Codebase includes that index in the context window, letting the model read across all your service classes simultaneously. It can find the pattern "public void/Object method not annotated with @Transactional but containing repository.save/delete calls" across every service class.',
+              },
+              {
+                question: 'Cursor is described as a VS Code "fork" rather than a VS Code "extension". What is the practical difference for a developer?',
+                options: [
+                  'A fork means Cursor is legally different from VS Code but technically identical',
+                  'As a fork, Cursor can modify VS Code\'s core at a deeper level — AI features are woven into the editor itself (multi-file diff view, Composer, indexed codebase) rather than being layered on top via plugin APIs',
+                  'A fork means Cursor cannot use VS Code extensions',
+                  'There is no practical difference — fork and extension are marketing terms',
+                ],
+                correctIndex: 1,
+                explanation: 'A plugin is constrained by the host editor\'s extension API. A fork modifies the underlying editor source directly, enabling features impossible via a plugin: custom multi-file diff views, integrated agent UI, full project indexing, and AI-aware UI elements throughout the editor. This is why Cursor\'s multi-file capabilities exceed Copilot\'s plugin approach.',
+              },
+            ],
+          },
+          {
+            id: '206.3',
+            title: 'Claude Code CLI for Java Projects',
+            xp: 70,
+            assessmentType: 'coding' as const,
+            content: `# Claude Code CLI for Java Projects
+
+## What Claude Code Is
+
+Claude Code is Anthropic's CLI agent that runs in your terminal. Unlike Copilot and Cursor, it is not embedded in an IDE — it operates as a shell agent that can read files, run commands, edit code, and reason across your entire codebase.
+
+## Installation
+
+\`\`\`bash
+npm install -g @anthropic-ai/claude-code
+
+# Authenticate:
+claude login
+
+# Verify:
+claude --version
+\`\`\`
+
+## Starting a Session in Your Spring Boot Project
+
+\`\`\`bash
+cd my-spring-boot-project
+claude
+\`\`\`
+
+Claude Code reads your project structure, package names, and CLAUDE.md (if present) to orient itself.
+
+## The CLAUDE.md File — Project Instructions
+
+\`\`\`markdown
+# my-spring-boot-project / CLAUDE.md
+
+## Project Overview
+Spring Boot 3.2 REST API — multi-tenant SaaS platform.
+
+## Tech Stack
+- Java 21, Spring Boot 3.2
+- PostgreSQL + Spring Data JPA + Flyway
+- Spring Security + JWT
+- Kafka (spring-kafka) for async events
+- Testcontainers for integration tests
+
+## Coding Standards
+- Constructor injection always
+- Service methods that modify data: @Transactional
+- DTOs: Java 21 records
+- Money: stored as Long (cents)
+- Errors: throw ResourceNotFoundException or BusinessRuleException (both RuntimeException)
+
+## Key Entry Points
+- OrderController: src/main/java/com/example/controller/OrderController.java
+- OrderService:    src/main/java/com/example/service/OrderService.java
+- Main entity:     src/main/java/com/example/entity/Order.java
+\`\`\`
+
+## High-Value Claude Code Use Cases for Spring Boot
+
+### Debugging Complex Issues
+\`\`\`bash
+> I'm getting LazyInitializationException on order.getItems() in OrderController.
+  Show me the relevant entity, service, and controller code, then explain the root cause and fix.
+\`\`\`
+Claude reads all three files, traces the session lifecycle, and gives a precise diagnosis.
+
+### Security Reviews
+\`\`\`bash
+> Review the Spring Security configuration in SecurityConfig.java and all @PreAuthorize
+  annotations across the controller layer. Flag any endpoints that are unintentionally
+  exposed or have overly permissive role checks.
+\`\`\`
+
+### Architecture Analysis
+\`\`\`bash
+> Analyse the coupling between the Order and Inventory domains in this service.
+  Are they correctly separated? What would break if we extracted Inventory into its own microservice?
+\`\`\`
+
+### Generating Complex Pieces
+\`\`\`bash
+> Write a complete integration test for OrderService.createOrder() using Testcontainers
+  (PostgreSQL container). The test should verify the order is persisted, the OrderCreatedEvent
+  is published, and the user's order count is incremented.
+\`\`\`
+
+## Running in Non-Interactive (Script) Mode
+
+\`\`\`bash
+# Pipe a task directly — useful in CI or scripts:
+echo "Generate a Flyway migration V6__add_product_index.sql that adds a GIN index
+on the products.tags JSONB column" | claude --print-only
+\`\`\`
+`,
+            codingTask: {
+              instructions: `Write a CLAUDE.md file for a Spring Boot e-commerce backend project.
+
+The file must include:
+1. **Project Overview**: A brief description — multi-tenant e-commerce REST API
+2. **Tech Stack section**: Java 21, Spring Boot 3.2, PostgreSQL, Spring Data JPA, Flyway, Spring Security + JWT, Apache Kafka, Testcontainers, Docker
+3. **Coding Standards section** with at least 5 rules (use the standards we covered in this course: constructor injection, @Transactional, records for DTOs, money as Long cents, ResourceNotFoundException for not-found cases)
+4. **Package Structure section** showing the main packages: controller, service, repository, entity, dto, config, event
+5. **Key Files section** listing at least 3 main entry points with hypothetical file paths (e.g. src/main/java/com/example/ecommerce/controller/OrderController.java)
+
+Format as valid Markdown.`,
+              boilerplate: `# Write the contents of CLAUDE.md here as a Markdown string.
+# The file should orient Claude Code to a Spring Boot e-commerce project.
+# Include all 5 required sections.
+
+CLAUDE_MD_CONTENT = """
+# TODO: Write CLAUDE.md content here
+"""`,
+              rubric: [
+                'Project Overview section present with multi-tenant e-commerce context',
+                'Tech Stack lists Java 21, Spring Boot 3.2, PostgreSQL, Flyway, Spring Security+JWT, Kafka, Testcontainers',
+                'Coding Standards has at least 5 rules including constructor injection and @Transactional',
+                'Package Structure section shows controller/service/repository/entity/dto/config/event',
+                'Key Files section has at least 3 paths in correct Spring Boot src/main/java/... format',
+                'Valid Markdown formatting with headers and lists',
+              ],
+              hints: [
+                'Use ## for sections, - for list items',
+                'Coding standards: constructor injection, @Transactional on write methods, records for DTOs, money as Long cents, ResourceNotFoundException',
+                'Package paths: com.example.ecommerce.controller, com.example.ecommerce.service, etc.',
+              ],
+              solutionCode: `# ecommerce-api / CLAUDE.md
+
+## Project Overview
+Multi-tenant e-commerce REST API built on Spring Boot 3.2. Supports multiple merchant tenants with isolated data, product catalogues, order management, and payment processing.
+
+## Tech Stack
+- Java 21 (virtual threads enabled)
+- Spring Boot 3.2
+- PostgreSQL + Spring Data JPA + Flyway migrations
+- Spring Security + JWT (stateless)
+- Apache Kafka (spring-kafka) for async events
+- Testcontainers for integration tests
+- Docker for local development
+
+## Coding Standards
+- **Dependency injection**: constructor injection always — no @Autowired on fields
+- **Transactions**: @Transactional on all service methods that write to the database
+- **DTOs**: Java 21 records for all request/response objects
+- **Money**: always stored as Long (cents) — never float or double
+- **Not-found errors**: throw ResourceNotFoundException(resourceName, id) — extends RuntimeException
+- **Business errors**: throw BusinessRuleException(code, message) — extends RuntimeException
+- **Optionals**: always .orElseThrow() or .orElse() — never .get()
+- **Controllers**: never return JPA entities — always map to DTOs
+- **Collections**: always initialise with new ArrayList<>() in entities
+
+## Package Structure
+\`\`\`
+com.example.ecommerce
+├── controller/    REST controllers (@RestController)
+├── service/       Business logic (@Service)
+├── repository/    Spring Data JPA interfaces (@Repository)
+├── entity/        JPA entities (@Entity)
+├── dto/           Records for request/response
+├── config/        @Configuration classes, security, Kafka
+└── event/         Domain event classes and listeners
+\`\`\`
+
+## Key Files
+- Main application: \`src/main/java/com/example/ecommerce/EcommerceApplication.java\`
+- Security config: \`src/main/java/com/example/ecommerce/config/SecurityConfig.java\`
+- Order controller: \`src/main/java/com/example/ecommerce/controller/OrderController.java\`
+- Order service: \`src/main/java/com/example/ecommerce/service/OrderService.java\`
+- Order entity: \`src/main/java/com/example/ecommerce/entity/Order.java\``,
+            },
+          },
+        ],
+      },
+      {
+        id: 207,
+        title: 'Prompt Engineering for Java Developers',
+        description: 'Write prompts that produce production-quality Spring Boot code on the first try.',
+        part: 'Part II: AI Tooling Setup & Developer Mindset',
+        icon: '✍️',
+        topics: [
+          {
+            id: '207.1',
+            title: 'Writing Effective Code Prompts — Java & Spring Boot Patterns',
+            xp: 70,
+            assessmentType: 'quiz' as const,
+            content: `# Writing Effective Code Prompts — Java & Spring Boot Patterns
+
+## The Anatomy of a Good Code Prompt
+
+A good prompt answers five questions:
+1. **What class/method?** (name, package, type)
+2. **What inputs and outputs?** (parameter types, return type)
+3. **What are the rules?** (validation, error cases, constraints)
+4. **What dependencies?** (which other classes/repositories/services it uses)
+5. **What conventions apply?** (coding standards, patterns to follow)
+
+## Pattern 1: The Spec Prompt (for new classes)
+
+\`\`\`
+Write a Spring Boot @Service class named InvoiceService in package com.example.billing.service.
+
+Dependencies (injected via constructor):
+- InvoiceRepository (Spring Data JPA)
+- OrderRepository
+- ApplicationEventPublisher
+
+Methods to implement:
+
+1. generateInvoice(Long orderId): InvoiceDto
+   - Load Order by ID, throw ResourceNotFoundException if not found
+   - Calculate tax at 10% of order total (store as Long cents)
+   - Create and save an Invoice entity
+   - Publish InvoiceGeneratedEvent(invoiceId, orderId, totalWithTaxCents)
+   - Map to InvoiceDto record and return
+   - @Transactional
+
+2. findByOrder(Long orderId): Optional<InvoiceDto>
+   - Find invoice by order ID
+   - Map to InvoiceDto if present
+   - @Transactional(readOnly = true)
+
+Coding standards:
+- Java 21, Spring Boot 3.2
+- All fields final, constructor injection
+- InvoiceDto is a record: record InvoiceDto(Long id, Long orderId, Long totalCents, Long taxCents)
+\`\`\`
+
+This prompt reliably produces a complete, correct service class.
+
+## Pattern 2: The Diff Prompt (for modifying existing code)
+
+\`\`\`
+Given this existing OrderService.createOrder() method:
+[paste the current method]
+
+Modify it to:
+1. After saving the order, check if the user's total order count exceeds 10
+2. If so, upgrade the user's tier to "GOLD" by calling userService.upgradeTier(userId, "GOLD")
+3. Keep @Transactional and the existing event publishing
+4. Do not change the method signature
+\`\`\`
+
+Showing the existing code prevents the AI from reimagining the whole class.
+
+## Pattern 3: The Test Prompt
+
+\`\`\`
+Write JUnit 5 unit tests for InvoiceService.generateInvoice() using Mockito.
+
+Setup:
+- Mock InvoiceRepository, OrderRepository, ApplicationEventPublisher
+- Create InvoiceService with mocked dependencies
+
+Test cases:
+1. should_generate_invoice_and_publish_event_when_order_exists
+   - Given: Order with total 10000 cents exists
+   - When: generateInvoice(orderId)
+   - Then: Invoice saved with tax 1000 cents (10%), InvoiceGeneratedEvent published
+
+2. should_throw_ResourceNotFoundException_when_order_not_found
+   - Given: OrderRepository returns empty Optional
+   - When: generateInvoice(nonExistentId)
+   - Then: throws ResourceNotFoundException
+
+Use assertThat (AssertJ), verify() for interactions. No Spring context needed.
+\`\`\`
+
+## Pattern 4: The Debug Prompt
+
+\`\`\`
+I have this exception in production:
+org.hibernate.LazyInitializationException: failed to lazily initialize a collection
+of role: com.example.entity.Order.items, could not initialize proxy - no Session
+
+Relevant code:
+[paste OrderController.getOrderWithItems() method]
+[paste OrderService.findOrderWithItems() method]
+[paste Order entity showing @OneToMany definition]
+
+Explain why this happens and provide the fix without changing the controller signature.
+\`\`\`
+
+## Common Mistakes in Java Prompts
+
+| Mistake | Better |
+|---|---|
+| "Write a service" | "Write a @Service class named X with method Y that takes A and returns B" |
+| "Add error handling" | "Throw ResourceNotFoundException if not found, IllegalStateException if status is CANCELLED" |
+| "Use best practices" | "Use constructor injection, @Transactional, Java 21 records for DTOs" |
+| "Fix this code" | "Fix this code — the issue is that the @Transactional annotation is on a private method" |
+`,
+            quiz: [
+              {
+                question: 'Which prompt element has the highest impact on the quality of AI-generated Spring Boot service code?',
+                options: [
+                  'Using the word "please" to make the AI more cooperative',
+                  'Specifying the class name, method signatures (parameter and return types), error cases, and dependencies explicitly',
+                  'Asking for the longest possible output',
+                  'Including the Spring Boot version in every prompt',
+                ],
+                correctIndex: 1,
+                explanation: 'AI code generation is essentially type inference from context. When you specify inputs, outputs, error conditions, and dependencies, the model has enough constraints to produce a correct implementation. Vague prompts like "write a service" leave most of these dimensions undefined, forcing the model to guess — and it often guesses generically.',
+              },
+              {
+                question: 'Why should you paste the existing method code when prompting to modify it (the "Diff Prompt" pattern)?',
+                options: [
+                  'AI models cannot read your files directly so you must paste everything',
+                  'Showing the existing code anchors the model to your actual implementation, preventing it from reimagining the whole class with different patterns or breaking existing behaviour',
+                  'Pasting code makes the prompt process faster',
+                  'It is required for copyright compliance when using AI tools',
+                ],
+                correctIndex: 1,
+                explanation: 'Without the existing code, the model generates a plausible but potentially incompatible version — different variable names, different patterns, possibly missing annotations your code depends on. Pasting the current code says "this is what exists, change only what I specify" — a much more constrained and accurate operation.',
+              },
+              {
+                question: 'In the Test Prompt pattern, why is "No Spring context needed" an important instruction to include?',
+                options: [
+                  'Spring context tests always fail for service classes',
+                  'It directs the model to write plain JUnit 5 + Mockito unit tests (fast, no container startup) rather than @SpringBootTest integration tests which are slower and require a full application context',
+                  'Spring context is only available in integration test profiles',
+                  'Copilot cannot generate @SpringBootTest tests',
+                ],
+                correctIndex: 1,
+                explanation: 'Without this instruction, models often generate @SpringBootTest tests — which spin up the full application context, need a database, and take 10–30s per test run. Unit tests with Mockito have no dependencies and run in milliseconds. For testing service business logic, unit tests are almost always the right approach.',
+              },
+              {
+                question: 'A developer prompts: "Add error handling to the method." What is wrong with this prompt?',
+                options: [
+                  'Error handling cannot be added to existing methods',
+                  'The prompt is vague — it does not specify which errors (not found? invalid state?), which exception types to throw, or which HTTP status codes they map to',
+                  'Spring Boot handles all errors automatically; manual error handling is unnecessary',
+                  'The prompt is too short — AI models require at least 100 words',
+                ],
+                correctIndex: 1,
+                explanation: '"Add error handling" could mean: add try/catch and log it, throw a specific exception, return Optional, add @ExceptionHandler, or add validation. Without specifying the error condition, the exception type, and the expected behaviour, the model guesses — and usually picks the most generic option (often try/catch with logger.error(), which is rarely what you want).',
+              },
+            ],
+          },
+          {
+            id: '207.2',
+            title: 'Context Management: Feeding Your Codebase to AI',
+            xp: 65,
+            assessmentType: 'quiz' as const,
+            content: `# Context Management: Feeding Your Codebase to AI
+
+## The Context Window Problem
+
+Every AI tool has a context window — the amount of text it can "see" at once. A large Spring Boot project has thousands of files; only a fraction can be included. How you select that fraction determines output quality.
+
+## What Context Actually Matters
+
+For any given task, the minimum necessary context is:
+
+\`\`\`
+Task: Add a new method to OrderService
+
+Necessary:
+✅ OrderService.java (the class you're editing)
+✅ Order.java entity (fields and relationships)
+✅ OrderRepository.java (available methods)
+✅ OrderDto record (return type)
+✅ Relevant exception classes
+
+Unnecessary:
+❌ UserService.java (not directly involved)
+❌ All 15 entity classes
+❌ SecurityConfig.java
+❌ 40 migration files
+\`\`\`
+
+Noise in context degrades output quality — the model pays attention to irrelevant patterns.
+
+## Tool-Specific Context Strategies
+
+### GitHub Copilot — Open Tabs
+Open exactly the files the model needs. Close everything else. Copilot prioritises the current file, then open tabs, then project structure.
+
+### Cursor — @file and @Codebase
+\`\`\`
+@file:src/main/java/com/example/service/OrderService.java
+@file:src/main/java/com/example/entity/Order.java
+Add a method cancelOrder(Long id) that sets status to CANCELLED
+and throws BusinessRuleException if status is already CANCELLED or SHIPPED.
+\`\`\`
+
+\`@Codebase\` for broad questions; \`@file\` for targeted edits.
+
+### Claude Code — Describing Context
+\`\`\`bash
+> Read OrderService.java, Order.java, and OrderRepository.java.
+  Then explain where I should add soft-delete logic to avoid
+  breaking existing findAll() calls.
+\`\`\`
+Claude Code reads the actual files and reasons from them.
+
+## The Context Hierarchy for Spring Boot Tasks
+
+| Task Type | Files to include |
+|---|---|
+| New service method | Service class + entity + repository + DTOs |
+| New endpoint | Controller + service interface + DTOs |
+| New entity relationship | Both entity classes + existing migrations |
+| Debugging an exception | Stack trace + all files mentioned in the trace |
+| Security review | SecurityConfig + affected controllers |
+| Performance issue | Service + repository queries + entity fetch types |
+
+## Re-Prompting with Corrections
+
+When generated code is wrong, the correction prompt is itself context:
+
+\`\`\`
+The generated method is missing @Transactional. Also, it returns the entity
+directly — it should map to OrderDto using OrderMapper.mapToDto().
+Here is the existing OrderMapper class: [paste OrderMapper]
+Please fix both issues.
+\`\`\`
+
+Providing the exact error ("missing @Transactional") rather than "it's wrong" gives the model a specific target to correct.
+`,
+            quiz: [
+              {
+                question: 'You need Cursor to add a method to OrderService that uses OrderRepository. What is the optimal context to include?',
+                options: [
+                  'The entire src/main/java directory — more is always better',
+                  '@file:OrderService.java @file:Order.java @file:OrderRepository.java and the DTO if the return type is a DTO',
+                  'Only the method signature you want to add',
+                  'The pom.xml and application.yml to give the model the full project configuration',
+                ],
+                correctIndex: 1,
+                explanation: 'Minimum sufficient context: the file being edited (OrderService), the entity (Order — for field names), the repository (what methods are available), and the DTO (return type). Adding unrelated files (SecurityConfig, unrelated entities) introduces noise that degrades the signal-to-noise ratio in the context window.',
+              },
+              {
+                question: 'When should you use @Codebase versus @file in Cursor?',
+                options: [
+                  '@Codebase for files under 1000 lines; @file for larger files',
+                  '@Codebase for broad questions that span many files ("are there any services missing @Transactional?"); @file for targeted edits to specific known files',
+                  '@Codebase includes production code only; @file includes test code too',
+                  'They are interchangeable — use whichever is faster to type',
+                ],
+                correctIndex: 1,
+                explanation: '@Codebase indexes the whole project and is best for questions requiring a survey of many files. @file includes specific files verbatim and is best for precise edits where you know exactly which files are relevant. Using @Codebase for a targeted edit wastes context space on irrelevant files.',
+              },
+              {
+                question: 'A correction prompt says: "It\'s wrong, please fix it." Why is this less effective than "The method is missing @Transactional and returns the entity instead of mapping to OrderDto"?',
+                options: [
+                  '"Fix it" is too polite — AI models respond better to direct commands',
+                  'The vague correction gives the model no specific target — it may change the wrong thing or generate a different wrong version. Specific errors tell the model exactly what to correct.',
+                  'Specific corrections are only needed in Copilot; Cursor understands vague corrections',
+                  'The more words in a correction prompt the better — length matters more than specificity',
+                ],
+                correctIndex: 1,
+                explanation: '"It\'s wrong" is zero information — wrong how? The model will either refuse or make a random change. "Missing @Transactional" tells it to add one annotation. "Returns entity instead of OrderDto" tells it to add a mapping step. Specific, targeted corrections produce specific, targeted fixes — vague corrections produce vague responses.',
+              },
+              {
+                question: 'For debugging a LazyInitializationException, which files should you include in your prompt context?',
+                options: [
+                  'Only the stack trace — that is all the model needs',
+                  'The full stack trace plus all files mentioned in the trace (typically the entity, service method, and controller) so the model can trace the session lifecycle',
+                  'All entity classes in the project — the problem might be in any of them',
+                  'The application.yml to check if lazy loading is configured correctly',
+                ],
+                correctIndex: 1,
+                explanation: 'LazyInitializationException requires tracing: where the entity was loaded (service), where the session ended (typically at the @Transactional boundary), and where the lazy collection was accessed (often the controller or a DTO mapper). You need the entity (to see the @OneToMany fetch type), the service (transaction scope), and the controller (where access happens outside the session).',
+              },
+            ],
+          },
+          {
+            id: '207.3',
+            title: 'AI Code Review Habits & Trust Calibration',
+            xp: 65,
+            assessmentType: 'quiz' as const,
+            content: `# AI Code Review Habits & Trust Calibration
+
+## The Trust Problem
+
+AI code is **statistically plausible, not correct by design**. It is trained on code that was written with human intent but not verified to be correct in the context of your system. The most dangerous AI output is code that looks right and compiles but is subtly wrong.
+
+## The Spring Boot AI Review Checklist
+
+Apply this to every AI-generated Spring Boot class before accepting it:
+
+### Transactions
+\`\`\`
+□ @Transactional is on the service method (not controller, not repository)
+□ readOnly = true is set on all read methods in the service
+□ No @Transactional on a private method (proxy bypass issue)
+□ Methods that throw checked exceptions use rollbackOn if rollback is needed
+\`\`\`
+
+### Data Access
+\`\`\`
+□ No lazy collection access outside a transaction boundary
+□ No N+1: loops that access lazy associations use JOIN FETCH or @EntityGraph
+□ No Optional.get() without isPresent() check — use orElseThrow()
+□ No direct entity return from controller — mapped to DTO
+\`\`\`
+
+### Security
+\`\`\`
+□ Sensitive fields (passwords, tokens) are not in API responses
+□ @PreAuthorize / @Secured annotations are present on sensitive methods
+□ User-supplied data is not concatenated into queries (SQL injection)
+□ Log statements don't contain sensitive values
+\`\`\`
+
+### Code Quality
+\`\`\`
+□ Exception types match the actual error scenario (not generic Exception)
+□ No empty catch blocks that swallow exceptions silently
+□ No System.out.println — uses Logger / @Slf4j
+□ Constructor injection (not @Autowired on fields)
+\`\`\`
+
+## Trust Levels by Task Type
+
+| Task | Trust Level | Why |
+|---|---|---|
+| Generating a record DTO | High | Pure data structure, hard to get wrong |
+| Generating Flyway SQL | Medium-High | Review table names and constraints |
+| Generating repository methods | Medium | Verify query logic, check N+1 risk |
+| Generating service business logic | Medium | Review transaction scope, error cases |
+| Generating security config | Low | Security mistakes are silent and critical |
+| Generating concurrent code | Low | Race conditions are invisible to static review |
+
+## The Explain-Before-Accept Rule
+
+If you cannot explain a generated piece of code in plain English within 30 seconds, do not accept it. Ask the AI to explain it first:
+
+\`\`\`
+> Explain this generated method line by line. Why did you use
+  @Transactional(propagation = Propagation.REQUIRES_NEW) instead of
+  the default REQUIRED?
+\`\`\`
+
+If the explanation reveals a misunderstanding of your intent, reject and re-prompt with the correct context.
+
+## Calibrating Over Time
+
+Track which task types produce reliable output vs. which require heavy editing. After two weeks:
+- Tasks with < 10% edit rate → accept more freely
+- Tasks with > 50% edit rate → invest in better prompt templates for those patterns
+`,
+            quiz: [
+              {
+                question: 'An AI-generated service method has @Transactional on a private helper method it calls internally. Why is this a bug?',
+                options: [
+                  '@Transactional is not supported on private methods in Java',
+                  'Spring implements @Transactional via a proxy. Internal method calls bypass the proxy, so the annotation has no effect — no transaction starts for the private method',
+                  'Private methods cannot be called during a Spring transaction',
+                  'The @Transactional annotation is ignored on helper methods but applies to the public method',
+                ],
+                correctIndex: 1,
+                explanation: 'Spring wraps your bean in a proxy class. When external code calls orderService.createOrder(), the proxy intercepts the call and starts a transaction. When createOrder() calls this.privateHelper() internally, it calls the real object directly — not the proxy — so no new transaction starts regardless of @Transactional. This is a silent bug.',
+              },
+              {
+                question: 'Why should AI-generated Spring Security configuration be treated with a lower trust level than generated DTOs?',
+                options: [
+                  'Spring Security changes more frequently than other Spring components',
+                  'Security misconfigurations (an unprotected endpoint, a missing role check) are silent — the code compiles and runs correctly but exposes a vulnerability that is invisible without a security review',
+                  'AI tools are specifically trained to avoid security-sensitive code',
+                  'DTOs are generated by Spring automatically; security config must always be written by humans',
+                ],
+                correctIndex: 1,
+                explanation: 'A wrong DTO field name fails at runtime visibly. A missing @PreAuthorize annotation succeeds silently — the endpoint just becomes publicly accessible. Security failures are often invisible until exploited. The "looks right" risk is highest where correctness cannot be verified by running the test suite.',
+              },
+              {
+                question: 'The "Explain-Before-Accept" rule says: if you cannot explain generated code within 30 seconds, do not accept it. What is the purpose of this rule?',
+                options: [
+                  'It ensures you read every line of generated code at a minimum typing speed',
+                  'It ensures you understand what the code does before it enters your codebase — preventing code you cannot later debug, modify, or defend in code review',
+                  'It prevents you from accepting code that uses deprecated APIs',
+                  'It guarantees the code is correct because explanation requires understanding',
+                ],
+                correctIndex: 1,
+                explanation: 'Understanding precedes ownership. If you accept code you cannot explain, you have code no one on the team fully understands — a debt that compounds when bugs appear or the code needs to change. The 30-second rule is a forcing function: it ensures you read and process the code before committing to it. If you can\'t explain it, the AI can; but then you need to understand the explanation.',
+              },
+              {
+                question: 'After two weeks of tracking AI-generated code, you notice that @RestController endpoint generation has a 70% edit rate. What is the appropriate response?',
+                options: [
+                  'Stop using AI for controller generation entirely',
+                  'Invest in a better prompt template for controllers — specify your error handling conventions, response format, and validation approach explicitly — then re-measure',
+                  'Accept the 70% edit rate as unavoidable',
+                  'Switch to a different AI tool that has better controller generation',
+                ],
+                correctIndex: 1,
+                explanation: 'A 70% edit rate means the model is guessing at project-specific conventions it does not know: your error response format, your DTO naming, your validation approach. These are all specifiable in a prompt template or .cursorrules. Build a controller prompt template that includes those conventions and the edit rate will drop significantly. Edit rate is feedback about prompt quality, not model capability.',
+              },
+            ],
+          },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PARTS III-X: Coming in next content batch
+      // (chapters 208-234 will be inserted here)
+      // ═══════════════════════════════════════════
+    ],
+    project: {
+      id: 'springboot-saas-capstone',
+      title: 'Build a Production-Grade AI-Powered SaaS Backend',
+      description: 'A multi-tenant SaaS backend with JWT auth, Spring AI chat endpoint, RAG knowledge base, Kafka event streaming, Redis caching, Testcontainers-powered CI, containerized and deployed to Kubernetes — built with AI tooling throughout.',
+      milestones: [
+        {
+          id: 'sb-milestone-1',
+          title: 'Core API + Auth + Database',
+          xp: 200,
+          instructions: `Build the multi-tenant data model with JWT authentication and a fully tested REST API.
+
+Your implementation must:
+1. Create JPA entities: Tenant, User (with tenantId), and Product (with tenantId)
+2. Implement JWT-based authentication: POST /auth/login returns a signed JWT
+3. Implement tenant isolation: all repository queries filter by tenantId from the JWT
+4. Expose: GET /products, POST /products, GET /products/{id}, DELETE /products/{id}
+5. Write Flyway V1 and V2 migrations for the schema
+6. Write Testcontainers integration tests covering auth + CRUD happy paths`,
+          boilerplate: `// Spring Boot 3.2 + Java 21 project
+// Dependencies: spring-boot-starter-web, spring-boot-starter-data-jpa,
+//               spring-boot-starter-security, flyway-core, jjwt, testcontainers
+
+// TODO: Implement entities, JWT filter, controllers, and tests`,
+          rubric: ['Tenant + User + Product entities with correct JPA annotations', 'JWT filter validates token and populates SecurityContext', 'All endpoints require authentication', 'Products filtered by tenant from JWT claims', 'V1 and V2 Flyway migrations', 'Testcontainers integration tests pass'],
+          hints: ['Use @TenantId or a ThreadLocal to propagate tenant context', 'jjwt: Jwts.parserBuilder().setSigningKey(secret).build().parseClaimsJws(token)', 'Testcontainers: @Container static PostgreSQLContainer<?> postgres'],
+          solutionCode: '',
+        },
+        {
+          id: 'sb-milestone-2',
+          title: 'Spring AI Integration — Chat + RAG',
+          xp: 250,
+          instructions: `Add a Spring AI chat endpoint with RAG (Retrieval-Augmented Generation) backed by pgvector.
+
+Your implementation must:
+1. Add Spring AI dependency with OpenAI or Anthropic provider
+2. POST /ai/chat — accepts {"message": "..."}, streams response via SSE
+3. POST /ai/documents — ingests plain text, chunks and embeds it into pgvector
+4. GET /ai/query?q=... — answers a question using RAG (retrieve relevant chunks, pass to LLM)
+5. Add prompt injection defense: validate user input length and reject obvious injection patterns
+6. All endpoints require JWT authentication`,
+          boilerplate: `// Add to pom.xml:
+// spring-ai-openai-spring-boot-starter (or anthropic variant)
+// pgvector extension must be enabled in PostgreSQL
+
+// TODO: Implement ChatController, DocumentIngestionService, RagQueryService`,
+          rubric: ['Spring AI ChatClient configured and injected', 'SSE streaming endpoint returns chunks', 'Document ingestion splits text and stores embeddings', 'RAG query retrieves top-k chunks before LLM call', 'Prompt injection defence validates input', 'Integration test covers chat + RAG round-trip'],
+          hints: ['ChatClient.builder(chatModel).build()', 'VectorStore.add(List.of(new Document(text)))', 'VectorStore.similaritySearch(SearchRequest.query(q).withTopK(5))'],
+          solutionCode: '',
+        },
+        {
+          id: 'sb-milestone-3',
+          title: 'Event Streaming + Caching',
+          xp: 250,
+          instructions: `Add Kafka event streaming and Redis caching to the product service.
+
+Your implementation must:
+1. Publish a ProductCreatedEvent to Kafka topic "product-events" on POST /products
+2. Publish a ProductDeletedEvent on DELETE /products/{id}
+3. Add a Kafka consumer that logs all product events (for audit)
+4. Cache GET /products response in Redis with key "products:{tenantId}" TTL 60s
+5. Invalidate the cache on any write operation (POST, DELETE)
+6. Write Testcontainers tests using Kafka + Redis containers`,
+          boilerplate: `// Add to pom.xml: spring-kafka, spring-boot-starter-data-redis, spring-boot-starter-cache
+// Add to application.yml: kafka bootstrap-servers, redis host/port
+
+// TODO: KafkaProducerConfig, ProductEventPublisher, ProductEventConsumer
+// TODO: RedisConfig (@EnableCaching), @Cacheable/@CacheEvict on service methods`,
+          rubric: ['KafkaTemplate publishes ProductCreatedEvent and ProductDeletedEvent', '@KafkaListener consumer logs events', '@Cacheable on findAllByTenant with correct cache key', '@CacheEvict on create and delete', 'Testcontainers test uses KafkaContainer and RedisContainer', 'Cache TTL configured to 60 seconds'],
+          hints: ['@EnableCaching on @Configuration class', '@Cacheable(value = "products", key = "#tenantId")', 'KafkaContainer from org.testcontainers.kafka'],
+          solutionCode: '',
+        },
+        {
+          id: 'sb-milestone-4',
+          title: 'Cloud Deployment + CI/CD',
+          xp: 300,
+          instructions: `Containerize the application with Docker and deploy to Kubernetes with a GitHub Actions CI/CD pipeline.
+
+Your implementation must:
+1. Write a multi-stage Dockerfile: build stage (Maven) → runtime stage (JRE 21 slim)
+2. Write a docker-compose.yml for local dev: app + postgres + redis + kafka
+3. Write Kubernetes manifests: Deployment, Service, ConfigMap, Secret (for JWT secret and DB password)
+4. Add liveness (/actuator/health/liveness) and readiness (/actuator/health/readiness) probes to the Deployment
+5. Write a GitHub Actions workflow: build → test → build Docker image → push to registry → apply kubectl
+6. Add a HorizontalPodAutoscaler targeting 70% CPU utilization`,
+          boilerplate: `# Dockerfile
+FROM maven:3.9-eclipse-temurin-21 AS build
+# TODO: multi-stage build
+
+# kubernetes/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+# TODO: complete manifest
+
+# .github/workflows/deploy.yml
+name: CI/CD
+# TODO: complete workflow`,
+          rubric: ['Multi-stage Dockerfile produces a minimal image', 'docker-compose.yml starts all services', 'Kubernetes Deployment with liveness/readiness probes', 'Secret used for JWT_SECRET and DB_PASSWORD (not ConfigMap)', 'GitHub Actions: test → build image → push → deploy', 'HPA with CPU target 70%'],
+          hints: ['FROM eclipse-temurin:21-jre-alpine for the runtime stage', 'livenessProbe: httpGet: path: /actuator/health/liveness', 'management.endpoint.health.probes.enabled: true'],
+          solutionCode: '',
+        },
+      ],
+    },
+  },
+
 ]
 
 // ── Course-aware helpers ──────────────────────────────────────
