@@ -8,7 +8,7 @@ import type { Provider } from '@/lib/providers'
 import {
   Key, Eye, EyeOff, CheckCircle, XCircle, Loader2,
   ExternalLink, AlertTriangle, Save, Trash2, ChevronDown, ChevronUp, Zap,
-  HelpCircle, ShieldCheck, Cpu, DollarSign, Sparkles,
+  HelpCircle, ShieldCheck, Cpu, DollarSign, Sparkles, ShieldAlert,
 } from 'lucide-react'
 import Link from 'next/link'
 import {
@@ -218,6 +218,44 @@ function ProviderGuidePanel({ provider, isConfigured }: { provider: Provider; is
   )
 }
 
+// ── Admin panel entry ────────────────────────────────────────────────────────
+function AdminPanelButton() {
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleClick() {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/access', { method: 'POST' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setError(`Error ${res.status}: ${body?.error ?? 'unknown'}`)
+        setLoading(false)
+        return
+      }
+      window.location.href = '/admin'
+    } catch {
+      setError('Something went wrong.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        className="flex items-center gap-2 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 disabled:opacity-50 px-4 py-2 rounded-lg transition-colors"
+      >
+        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldAlert className="w-4 h-4" />}
+        Admin Panel
+      </button>
+      {error && <p className="text-xs text-red-500">{error}</p>}
+    </div>
+  )
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function SettingsPage() {
   const { user, profile, loading, refreshProfile } = useAuth()
@@ -229,12 +267,20 @@ export default function SettingsPage() {
   )
   const [selectedReviewMode, setSelectedReviewMode] = useState<ReviewMode>('deep_dive')
   const [previewMode, setPreviewMode] = useState<ReviewMode | null>(null)
+  const [allowedProviders, setAllowedProviders] = useState<string[]>(PROVIDERS)
 
   useEffect(() => {
     if (!loading && !user) router.push('/auth/login')
   }, [user, loading, router])
 
   useEffect(() => { setSelectedReviewMode(getReviewMode()) }, [])
+
+  useEffect(() => {
+    fetch('/api/providers/allowed')
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d.allowed)) setAllowedProviders(d.allowed) })
+      .catch(() => {})
+  }, [])
 
   function update(provider: Provider, patch: Partial<ProviderState>) {
     setStates(prev => ({ ...prev, [provider]: { ...prev[provider], ...patch } }))
@@ -364,43 +410,47 @@ export default function SettingsPage() {
             const isConfigured = configuredProviders.includes(provider)
             const isActive = activeProvider === provider
             const isOpen = expanded === provider
+            const isDisabledByAdmin = !allowedProviders.includes(provider)
 
             return (
               <div
                 key={provider}
-                className={`glass rounded-xl overflow-hidden transition-all ${isActive ? 'border-emerald-300 shadow-sm shadow-emerald-100' : ''}`}
+                className={`glass rounded-xl overflow-hidden transition-all ${isActive ? 'border-emerald-300 shadow-sm shadow-emerald-100' : ''} ${isDisabledByAdmin ? 'opacity-60' : ''}`}
               >
                 {/* Header row */}
                 <button
-                  onClick={() => setExpanded(isOpen ? null : provider)}
-                  className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-slate-50/50 transition-colors"
+                  onClick={() => !isDisabledByAdmin && setExpanded(isOpen ? null : provider)}
+                  className={`w-full flex items-center gap-3 px-5 py-4 text-left transition-colors ${isDisabledByAdmin ? 'cursor-not-allowed' : 'hover:bg-slate-50/50'}`}
                 >
                   <span className="text-xl w-7 text-center shrink-0">{cfg.icon}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-slate-900 text-sm">{cfg.name}</span>
                       <span className="text-xs text-slate-400">{cfg.tagline}</span>
-                      {cfg.free && (
+                      {cfg.free && !isDisabledByAdmin && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium">Free</span>
+                      )}
+                      {isDisabledByAdmin && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200 font-medium">Currently not available</span>
                       )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5 font-mono">{cfg.model}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {isActive && (
+                    {isActive && !isDisabledByAdmin && (
                       <span className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-semibold">
                         <Zap className="w-3 h-3" /> Active
                       </span>
                     )}
-                    {isConfigured && !isActive && (
+                    {isConfigured && !isActive && !isDisabledByAdmin && (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-500">Configured</span>
                     )}
-                    {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    {!isDisabledByAdmin && (isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />)}
                   </div>
                 </button>
 
                 {/* Expanded body */}
-                {isOpen && (
+                {isOpen && !isDisabledByAdmin && (
                   <div className="px-5 pb-5 pt-1 border-t border-slate-100 space-y-4">
 
                     {/* Setup guide */}
@@ -519,14 +569,23 @@ export default function SettingsPage() {
         </div>
 
         {/* Active provider summary */}
-        {hasAnyKey && (
+        {hasAnyKey && activeProvider && allowedProviders.includes(activeProvider) && (
           <div className="mb-6 flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
             <Zap className="w-4 h-4 text-emerald-600 shrink-0" />
             <p className="text-sm text-emerald-800">
               Assessments are running on{' '}
-              <span className="font-semibold">{activeProvider ? PROVIDER_CONFIG[activeProvider].name : '—'}</span>
-              {' '}({activeProvider ? PROVIDER_CONFIG[activeProvider].model : ''}).
+              <span className="font-semibold">{PROVIDER_CONFIG[activeProvider].name}</span>
+              {' '}({PROVIDER_CONFIG[activeProvider].model}).
               {' '}<button onClick={() => setExpanded(activeProvider)} className="underline underline-offset-2 hover:no-underline">Change provider</button>
+            </p>
+          </div>
+        )}
+        {hasAnyKey && activeProvider && !allowedProviders.includes(activeProvider) && (
+          <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+            <p className="text-sm text-amber-800">
+              Your active provider <span className="font-semibold">{PROVIDER_CONFIG[activeProvider].name}</span> has been disabled by an admin.
+              {' '}Please select a different provider to continue assessments.
             </p>
           </div>
         )}
@@ -649,6 +708,12 @@ export default function SettingsPage() {
             <span className="text-slate-400">Active provider</span>
             <span className="text-slate-700">{activeProvider ? PROVIDER_CONFIG[activeProvider].name : 'None'}</span>
           </div>
+
+          {profile?.is_admin && (
+            <div className="pt-2 border-t border-slate-100">
+              <AdminPanelButton />
+            </div>
+          )}
         </div>
 
         {/* Security notice */}
