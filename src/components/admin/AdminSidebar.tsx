@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BarChart2, Users, BookOpen, Cpu, Award, ChevronRight, LifeBuoy, BookPlus, Megaphone } from 'lucide-react'
+import { BarChart2, Users, BookOpen, Cpu, Award, ChevronRight, LifeBuoy, BookPlus, Megaphone, MessageSquare } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 const NAV = [
@@ -13,10 +13,11 @@ const NAV = [
   { href: '/admin/providers',        label: 'AI Providers',    icon: Cpu        },
   { href: '/admin/certificates',     label: 'Certificates',    icon: Award      },
   { href: '/admin/tickets',          label: 'Tickets',         icon: LifeBuoy   },
+  { href: '/admin/feedback',         label: 'Feedback',        icon: MessageSquare },
   { href: '/admin/marketing',        label: 'Marketing',       icon: Megaphone  },
 ]
 
-const BADGE_ROUTES = ['/admin/tickets', '/admin/course-requests']
+const BADGE_ROUTES = ['/admin/tickets', '/admin/course-requests', '/admin/feedback']
 
 export default function AdminSidebar() {
   const pathname = usePathname()
@@ -26,10 +27,12 @@ export default function AdminSidebar() {
     Promise.all([
       fetch('/api/admin/tickets/pending-count').then(r => r.json()).catch(() => ({ count: 0 })),
       fetch('/api/admin/course-requests/pending-count').then(r => r.json()).catch(() => ({ count: 0 })),
-    ]).then(([tickets, courseReqs]) => {
+      fetch('/api/admin/feedback/pending-count').then(r => r.json()).catch(() => ({ count: 0 })),
+    ]).then(([tickets, courseReqs, feedback]) => {
       setBadges({
-        '/admin/tickets': tickets.count ?? 0,
+        '/admin/tickets':         tickets.count ?? 0,
         '/admin/course-requests': courseReqs.count ?? 0,
+        '/admin/feedback':        feedback.count ?? 0,
       })
     })
   }, [pathname])

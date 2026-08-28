@@ -11,6 +11,7 @@ import LessonContent from '@/components/LessonContent'
 import QuizComponent from '@/components/QuizComponent'
 import CodeEditor from '@/components/CodeEditor'
 import { ChevronLeft, ChevronRight, CheckCircle, Lock, Zap, Columns2, LayoutList, BookOpen, Code2, Trophy } from 'lucide-react'
+import FeedbackButton from '@/components/FeedbackButton'
 import type { Submission, QuizSubmission, CodingSubmission } from '@/lib/supabase'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -277,6 +278,7 @@ export default function TopicView({
           )}
 
           {/* Navigation */}
+          <FeedbackButton courseId={courseId} topicId={topicId} />
           <div className="flex justify-between items-center pt-6 border-t border-slate-200">
             {prevTopic ? (
               <Link
