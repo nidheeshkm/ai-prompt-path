@@ -3344,9 +3344,44 @@ set -euo pipefail`,
       },
 
       // ═══════════════════════════════════════════
-      // PART X: Coming in next content batch
-      // (chapters 235+ will be inserted here)
+      // PART X: Capstone Project (Chapters 235-237)
       // ═══════════════════════════════════════════
+      {
+        id: 235,
+        title: 'Foundation & Architecture',
+        description: 'Multi-tenant SaaS design, RLS, JWT auth, TenantContext & AI chat endpoint.',
+        part: 'Part X: Capstone Project',
+        icon: '🏛️',
+        topics: [
+          { id: '235.1', title: 'Capstone Architecture — Multi-Tenant SaaS Design', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '235.2', title: 'Multi-Tenant JWT Authentication', xp: 200, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '235.3', title: 'Core Domain — Tenant-Aware AI Chat Endpoint', xp: 200, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 236,
+        title: 'Data Layer & Event Streaming',
+        description: 'RAG knowledge base with tenant isolation, Kafka audit trail & Redis multi-tenant caching.',
+        part: 'Part X: Capstone Project',
+        icon: '⚡',
+        topics: [
+          { id: '236.1', title: 'RAG Knowledge Base with Per-Tenant Vector Store', xp: 200, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '236.2', title: 'Kafka Event Streaming — Domain Events & Audit Trail', xp: 200, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '236.3', title: 'Redis Caching — Multi-Tenant Rate Limiting & Session Cache', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 237,
+        title: 'Production Delivery',
+        description: 'Kubernetes deployment, AI-assisted development workflow & complete end-to-end capstone integration.',
+        part: 'Part X: Capstone Project',
+        icon: '🎓',
+        topics: [
+          { id: '237.1', title: 'Containerization & Kubernetes for the Capstone SaaS', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '237.2', title: 'AI-Assisted Development — Workflow & Best Practices', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '237.3', title: 'Capstone Final — Complete AI Knowledge Service Integration', xp: 500, assessmentType: 'mini-project' as const, content: '', codingTask: undefined },
+        ],
+      },
     ],
     project: {
       id: 'springboot-saas-capstone',
