@@ -23,10 +23,9 @@ async function importKey(usage: 'encrypt' | 'decrypt'): Promise<CryptoKey> {
 }
 
 export async function encryptApiKey(plaintext: string): Promise<string> {
-  const ivBytes = new Uint8Array(12)
-  crypto.getRandomValues(ivBytes)
-  const iv     = ivBytes.buffer as ArrayBuffer
-  const key    = await importKey('encrypt')
+  const iv  = new Uint8Array(12)
+  crypto.getRandomValues(iv)
+  const key = await importKey('encrypt')
   const cipher = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv },
     key,
@@ -38,8 +37,9 @@ export async function encryptApiKey(plaintext: string): Promise<string> {
 export async function decryptApiKey(stored: string): Promise<string> {
   const colon = stored.indexOf(':')
   if (colon === -1) throw new Error('Invalid encrypted key format')
-  const iv         = Buffer.from(stored.slice(0, colon), 'base64').buffer as ArrayBuffer
-  const ciphertext = Buffer.from(stored.slice(colon + 1), 'base64').buffer as ArrayBuffer
+  // Buffer.from().buffer points to the whole Node pool — use Uint8Array views instead.
+  const iv         = new Uint8Array(Buffer.from(stored.slice(0, colon), 'base64'))
+  const ciphertext = new Uint8Array(Buffer.from(stored.slice(colon + 1), 'base64'))
   const key    = await importKey('decrypt')
   const plain  = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
   return new TextDecoder().decode(plain)

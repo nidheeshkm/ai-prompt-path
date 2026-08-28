@@ -53,11 +53,11 @@ export const PROVIDER_CONFIG: Record<Provider, ProviderConfig> = {
   groq: {
     name: 'Groq',
     icon: '⚡',
-    model: 'llama-3.1-8b-instant',
+    model: 'openai/gpt-oss-20b',
     keyPrefix: 'gsk_',
     keyHint: 'gsk_...',
     helpUrl: 'https://console.groq.com/keys',
-    tagline: 'Llama 3.1 8B · Ultra-fast',
+    tagline: 'GPT-OSS 20B · Ultra-fast',
     free: true,
     format: 'openai',
     url: 'https://api.groq.com/openai/v1/chat/completions',

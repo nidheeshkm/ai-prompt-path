@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import type { Provider } from './providers'
 export type { Provider } from './providers'
 
@@ -10,7 +10,9 @@ const supabaseAnonKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
   'placeholder-key'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// createBrowserClient stores the session in cookies (not localStorage) so
+// server-side code (API routes, server components) can read the session too.
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey)
 
 export type Profile = {
   id: string
@@ -22,6 +24,8 @@ export type Profile = {
   longest_streak: number
   last_activity_date: string | null
   created_at: string
+  is_admin: boolean
+  is_blocked: boolean
   // Raw keys never reach the browser — only derived metadata
   active_provider: Provider | null
   configured_providers: Provider[]

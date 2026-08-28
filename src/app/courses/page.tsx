@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/auth-context'
 import { useEnrollment } from '@/lib/enrollment-context'
 import { useProgress } from '@/lib/progress-context'
 import Link from 'next/link'
-import { BookOpen, Clock, Trophy, ChevronRight, Award, Sparkles } from 'lucide-react'
+import { BookOpen, Clock, Trophy, ChevronRight, Award, Sparkles, BookPlus, Send, CheckCircle } from 'lucide-react'
+import { useState } from 'react'
 
 const LEVEL_CONFIG = {
   beginner: {
@@ -36,6 +37,112 @@ const COURSE_GRADIENTS = [
   'from-rose-500 to-pink-500',
   'from-teal-500 to-emerald-600',
 ]
+
+function CourseRequestForm() {
+  const { user } = useAuth()
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function submit() {
+    if (!title.trim() || !description.trim()) return
+    setState('sending')
+    try {
+      const res = await fetch('/api/courses/request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setErrorMsg(data.error ?? 'Something went wrong.')
+        setState('error')
+      } else {
+        setState('sent')
+      }
+    } catch {
+      setErrorMsg('Could not reach server.')
+      setState('error')
+    }
+  }
+
+  if (!user) return null
+
+  return (
+    <div className="glass rounded-2xl p-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0">
+            <BookPlus className="w-4 h-4 text-amber-600" />
+          </div>
+          <div>
+            <p className="font-semibold text-slate-900 text-sm">Can't find what you're looking for?</p>
+            <p className="text-xs text-slate-500">Request a new course topic — we review every submission.</p>
+          </div>
+        </div>
+        {!open && state !== 'sent' && (
+          <button
+            onClick={() => setOpen(true)}
+            className="shrink-0 text-sm font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-4 py-2 rounded-lg transition-colors"
+          >
+            Request a Course
+          </button>
+        )}
+      </div>
+
+      {state === 'sent' ? (
+        <div className="mt-4 flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm font-medium">
+          <CheckCircle className="w-4 h-4 shrink-0" />
+          Request submitted — thanks! We'll review it soon.
+        </div>
+      ) : open && (
+        <div className="mt-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Course topic / title</label>
+            <input
+              type="text"
+              value={title}
+              onChange={e => { setTitle(e.target.value); setState('idle'); setErrorMsg('') }}
+              placeholder="e.g. Advanced RAG with LangChain"
+              className="w-full border border-slate-200 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-300 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">What do you want to learn?</label>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={e => { setDescription(e.target.value); setState('idle'); setErrorMsg('') }}
+              placeholder="Describe the concepts, tools, or skills you'd like covered…"
+              className="w-full border border-slate-200 focus:border-amber-400 rounded-lg px-3 py-2 text-sm text-slate-900 placeholder-slate-300 focus:outline-none resize-none"
+            />
+          </div>
+          {state === 'error' && (
+            <p className="text-xs text-red-500">{errorMsg}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={submit}
+              disabled={state === 'sending' || !title.trim() || !description.trim()}
+              className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {state === 'sending' ? 'Submitting…' : 'Submit Request'}
+            </button>
+            <button
+              onClick={() => { setOpen(false); setState('idle'); setTitle(''); setDescription(''); setErrorMsg('') }}
+              className="text-sm font-medium text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function CourseCatalogPage() {
   const { user } = useAuth()
@@ -183,6 +290,8 @@ export default function CourseCatalogPage() {
             )
           })}
         </div>
+
+        <CourseRequestForm />
       </div>
     </main>
   )

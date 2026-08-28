@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const PROFILE_SELECT = 'id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, active_provider'
+  const PROFILE_SELECT = 'id, display_name, avatar_url, xp, level, current_streak, longest_streak, last_activity_date, created_at, active_provider, is_admin, is_blocked'
 
   function buildProfile(raw: Record<string, unknown>, keyRows: { provider: string }[]): Profile {
     const configured_providers = keyRows.map(r => r.provider as Provider)
@@ -81,18 +81,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
-      if (session?.user) fetchProfile(session.user.id)
-      else setProfile(null)
+      if (session?.user) {
+        fetchProfile(session.user.id).then(() => {
+          // is_blocked redirect handled inside fetchProfile via setProfile; guard below
+        })
+      } else {
+        setProfile(null)
+      }
       setLoading(false)
     })
 
     return () => subscription.unsubscribe()
   }, [fetchProfile])
 
+  // Redirect blocked users whenever profile updates
+  useEffect(() => {
+    if (profile?.is_blocked && typeof window !== 'undefined' && window.location.pathname !== '/blocked') {
+      window.location.href = '/blocked'
+    }
+  }, [profile?.is_blocked])
+
   const signOut = async () => {
+    // Call the server route first so it can clear HttpOnly auth cookies and
+    // admin_access via Set-Cookie headers. Then sign out the client-side
+    // singleton so onAuthStateChange fires and clears local state.
+    await fetch('/api/auth/signout', { method: 'POST' })
     await supabase.auth.signOut()
-    setUser(null)
-    setProfile(null)
+    window.location.href = '/'
   }
 
   return (
