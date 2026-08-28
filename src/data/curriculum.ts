@@ -2992,8 +2992,360 @@ set -euo pipefail`,
       },
 
       // ═══════════════════════════════════════════
-      // PARTS III-X: Coming in next content batch
-      // (chapters 208-234 will be inserted here)
+      // PART III — AI-Accelerated Spring Boot Dev
+      // ═══════════════════════════════════════════
+      {
+        id: 208,
+        title: 'Your AI Toolkit — Copilot, Cursor, Claude',
+        description: 'Master the three leading AI coding tools and learn when to use each for Spring Boot development.',
+        part: 'Part III — AI-Accelerated Spring Boot Dev',
+        icon: '🤖',
+        topics: [
+          { id: '208.1', title: 'GitHub Copilot for Spring Boot', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '208.2', title: 'Cursor IDE — The AI-First IDE', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '208.3', title: 'Claude Code CLI for Backend Dev', xp: 100, assessmentType: 'coding', content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 209,
+        title: 'AI-Driven Test-Driven Development',
+        description: 'Use AI to accelerate TDD — from test spec generation to Testcontainers integration tests.',
+        part: 'Part III — AI-Accelerated Spring Boot Dev',
+        icon: '🧪',
+        topics: [
+          { id: '209.1', title: 'Writing Tests with AI — From Spec to Green', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '209.2', title: 'AI-Assisted Testcontainers Integration Tests', xp: 100, assessmentType: 'coding', content: '', codingTask: undefined },
+          { id: '209.3', title: 'Full Integration Test Generation with AI', xp: 100, assessmentType: 'coding', content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 210,
+        title: 'AI-Assisted Code Review & Refactoring',
+        description: 'Use AI as a first-pass reviewer and modernise Spring Boot 2.x codebases to Java 21 / Boot 3.x.',
+        part: 'Part III — AI-Accelerated Spring Boot Dev',
+        icon: '🔍',
+        topics: [
+          { id: '210.1', title: 'AI Code Review Workflow', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '210.2', title: 'AI-Assisted Refactoring', xp: 100, assessmentType: 'coding', content: '', codingTask: undefined },
+          { id: '210.3', title: 'Anti-Pattern Detection with AI', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 211,
+        title: 'Prompt Engineering for Java Developers',
+        description: 'Write prompts that generate production-quality Spring Boot code on the first try.',
+        part: 'Part III — AI-Accelerated Spring Boot Dev',
+        icon: '✍️',
+        topics: [
+          { id: '211.1', title: 'Prompt Patterns for Code Generation', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '211.2', title: 'Context Strategies for Large Codebases', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '211.3', title: 'Multi-Step Prompting for Complex Features', xp: 100, assessmentType: 'coding', content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 212,
+        title: 'Building Your First AI-Enhanced Feature',
+        description: 'Execute a complete vertical slice — design, implement, and test with AI pairing.',
+        part: 'Part III — AI-Accelerated Spring Boot Dev',
+        icon: '🚀',
+        topics: [
+          { id: '212.1', title: 'Planning a Feature with AI — Architecture First', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+          { id: '212.2', title: 'AI Pair Programming — Building the Full Vertical Slice', xp: 125, assessmentType: 'coding', content: '', codingTask: undefined },
+          { id: '212.3', title: 'The AI Development Loop — Sustaining Velocity', xp: 75, assessmentType: 'quiz', content: '', quiz: [] },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART IV: Security + Testcontainers
+      // ═══════════════════════════════════════════
+      {
+        id: 213,
+        title: 'Spring Security 6.x — The New DSL',
+        description: 'Master the component-based SecurityFilterChain API that replaced WebSecurityConfigurerAdapter in Spring Boot 3.x.',
+        part: 'Part IV: Security + Testcontainers',
+        icon: '🔐',
+        topics: [
+          { id: '213.1', title: 'SecurityFilterChain & the New Lambda DSL', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '213.2', title: 'Method Security & Fine-Grained Authorization', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '213.3', title: 'CORS, CSRF & Security Headers in REST APIs', xp: 150, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 214,
+        title: 'JWT Authentication & OAuth2',
+        description: 'Build stateless JWT authentication from scratch and integrate with external Identity Providers via OAuth2 Resource Server.',
+        part: 'Part IV: Security + Testcontainers',
+        icon: '🔑',
+        topics: [
+          { id: '214.1', title: 'JWT Authentication from Scratch', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '214.2', title: 'OAuth2 Resource Server & OIDC', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '214.3', title: 'Refresh Tokens & Token Security', xp: 125, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 215,
+        title: 'Testcontainers Foundations',
+        description: 'Replace mocks with real infrastructure in your tests using Testcontainers for PostgreSQL, WireMock, and beyond.',
+        part: 'Part IV: Security + Testcontainers',
+        icon: '🐳',
+        topics: [
+          { id: '215.1', title: 'What is Testcontainers & Why It Replaces Mocks', xp: 75, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '215.2', title: 'PostgreSQL Testcontainers for JPA Repository Tests', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '215.3', title: 'WireMock & HTTP Dependency Testing', xp: 125, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 216,
+        title: 'Advanced Testcontainers & Security Integration Tests',
+        description: 'Test Kafka event flows, Redis caching, and end-to-end JWT security with real infrastructure containers.',
+        part: 'Part IV: Security + Testcontainers',
+        icon: '🧪',
+        topics: [
+          { id: '216.1', title: 'Kafka Testcontainers for Event-Driven Tests', xp: 150, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '216.2', title: 'Redis Testcontainers for Caching Tests', xp: 125, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '216.3', title: 'Security Integration Tests with MockMvc & Testcontainers', xp: 200, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART V: Microservices + Virtual Threads
+      // ═══════════════════════════════════════════
+      {
+        id: 217,
+        title: 'Microservices Architecture with Spring Boot',
+        description: 'Know when and how to decompose a monolith, set up service discovery with Eureka, and build an API gateway with Spring Cloud Gateway.',
+        part: 'Part V: Microservices + Virtual Threads',
+        icon: '🏗️',
+        topics: [
+          { id: '217.1', title: 'Monolith to Microservices — When and How to Decompose', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '217.2', title: 'Service Discovery with Spring Cloud', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '217.3', title: 'API Gateway with Spring Cloud Gateway', xp: 150, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 218,
+        title: 'Service Communication — OpenFeign, Kafka & Sagas',
+        description: 'Build declarative HTTP clients with OpenFeign, publish and consume Kafka events, and implement the Saga pattern for distributed transactions.',
+        part: 'Part V: Microservices + Virtual Threads',
+        icon: '🔗',
+        topics: [
+          { id: '218.1', title: 'Synchronous REST with Spring Cloud OpenFeign', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '218.2', title: 'Asynchronous Messaging with Spring Kafka', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '218.3', title: 'The Event-Driven Saga Pattern', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 219,
+        title: 'Java 21 Virtual Threads & Structured Concurrency',
+        description: 'Understand how virtual threads work, enable them in Spring Boot 3.2+, and use StructuredTaskScope to safely run concurrent tasks.',
+        part: 'Part V: Microservices + Virtual Threads',
+        icon: '⚡',
+        topics: [
+          { id: '219.1', title: 'Virtual Threads — What They Are and Why They Matter', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '219.2', title: 'Enabling Virtual Threads in Spring Boot 3.2+', xp: 150, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '219.3', title: 'Structured Concurrency & StructuredTaskScope', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 220,
+        title: 'Resilience Patterns — Circuit Breaker, Retry & Tracing',
+        description: 'Prevent cascade failures with Resilience4j circuit breakers, add retry and bulkhead protection, and trace requests across services with Micrometer.',
+        part: 'Part V: Microservices + Virtual Threads',
+        icon: '🛡️',
+        topics: [
+          { id: '220.1', title: 'Circuit Breaker with Resilience4j', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '220.2', title: 'Retry, Rate Limiter & Bulkhead', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '220.3', title: 'Distributed Tracing with Micrometer & Zipkin', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART VI: Spring AI + RAG + AI Security (Chapters 221-224)
+      // ═══════════════════════════════════════════
+      {
+        id: 221,
+        title: 'Spring AI Foundations',
+        description: 'ChatClient API, Advisors, Prompt Templates, Structured Output & Embeddings.',
+        part: 'Part VI: Spring AI + RAG',
+        icon: '🤖',
+        topics: [
+          { id: '221.1', title: 'Spring AI Overview — ChatClient, Models & Advisors', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '221.2', title: 'Prompt Templates & Structured Output', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '221.3', title: 'Multimodality & Embeddings', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 222,
+        title: 'RAG with Spring AI',
+        description: 'Vector stores, document pipelines, QuestionAnswerAdvisor, hybrid search & evaluation.',
+        part: 'Part VI: Spring AI + RAG',
+        icon: '🔍',
+        topics: [
+          { id: '222.1', title: 'Vector Stores & the Document Pipeline', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '222.2', title: 'Building a RAG Pipeline — Ingest, Retrieve, Generate', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '222.3', title: 'Advanced RAG — Hybrid Search, Reranking & Conversational Memory', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 223,
+        title: 'Spring AI Agents & Tool Calling',
+        description: 'Function calling with @Tool, conversation memory, and building agentic loops.',
+        part: 'Part VI: Spring AI + RAG',
+        icon: '⚙️',
+        topics: [
+          { id: '223.1', title: 'Tool Calling — Giving the LLM Capabilities', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '223.2', title: 'Conversation Memory & Session Management', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '223.3', title: 'Building an Agentic Loop', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 224,
+        title: 'AI Security & Production Readiness',
+        description: 'Prompt injection, input/output guardrails, cost control & AI observability.',
+        part: 'Part VI: Spring AI + RAG',
+        icon: '🛡️',
+        topics: [
+          { id: '224.1', title: 'Prompt Injection — Attacks & Defenses', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '224.2', title: 'Input/Output Guardrails & Content Moderation', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '224.3', title: 'Cost Control, Observability & Production Readiness', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART VII: DDD, CQRS & Event Sourcing (Chapters 225-228)
+      // ═══════════════════════════════════════════
+      {
+        id: 225,
+        title: 'DDD Foundations',
+        description: 'Bounded contexts, ubiquitous language, aggregates, value objects & domain events.',
+        part: 'Part VII: DDD, CQRS & Event Sourcing',
+        icon: '🏗️',
+        topics: [
+          { id: '225.1', title: 'Strategic DDD — Bounded Contexts & Ubiquitous Language', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '225.2', title: 'Tactical DDD — Aggregates, Entities & Value Objects', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '225.3', title: 'Domain Events & Application Services', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 226,
+        title: 'CQRS Pattern',
+        description: 'Command/Query segregation, read models, projections & eventual consistency.',
+        part: 'Part VII: DDD, CQRS & Event Sourcing',
+        icon: '↔️',
+        topics: [
+          { id: '226.1', title: 'CQRS Fundamentals — Separating Reads from Writes', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '226.2', title: 'Read Models, Projections & Eventual Consistency', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '226.3', title: 'CQRS with Spring + Spring Data', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 227,
+        title: 'Event Sourcing',
+        description: 'Event store, append-only persistence, snapshots & projection replay.',
+        part: 'Part VII: DDD, CQRS & Event Sourcing',
+        icon: '📜',
+        topics: [
+          { id: '227.1', title: 'Event Sourcing Fundamentals — The Event Store', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '227.2', title: 'Snapshots & Event Stream Management', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '227.3', title: 'Event Replay, Projections & Trade-offs', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 228,
+        title: 'Spring Modulith & Architecture Tests',
+        description: 'Modular monolith with Spring Modulith, ArchUnit, and module testing.',
+        part: 'Part VII: DDD, CQRS & Event Sourcing',
+        icon: '🔬',
+        topics: [
+          { id: '228.1', title: 'Spring Modulith — Modular Monolith Architecture', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '228.2', title: 'ArchUnit — Architecture Tests as Code', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '228.3', title: 'Module Testing with Spring Modulith', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART VIII: Cloud, Kubernetes & CI/CD (Chapters 229-231)
+      // ═══════════════════════════════════════════
+      {
+        id: 229,
+        title: 'Containerizing Spring Boot',
+        description: 'Multi-stage Dockerfiles, Jib, Spring Buildpacks & container configuration.',
+        part: 'Part VIII: Cloud, Kubernetes & CI/CD',
+        icon: '🐳',
+        topics: [
+          { id: '229.1', title: 'Dockerfile Best Practices for Spring Boot', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '229.2', title: 'Jib — Container Images Without Docker', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '229.3', title: 'Application Configuration for Containers', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 230,
+        title: 'Kubernetes for Spring Boot',
+        description: 'Deployments, Services, ConfigMaps, health probes, HPA & production patterns.',
+        part: 'Part VIII: Cloud, Kubernetes & CI/CD',
+        icon: '☸️',
+        topics: [
+          { id: '230.1', title: 'Kubernetes Core Concepts for Spring Boot Developers', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '230.2', title: 'Health Probes, Resource Limits & Horizontal Pod Autoscaler', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '230.3', title: 'Ingress, Namespaces & Production Kubernetes Patterns', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 231,
+        title: 'CI/CD with GitHub Actions',
+        description: 'CI pipelines, staging/production deployments, GitOps with ArgoCD & DORA metrics.',
+        part: 'Part VIII: Cloud, Kubernetes & CI/CD',
+        icon: '🚀',
+        topics: [
+          { id: '231.1', title: 'GitHub Actions CI Pipeline for Spring Boot', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '231.2', title: 'CD Pipeline — Staging & Production Deployment', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '231.3', title: 'GitOps with ArgoCD & Production Best Practices', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART IX: Architect Thinking (Chapters 232-234)
+      // ═══════════════════════════════════════════
+      {
+        id: 232,
+        title: 'System Design & Architecture Patterns',
+        description: 'CAP theorem, distributed patterns, ADRs, sagas, outbox pattern & API gateway.',
+        part: 'Part IX: Architect Thinking',
+        icon: '🧠',
+        topics: [
+          { id: '232.1', title: 'CAP Theorem, Distributed Trade-offs & Architecture Decision Records', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '232.2', title: 'Designing for Scale — Caching, Load Balancing & Data Partitioning', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '232.3', title: 'Microservices Patterns — API Gateway, Service Mesh & Event-Driven Design', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 233,
+        title: 'Observability & Resilience Engineering',
+        description: 'OpenTelemetry, structured logging, SLOs, Resilience4j circuit breakers & performance tuning.',
+        part: 'Part IX: Architect Thinking',
+        icon: '🔭',
+        topics: [
+          { id: '233.1', title: 'Observability with OpenTelemetry & Spring Boot', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '233.2', title: 'Resilience Patterns with Resilience4j', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '233.3', title: 'Performance Engineering — Profiling, Tuning & Capacity Planning', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 234,
+        title: 'API Design & Microservices Communication',
+        description: 'REST excellence, gRPC, GraphQL, WebSockets & protocol selection.',
+        part: 'Part IX: Architect Thinking',
+        icon: '🔌',
+        topics: [
+          { id: '234.1', title: 'REST API Design Excellence', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '234.2', title: 'gRPC with Spring Boot — Protocol Buffers & Streaming', xp: 175, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '234.3', title: 'GraphQL, WebSockets & Protocol Selection', xp: 100, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+
+      // ═══════════════════════════════════════════
+      // PART X: Coming in next content batch
+      // (chapters 235+ will be inserted here)
       // ═══════════════════════════════════════════
     ],
     project: {
