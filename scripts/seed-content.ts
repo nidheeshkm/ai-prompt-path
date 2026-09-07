@@ -65,6 +65,23 @@ import {
   ch236Content, ch236Quiz, ch236CodingTask,
   ch237Content, ch237Quiz, ch237CodingTask,
 } from './content/springboot-part10-index'
+import {
+  ch301Content, ch301Quiz, ch301CodingTask,
+  ch302Content, ch302Quiz, ch302CodingTask,
+  courseId as pyCourseId,
+} from './content/python-for-ai-part1-index'
+import {
+  ch303Content, ch303Quiz, ch303CodingTask,
+  ch304Content, ch304Quiz, ch304CodingTask,
+} from './content/python-for-ai-part2-index'
+import {
+  ch305Content, ch305Quiz, ch305CodingTask,
+  ch306Content, ch306Quiz, ch306CodingTask,
+} from './content/python-for-ai-part3-index'
+import {
+  ch307Content, ch307Quiz, ch307CodingTask,
+  ch308Content, ch308Quiz, ch308CodingTask,
+} from './content/python-for-ai-part4-index'
 
 config({ path: '.env.local' })
 
@@ -207,6 +224,48 @@ async function seed() {
     )
     if (error) { errors.push(`coding ${sbCourseId}/${topicId}: ${error.message}`) }
     else { console.log(`  ✓ coding   ${sbCourseId}/${topicId}`); codingCount++ }
+  }
+
+  // ── Python for AI content files (python-for-ai chapters 301-308) ────────────
+  const pyContent = { ...ch301Content, ...ch302Content, ...ch303Content, ...ch304Content,
+                      ...ch305Content, ...ch306Content, ...ch307Content, ...ch308Content }
+  const pyQuiz    = { ...ch301Quiz,    ...ch302Quiz,    ...ch303Quiz,    ...ch304Quiz,
+                      ...ch305Quiz,    ...ch306Quiz,    ...ch307Quiz,    ...ch308Quiz }
+  const pyCoding  = { ...ch301CodingTask, ...ch302CodingTask, ...ch303CodingTask, ...ch304CodingTask,
+                      ...ch305CodingTask, ...ch306CodingTask, ...ch307CodingTask, ...ch308CodingTask }
+
+  for (const [topicId, content] of Object.entries(pyContent)) {
+    const { error } = await supabase.from('course_topic_content').upsert(
+      { course_id: pyCourseId, topic_id: topicId, content },
+      { onConflict: 'course_id,topic_id' },
+    )
+    if (error) { errors.push(`content ${pyCourseId}/${topicId}: ${error.message}`) }
+    else { console.log(`  ✓ content  ${pyCourseId}/${topicId}`); contentCount++ }
+  }
+
+  for (const [topicId, questions] of Object.entries(pyQuiz)) {
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      const { error } = await supabase.from('course_quiz_questions').upsert(
+        { course_id: pyCourseId, topic_id: topicId, question_index: i,
+          question: q.question, options: q.options, correct_index: q.correctIndex, explanation: q.explanation },
+        { onConflict: 'course_id,topic_id,question_index' },
+      )
+      if (error) errors.push(`quiz ${pyCourseId}/${topicId}[${i}]: ${error.message}`)
+      else quizCount++
+    }
+    console.log(`  ✓ quiz     ${pyCourseId}/${topicId} (${questions.length} questions)`)
+  }
+
+  for (const [topicId, task] of Object.entries(pyCoding)) {
+    const { error } = await supabase.from('course_coding_tasks').upsert(
+      { course_id: pyCourseId, topic_id: topicId,
+        instructions: task.instructions, boilerplate: task.boilerplate,
+        rubric: task.rubric, hints: task.hints },
+      { onConflict: 'course_id,topic_id' },
+    )
+    if (error) { errors.push(`coding ${pyCourseId}/${topicId}: ${error.message}`) }
+    else { console.log(`  ✓ coding   ${pyCourseId}/${topicId}`); codingCount++ }
   }
 
   console.log(`\nSeeded: ${contentCount} lesson texts, ${quizCount} quiz questions, ${codingCount} coding tasks.`)

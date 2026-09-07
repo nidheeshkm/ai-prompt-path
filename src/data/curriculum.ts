@@ -3487,6 +3487,203 @@ name: CI/CD
     },
   },
 
+  {
+    id: 'python-for-ai',
+    title: 'Python for AI — From Setup to Your First AI App',
+    tagline: 'Every prerequisite for AI development, in one hands-on track',
+    description: 'A complete on-ramp for anyone who wants to start building AI. Begin with installing Python and virtual environments, work through the language essentials, the scientific stack (NumPy, pandas, matplotlib), the math and statistics you actually need, and finish with scikit-learn, a from-scratch PyTorch training loop, pretrained models, and calling LLM APIs. Every chapter has lessons, quizzes, and coding challenges.',
+    icon: '🐍',
+    level: 'beginner' as const,
+    estimatedHours: 45,
+    tags: ['Python', 'NumPy', 'pandas', 'Matplotlib', 'scikit-learn', 'PyTorch', 'LLM APIs', 'Math'],
+    levelTitles: ['Python Novice', 'Scripting Practitioner', 'Data Wrangler', 'ML Practitioner', 'AI Developer'] as [string, string, string, string, string],
+    chapters: [
+      {
+        id: 301,
+        title: 'Python Setup & Your AI Development Environment',
+        description: 'Install Python the right way, isolate projects with virtual environments, and set up VS Code, notebooks, Git, and secrets.',
+        part: 'Part I: Python & Environment Setup',
+        icon: '🐍',
+        topics: [
+          { id: '301.1', title: 'Installing Python & Managing Versions', xp: 60, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '301.2', title: 'Virtual Environments & Dependency Management', xp: 130, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '301.3', title: 'IDEs & Notebooks: VS Code, Jupyter, Colab', xp: 60, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '301.4', title: 'The Command Line, Git & Environment Variables', xp: 70, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 302,
+        title: 'Python Language Essentials for AI',
+        description: 'Core types, control flow, comprehensions, functions, type hints, and the built-in data structures you will use every day.',
+        part: 'Part I: Python & Environment Setup',
+        icon: '📘',
+        topics: [
+          { id: '302.1', title: 'Core Types, Strings & F-Strings', xp: 110, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '302.2', title: 'Control Flow, Loops & Comprehensions', xp: 70, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '302.3', title: 'Functions, *args/**kwargs, Type Hints & Docstrings', xp: 130, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '302.4', title: 'Data Structures: list, dict, set, tuple', xp: 70, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 303,
+        title: 'Intermediate Python for AI',
+        description: 'Classes and dataclasses, generators and lazy evaluation, exceptions and context managers, project layout, and async for API calls.',
+        part: 'Part II: Intermediate Python & Numerical Computing',
+        icon: '⚙️',
+        topics: [
+          { id: '303.1', title: 'Classes, Dataclasses & OOP', xp: 140, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '303.2', title: 'Iterators, Generators & Lazy Evaluation', xp: 140, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '303.3', title: 'Exceptions, Context Managers, Files & Logging', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '303.4', title: 'Modules, Packages & Project Layout', xp: 70, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '303.5', title: 'Async Python: asyncio & Concurrency for API Calls', xp: 160, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 304,
+        title: 'NumPy & Vectorized Computing',
+        description: 'The ndarray, dtypes and shapes, indexing and boolean masks, broadcasting, vectorization, and linear algebra.',
+        part: 'Part II: Intermediate Python & Numerical Computing',
+        icon: '🔢',
+        topics: [
+          { id: '304.1', title: 'ndarrays, dtypes & Shape', xp: 140, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '304.2', title: 'Indexing, Slicing & Boolean Masking', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '304.3', title: 'Broadcasting & Vectorization', xp: 160, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '304.4', title: 'Linear Algebra & Random with NumPy', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 305,
+        title: 'pandas for Data Wrangling',
+        description: 'Series and DataFrames, reading messy data, selection and GroupBy, cleaning missing values and types, merging and time series.',
+        part: 'Part III: Data Handling & Visualization',
+        icon: '🐼',
+        topics: [
+          { id: '305.1', title: 'Series, DataFrames & Reading Data', xp: 140, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '305.2', title: 'Selection, Filtering, apply & GroupBy', xp: 150, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '305.3', title: 'Cleaning Data: Missing Values, Types & Duplicates', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '305.4', title: 'Merging, Joining, Pivoting & Time Series', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 306,
+        title: 'Data Visualization & EDA',
+        description: 'Matplotlib fundamentals, seaborn for statistical graphics, and a disciplined exploratory data analysis workflow.',
+        part: 'Part III: Data Handling & Visualization',
+        icon: '📊',
+        topics: [
+          { id: '306.1', title: 'Matplotlib Fundamentals', xp: 130, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '306.2', title: 'Seaborn for Statistical Graphics', xp: 70, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '306.3', title: 'The Exploratory Data Analysis Workflow', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+        ],
+      },
+      {
+        id: 307,
+        title: 'Math Foundations for AI',
+        description: 'The working intuition you need: linear algebra, gradients and the chain rule, probability and statistics, and gradient descent from scratch.',
+        part: 'Part IV: Math & Machine-Learning On-Ramp',
+        icon: '📐',
+        topics: [
+          { id: '307.1', title: 'Linear Algebra: Vectors, Matrices, Dot Products & Norms', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '307.2', title: 'Calculus & Gradients: Derivatives, Chain Rule & Backprop', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '307.3', title: 'Probability & Statistics Essentials', xp: 80, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '307.4', title: 'Gradient Descent from Scratch', xp: 180, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+      {
+        id: 308,
+        title: 'Machine Learning & the AI On-Ramp',
+        description: 'The scikit-learn workflow, regression/classification metrics, a minimal PyTorch training loop, pretrained models, and calling LLM APIs.',
+        part: 'Part IV: Math & Machine-Learning On-Ramp',
+        icon: '🤖',
+        topics: [
+          { id: '308.1', title: 'The scikit-learn Workflow: Split, Fit, Predict, Evaluate', xp: 160, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '308.2', title: 'Regression, Classification & Evaluation Metrics', xp: 90, assessmentType: 'quiz' as const, content: '', quiz: [] },
+          { id: '308.3', title: 'PyTorch Tensors & a Minimal Training Loop', xp: 190, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+          { id: '308.4', title: 'Using Pretrained Models & Calling LLM APIs', xp: 190, assessmentType: 'coding' as const, content: '', codingTask: undefined },
+        ],
+      },
+    ],
+    project: {
+      id: 'python-ai-capstone',
+      title: 'Build an End-to-End AI Text Classifier',
+      description: 'Tie the whole course together: load and clean a real text dataset with pandas, explore it, build a scikit-learn baseline, train a small PyTorch model, then add an LLM-API fallback for low-confidence predictions — packaged as a clean, reproducible project.',
+      milestones: [
+        {
+          id: 'py-milestone-1',
+          title: 'Project Scaffold + Data Pipeline',
+          xp: 200,
+          instructions: `Set up a reproducible project and a cleaning pipeline.
+
+1. Create a project with a virtual environment, pyproject.toml (or requirements.txt), .gitignore, and .env.example
+2. Implement load_data(path) that reads a CSV of {text, label}, drops rows with a missing label, strips/normalises the text, and removes exact-duplicate texts
+3. Implement basic_eda(df) that returns label counts, text-length statistics, and the fraction of duplicates removed
+4. Implement make_splits(df, seed) producing stratified train/val/test DataFrames
+5. Write pytest tests for load_data and make_splits`,
+          boilerplate: `# project/
+#   pyproject.toml
+#   src/textclf/data.py
+#   tests/test_data.py
+#
+# TODO: implement load_data, basic_eda, make_splits`,
+          rubric: ['Virtual env + dependency file + .gitignore + .env.example present', 'load_data drops missing-label rows, normalises text, de-duplicates', 'basic_eda reports label balance and length stats', 'make_splits is stratified and reproducible for a fixed seed', 'pytest tests cover load_data and make_splits'],
+          hints: ['Use pandas.read_csv with dtype/na handling', 'Stratify with sklearn.model_selection.train_test_split(stratify=...)', 'Fit any text cleaning on all splits identically (it is deterministic, so no leakage)'],
+          solutionCode: '',
+        },
+        {
+          id: 'py-milestone-2',
+          title: 'scikit-learn Baseline',
+          xp: 200,
+          instructions: `Build and evaluate a classical baseline.
+
+1. Build a Pipeline of TfidfVectorizer -> LogisticRegression
+2. Tune C with GridSearchCV using stratified 5-fold CV on the training set, scoring f1_macro
+3. Fit the best pipeline on train, evaluate on validation: accuracy, macro precision/recall/F1, confusion matrix
+4. Compare against a DummyClassifier(strategy="most_frequent") baseline
+5. Persist the fitted pipeline with joblib`,
+          boilerplate: `# src/textclf/baseline.py
+# TODO: build_pipeline(), tune(), evaluate(), save_model()`,
+          rubric: ['TfidfVectorizer + LogisticRegression pipeline', 'GridSearchCV over C with StratifiedKFold and f1_macro', 'Validation metrics reported including confusion matrix', 'Beats the DummyClassifier baseline', 'Fitted pipeline saved with joblib'],
+          hints: ['GridSearchCV never touches the test set', 'classification_report(y_val, y_pred) gives per-class metrics', 'joblib.dump(pipeline, "model.joblib")'],
+          solutionCode: '',
+        },
+        {
+          id: 'py-milestone-3',
+          title: 'PyTorch Model',
+          xp: 250,
+          instructions: `Train a small neural classifier on top of embeddings.
+
+1. Encode texts with a sentence-transformers model (all-MiniLM-L6-v2), normalise the embeddings
+2. Define an MLP (nn.Module): Linear -> ReLU -> Dropout -> Linear, returning logits
+3. Implement the training loop: DataLoader batching, Adam, CrossEntropyLoss, the 5 steps, per-epoch validation
+4. Add early stopping on validation macro-F1 with a patience of 3 epochs
+5. Plot train/val loss and val F1 curves; save the best model state_dict`,
+          boilerplate: `# src/textclf/torch_model.py
+# TODO: embed(texts), MLP, train(), evaluate(), early stopping`,
+          rubric: ['Embeddings produced and L2-normalised', 'MLP returns raw logits; loss is CrossEntropyLoss on logits', 'Training loop has zero_grad -> forward -> loss -> backward -> step in order', 'Early stopping on val macro-F1 with patience 3', 'Learning curves plotted; best state_dict saved'],
+          hints: ['model.train() for training, model.eval() + torch.no_grad() for evaluation', 'Keep the best state_dict in memory and restore it after training', 'Move model and batches to the same device'],
+          solutionCode: '',
+        },
+        {
+          id: 'py-milestone-4',
+          title: 'LLM Fallback + Packaging',
+          xp: 300,
+          instructions: `Add an LLM fallback and package the predictor.
+
+1. Implement predict_proba(texts) for the PyTorch model and a confidence = max softmax probability
+2. For texts whose confidence < threshold, call an LLM classify() (client injected/mocked) that must return exactly one of the label set, with retry-and-backoff and output validation
+3. Implement predict(texts) that routes each text to the model or the LLM fallback and returns labels + a source tag ("model" | "llm")
+4. Report final metrics on the held-out test set for: model-only vs model+fallback
+5. Provide a CLI: python -m textclf predict --input file.csv --output preds.csv, and a short README`,
+          boilerplate: `# src/textclf/predict.py, src/textclf/__main__.py
+# TODO: predict_proba, llm fallback with validation, routing, CLI`,
+          rubric: ['Confidence computed from max softmax probability', 'LLM fallback validates output against the label set and retries transient errors with backoff', 'predict() routes by threshold and tags each prediction source', 'Test-set metrics reported for model-only vs model+fallback', 'Working CLI entry point and README'],
+          hints: ['Do not call a real API in tests — inject the client', 'A coroutine/callable factory makes retry logic testable', 'argparse or click for the CLI; wire it in __main__.py'],
+          solutionCode: '',
+        },
+      ],
+    },
+  },
+
 ]
 
 // ── Course-aware helpers ──────────────────────────────────────
